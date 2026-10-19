@@ -119,9 +119,9 @@ async function syncTokenFlags(scene = canvas?.scene) {
       const pin = doc.getFlag(MODULE_ID, 'shopPin');
       const update = {_id:doc.id};
       let changed = false;
-      if (previous !== enabled) {update[\`flags.\${MODULE_ID}.merchant\`] = enabled; changed = true;}
+      if (previous !== enabled) {update[`flags.${MODULE_ID}.merchant`] = enabled; changed = true;}
       // Capture the starting location once; moving the NPC never moves its shop marker.
-      if (enabled && !validShopPin(pin)) {update[\`flags.\${MODULE_ID}.shopPin\`] = shopPinFromToken(doc, gridSize); changed = true;}
+      if (enabled && !validShopPin(pin)) {update[`flags.${MODULE_ID}.shopPin`] = shopPinFromToken(doc, gridSize); changed = true;}
       if (changed) changes.push(update);
     }
     if (changes.length) await scene.updateEmbeddedDocuments('Token', changes);
@@ -142,14 +142,14 @@ function updateBadges() {
       const actor = worldActor(token.document.actorId);
       const enabled = !!(token.document.getFlag(MODULE_ID,'merchant') || (actor && shopData(actor).enabled));
       if (!enabled) continue;
-      const id = \`\${canvas.scene.id}:\${token.document.id}\`;
+      const id = `${canvas.scene.id}:${token.document.id}`;
       live.add(id);
       let badge = badges.get(id);
       if (!badge) {
         badge = document.createElement('button');
         badge.type = 'button';
         badge.className = 'npc-shop-badge';
-        badge.title = \`Open shop: \${token.name}\`;
+        badge.title = `Open shop: ${token.name}`;
         badge.innerHTML = '<i class="fas fa-store"></i>';
         badge.addEventListener('click', e => {e.preventDefault(); e.stopPropagation(); open(descriptorFromToken(token));});
         document.body.appendChild(badge);
@@ -159,8 +159,8 @@ function updateBadges() {
       try {
         const position = pinScreenPoint(pin, p => canvas.stage.toGlobal(p), rect, viewport?.width, viewport?.height);
         if (!position) throw new Error('Invalid shop pin');
-        badge.style.left = \`\${position.x}px\`;
-        badge.style.top = \`\${position.y}px\`;
+        badge.style.left = `${position.x}px`;
+        badge.style.top = `${position.y}px`;
         badge.style.display = '';
       } catch (err) {badge.style.display = 'none';}
     }
@@ -183,8 +183,8 @@ function installAccessButton() {
   const getSaved = () => game.settings.get(MODULE_ID, 'buttonPosition');
   const positionButton = position => {
     const next = clampButtonPosition(position, window.innerWidth, window.innerHeight, btn.offsetWidth || 110, btn.offsetHeight || 36);
-    btn.style.left = \`\${next.x}px\`;
-    btn.style.top = \`\${next.y}px\`;
+    btn.style.left = `${next.x}px`;
+    btn.style.top = `${next.y}px`;
     return next;
   };
   document.body.appendChild(btn);
@@ -260,7 +260,7 @@ Hooks.once('ready', () => {
     try { result = await dispatch(payload); }
     catch (err) {
       console.error('NPC Shops: GM socket request failed', err);
-      result = {ok:false, message:\`GM could not process \${payload.action}: \${err?.message || 'unknown error'}\`};
+      result = {ok:false, message:`GM could not process ${payload.action}: ${err?.message || 'unknown error'}`};
     }
     try { game.socket.emit(SOCKET, {type:'response',to:payload.userId,requestId:payload.requestId,result}); }
     catch (err) { console.error('NPC Shops: unable to send shop response', err); }
