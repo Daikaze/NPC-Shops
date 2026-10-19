@@ -72,19 +72,24 @@ test('GM sees Make Merchant for an unconfigured NPC', async () => {
   assert.match(win.element.innerHTML,/Make Merchant/);
 });
 
-test('rollable table management is visible only to the GM', async () => {
+test('GM sees Buy, Sell and Manage; players see Buy and Sell only', async () => {
   const {ShopWindow}=await import('../src/ui.js');
-  const merchant={id:'merchant',name:'Mura',img:'npc.png',getFlag:()=>({enabled:true,open:true,stock:[],tables:[],ledger:[]})};
-  globalThis.game={user:{id:'gm',isGM:true},version:'14',tables:{contents:[]},actors:{contents:[],get:()=>merchant}};
+  const merchant={id:'merchant',name:'Mura',img:'npc.png',getFlag:()=>({enabled:true,open:true,stock:[],ledger:[]})};
+  globalThis.game={user:{id:'gm',isGM:true},version:'14',actors:{contents:[],get:()=>merchant}};
   const gmWin=new ShopWindow({actorId:'merchant'},async()=>{},async()=>{});
-  gmWin.mode='tables';gmWin.element={innerHTML:''};gmWin.render();
-  assert.match(gmWin.element.innerHTML,/Rollable Tables/);
-  assert.match(gmWin.element.innerHTML,/Roll All Tables/);
+  gmWin.mode='manage';gmWin.element={innerHTML:''};gmWin.render();
+  assert.match(gmWin.element.innerHTML,/data-action="tab-buy"/);
+  assert.match(gmWin.element.innerHTML,/data-action="tab-sell"/);
+  assert.match(gmWin.element.innerHTML,/data-action="tab-manage"/);
+  assert.doesNotMatch(gmWin.element.innerHTML,/Rollable Tables/);
   globalThis.game.user={id:'p',isGM:false};
   const playerWin=new ShopWindow({actorId:'merchant'},async()=>{},async()=>{});
-  playerWin.mode='tables';playerWin.remoteShop={enabled:true,open:true,stock:[],ledger:[],allowSelling:true};playerWin.element={innerHTML:''};playerWin.render();
+  playerWin.remoteShop={enabled:true,open:true,stock:[],ledger:[],allowSelling:true};
+  playerWin.element={innerHTML:''};playerWin.render();
+  assert.match(playerWin.element.innerHTML,/data-action="tab-buy"/);
+  assert.match(playerWin.element.innerHTML,/data-action="tab-sell"/);
+  assert.doesNotMatch(playerWin.element.innerHTML,/data-action="tab-manage"/);
   assert.doesNotMatch(playerWin.element.innerHTML,/Rollable Tables/);
-  assert.doesNotMatch(playerWin.element.innerHTML,/Roll All Tables/);
 });
 
 test('successful player sale posts one chat receipt and duplicate ID does not repeat it',async()=>{

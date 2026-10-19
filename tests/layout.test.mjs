@@ -10,5 +10,5 @@ test('manifest enables relay for shared GM shopping requests', async () => {
   const {readFile} = await import('node:fs/promises');
   const manifest=JSON.parse(await readFile(new URL('../module.json',import.meta.url),'utf8'));
   assert.equal(manifest.socket,true);
-  assert.equal(manifest.version,'0.1.6');
+  assert.equal(manifest.version,'0.1.7');
 });
