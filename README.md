@@ -1,6 +1,6 @@
 # NPC Shops
 
-**Experimental alpha v0.1.2** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+**Experimental alpha v0.1.3** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
 
 ## Features
 
@@ -23,10 +23,16 @@ The `download` in the manifest requires a successfully published GitHub release 
 
 1. As GM, place an NPC token on a Scene; select it and press **Alt+S**, or click the shop icon in its Token HUD. The merchant window shows **Make Merchant** for regular NPCs.
 2. As GM, click **Make Merchant**, open the **Manage** tab, and drag Items into the drop zone. New stock starts at quantity 1; customize the price and stock, then **Save**.
-3. Players click the movable **Shops** button to browse visible merchants on the active scene, or the small store badge pinned to where the merchant was made. Choose their owned character and use **Buy** / **Sell**. They do **not** need permission to control the NPC. Player **Alt+S** also opens the scene Shops list.
+3. Players open a shop by clicking the store icon attached to a merchant token, without requiring NPC ownership. Only the GM sees the draggable **Shops** directory and may use **Alt+S**.
 4. A GM with NPC Shops enabled must be online to process player transactions. All shop configuration happens on the GM client.
 
 The actor remains a normal NPC; shop stock is stored independently in `flags.npc-shops.shop` rather than mixed with the NPC's combat inventory.
+
+## v0.1.3 fixes
+
+- Shop icons are now attached to the actual token in the PIXI canvas and follow it with no lag. They no longer overlap Character Sheets.
+- Floating Shops directory, GM Token HUD shop controls, and Alt+S shortcut are GM-only. Players still click the merchant token shop badge to buy/sell.
+- Legacy fixed shopPin flags are ignored.
 
 ## v0.1.2 fixes
 
@@ -53,7 +59,7 @@ The actor remains a normal NPC; shop stock is stored independently in `flags.npc
 - Merchants are **world Actors**, not unlinked synthetic tokens or Compendium-only Actors. Shop transfers create new item entries rather than automatically stacking identical items.
 - A GM can manage stock concurrently with a player purchase; do not edit shop inventory while players transact. Multiple simultaneously active GMs use the lowest-ID active GM as processing host; unusual GM disconnects can interrupt an in-flight trade.
 - The `getFlag` stock data may be large with numerous item snapshots. Keep inventory moderate.
-- Existing modules that replace Token HUD or drag data payloads may need additional integrations. **GM: Alt+S or Token HUD. Players: Shops button or token store badge.**
+- Existing modules that replace Token HUD or drag data payloads may need additional integrations. **GM: Alt+S or Token HUD. Players: token store badge.**
 
 ## Developer API
 

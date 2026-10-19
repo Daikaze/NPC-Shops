@@ -5,8 +5,8 @@
 .npc-shops-access:active{cursor:grabbing}
 .npc-shops-access .ns-drag-grip{opacity:.65;margin-left:5px}
 .npc-shops-access:hover{background:#554630!important}
-.npc-shop-badge{position:fixed;z-index:515;width:27px;height:27px;border:1px solid #c9a25b;border-radius:50%;background:#322b20;color:#ffd780;cursor:pointer;box-shadow:0 2px 6px #000b;font-size:13px;display:flex;align-items:center;justify-content:center}
-.npc-shop-badge:hover{background:#60502e;transform:scale(1.1)}
+
+
 .npc-shops-window.ns-directory{width:min(430px,95vw);left:calc(50% - 215px);max-height:65vh}
 .ns-directory-item{display:flex!important;align-items:center;gap:12px;margin-bottom:7px;width:100%!important;padding:7px 10px!important;text-align:left;background:#222d40!important}
 .ns-directory-item img{height:38px;width:38px;object-fit:cover;border-radius:5px}
@@ -15,6 +15,6 @@
 .npc-shop-hud{display:flex!important;align-items:center;justify-content:center;min-width:35px;min-height:35px;pointer-events:auto!important}
 
 
-/* Marker uses persistent scene coordinates, never the moving token position. */
-.npc-shop-badge{transform:translate(-50%,-50%);pointer-events:auto}
-.npc-shop-badge:hover{transform:translate(-50%,-50%) scale(1.08)}
+/* Badges now render in the canvas, not in the DOM. */
+
+

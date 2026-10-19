@@ -1,11 +1,12 @@
 import {MODULE_ID, publicShop, shopData} from './core.js';
 import {executeTrade} from './transactions.js';
 import {openShop, refreshWindows, showDirectory} from './ui.js';
-import {shopPinFromToken, validShopPin, pinScreenPoint, clampButtonPosition} from './layout.js';
+import {clampButtonPosition} from './layout.js';
+import {TokenShopBadges} from './token-badges.js';
 
 const SOCKET = `module.${MODULE_ID}`;
 const pending = new Map();
-const badges = new Map();
+let tokenBadges;
 let badgesScheduled = false;
 const pinSyncing = new Set();
 const primaryGM = () => game.users.filter(u => u.isGM && u.active).sort((a,b) => a.id.localeCompare(b.id))[0];
@@ -87,7 +88,7 @@ function registerTokenHud() {
     const token = app?.object ?? canvas?.tokens?.controlled?.[0];
     if (!token?.document?.actorId) return;
     const actor = worldActor(token.document.actorId);
-    if (!game.user.isGM && !(actor && shopData(actor).enabled) && !token.document.getFlag(MODULE_ID,'merchant')) return;
+    if (!game.user.isGM) return; // Players access the merchant via its token badge.
     const root = html?.[0] ?? html;
     if (!root?.querySelector || root.querySelector('.npc-shop-hud')) return;
     const btn = document.createElement('div');
@@ -109,19 +110,16 @@ async function syncTokenFlags(scene = canvas?.scene) {
   pinSyncing.add(scene.id);
   try {
     const changes = [];
-    const gridSize = scene.grid?.size || canvas?.grid?.size || 100;
     for (const doc of scene.tokens) {
       if (!doc.actorId) continue;
       const actor = worldActor(doc.actorId);
       if (!actor) continue;
       const enabled = !!shopData(actor).enabled;
       const previous = doc.getFlag(MODULE_ID, 'merchant');
-      const pin = doc.getFlag(MODULE_ID, 'shopPin');
       const update = {_id:doc.id};
       let changed = false;
       if (previous !== enabled) {update[`flags.${MODULE_ID}.merchant`] = enabled; changed = true;}
-      // Capture the starting location once; moving the NPC never moves its shop marker.
-      if (enabled && !validShopPin(pin)) {update[`flags.${MODULE_ID}.shopPin`] = shopPinFromToken(doc, gridSize); changed = true;}
+      // Marker is now a child of the token and follows movement.
       if (changed) changes.push(update);
     }
     if (changes.length) await scene.updateEmbeddedDocuments('Token', changes);
@@ -131,41 +129,17 @@ async function syncTokenFlags(scene = canvas?.scene) {
 }
 function updateBadges() {
   badgesScheduled = false;
-  const live = new Set();
-  if (canvas?.ready && canvas?.tokens?.placeables) {
-    const view = canvas.app?.canvas ?? canvas.app?.view;
-    const rect = view?.getBoundingClientRect?.();
-    const viewport = canvas.app?.renderer?.screen;
-    if (!rect || !canvas.stage?.toGlobal) return;
-    for (const token of canvas.tokens.placeables) {
-      if (!token?.document?.actorId || token.document.hidden || !token.visible) continue;
+  if (!canvas?.ready) {tokenBadges?.clear(); return;}
+  if (!tokenBadges) tokenBadges = new TokenShopBadges({
+    pixi: PIXI,
+    open: token => open(descriptorFromToken(token)),
+    isMerchant: token => {
       const actor = worldActor(token.document.actorId);
-      const enabled = !!(token.document.getFlag(MODULE_ID,'merchant') || (actor && shopData(actor).enabled));
-      if (!enabled) continue;
-      const id = `${canvas.scene.id}:${token.document.id}`;
-      live.add(id);
-      let badge = badges.get(id);
-      if (!badge) {
-        badge = document.createElement('button');
-        badge.type = 'button';
-        badge.className = 'npc-shop-badge';
-        badge.title = `Open shop: ${token.name}`;
-        badge.innerHTML = '<i class="fas fa-store"></i>';
-        badge.addEventListener('click', e => {e.preventDefault(); e.stopPropagation(); open(descriptorFromToken(token));});
-        document.body.appendChild(badge);
-        badges.set(id,badge);
-      }
-      const pin = token.document.getFlag(MODULE_ID,'shopPin') ?? shopPinFromToken(token.document, canvas.grid?.size);
-      try {
-        const position = pinScreenPoint(pin, p => canvas.stage.toGlobal(p), rect, viewport?.width, viewport?.height);
-        if (!position) throw new Error('Invalid shop pin');
-        badge.style.left = `${position.x}px`;
-        badge.style.top = `${position.y}px`;
-        badge.style.display = '';
-      } catch (err) {badge.style.display = 'none';}
+      return Boolean(token.document.getFlag(MODULE_ID,'merchant') || (actor && shopData(actor).enabled));
     }
-  }
-  for (const [id,badge] of badges) if (!live.has(id)) {badge.remove(); badges.delete(id);}
+  });
+  try {tokenBadges.sync(canvas.tokens?.placeables);}
+  catch (err) {console.error('NPC Shops: could not draw token badges',err);}
 }
 function refreshBadges() {
   if (badgesScheduled) return;
@@ -173,6 +147,7 @@ function refreshBadges() {
   requestAnimationFrame(updateBadges);
 }
 function installAccessButton() {
+  if (!game.user.isGM) return; // GM-only Shops toolbar button.
   if (document.getElementById('npc-shops-access')) return;
   const btn = document.createElement('button');
   btn.id = 'npc-shops-access';
@@ -230,7 +205,7 @@ function installAccessButton() {
 
 Hooks.once('init', () => {
   game.settings.register(MODULE_ID, 'buttonPosition', {name:'Shops button position', scope:'client', config:false, type:Object, default:{}});
-  game.settings.register(MODULE_ID, 'hotkeyEnabled', {name:'Enable Alt+S shop shortcut', hint:'GM: select an NPC token, then press Alt+S. Players: use the Shops button or the store badge.', scope:'client', config:true, type:Boolean, default:true});
+  game.settings.register(MODULE_ID, 'hotkeyEnabled', {name:'Enable Alt+S shop shortcut', hint:'GM only: select an NPC token and press Alt+S. Players use the icon attached to a merchant token.', scope:'client', config:!!game.user?.isGM, type:Boolean, default:true});
 });
 Hooks.once('ready', () => {
   if (game.system?.id !== 'dnd5e') {ui.notifications.warn('NPC Shops requires the dnd5e game system'); return;}
@@ -241,10 +216,11 @@ Hooks.once('ready', () => {
   refreshBadges();
   syncTokenFlags();
   window.addEventListener('keydown', e => {
+    if (!game.user.isGM) return; // Players have no shop shortcut.
     if (!game.settings.get(MODULE_ID,'hotkeyEnabled') || !e.altKey || e.ctrlKey || e.metaKey || e.code !== 'KeyS') return;
     if (e.target.closest?.('input,textarea,select,[contenteditable="true"]')) return;
     e.preventDefault();
-    if (game.user.isGM) openSelected(); else openDirectory();
+    openSelected();
   });
   game.socket.on(SOCKET, async data => {
     if (data?.type === 'response') {
@@ -265,7 +241,9 @@ Hooks.once('ready', () => {
     try { game.socket.emit(SOCKET, {type:'response',to:payload.userId,requestId:payload.requestId,result}); }
     catch (err) { console.error('NPC Shops: unable to send shop response', err); }
   });
-  Hooks.on('canvasReady', () => {refreshBadges(); syncTokenFlags();});
+  Hooks.on('canvasReady', () => {tokenBadges?.clear(); refreshBadges(); syncTokenFlags();});
+  Hooks.on('canvasTearDown', () => tokenBadges?.clear());
+  Hooks.on('drawToken', refreshBadges);
   Hooks.on('canvasPan', refreshBadges);
   Hooks.on('refreshToken', refreshBadges);
   Hooks.on('createToken', () => {refreshBadges(); syncTokenFlags();});
@@ -282,6 +260,6 @@ Hooks.once('ready', () => {
   for (const action of ['createItem','deleteItem','updateItem']) Hooks.on(action, item => {
     if (item.parent?.documentName === 'Actor') refreshWindows(item.parent.id);
   });
-  game.modules.get(MODULE_ID).api = {open, openSelected, openDirectory};
-  console.info('NPC Shops v0.1.2 alpha ready. GM: Alt+S on an NPC. Players: Shops button.');
+  game.modules.get(MODULE_ID).api = game.user.isGM ? {open, openSelected, openDirectory} : {open};
+  console.info('NPC Shops v0.1.3 alpha ready: GM Alt+S, players click merchant badge.');
 });
