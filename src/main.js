@@ -265,5 +265,5 @@ Hooks.once('ready', () => {
     if (item.parent?.documentName === 'Actor') refreshWindows(item.parent.id);
   });
   game.modules.get(MODULE_ID).api = game.user.isGM ? {open, openSelected, openDirectory} : {open};
-  console.info('NPC Shops v0.1.4 alpha ready. GM: Alt+S. Players: click the token shop badge.');
+  console.info('NPC Shops v0.1.5 alpha ready. GM: Alt+S. Players: click the token shop badge.');
 });

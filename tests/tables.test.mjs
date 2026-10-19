@@ -49,3 +49,38 @@ test('custom-named Item compendium is searched after Plutonium packs',async()=>{
   const result=await resolveTableItem({text:'Potion'},{fromUuidFn:async()=>null,items:{contents:[]},packs:[pack]});
   assert.equal(result,p);
 });
+
+test('v14 name field resolves imported Item by exact name',async()=>{
+  const table14={documentName:'RollTable',name:'Gathering: Swamp',roll:async()=>({results:[{type:'text',name:'Swamp Mushroom',description:'<p>A damp ingredient.</p>'}]})};
+  const mushroom=item('Swamp Mushroom','Compendium.plutonium.items.swampMushroom');
+  const rolled=await rollLinkedTable({uuid:'RollTable.swamp',name:'Gathering: Swamp',rolls:1},{fromUuidFn:async id=>id==='RollTable.swamp'?table14:null,items:{contents:[mushroom]},packs:[]});
+  assert.equal(rolled.resolved[0].document,mushroom);
+  assert.equal(rolled.unresolved.length,0);
+});
+test('v14 UUID and HTML description links resolve actual items',async()=>{
+  const target=item('Bog Herb','Compendium.plutonium.items.bogHerb');
+  const ref={name:'Herb',description:'<p><a class="content-link" data-uuid="Compendium.plutonium.items.bogHerb">Bog Herb</a></p>'};
+  assert.ok(itemReferenceCandidates(ref).includes(target.uuid));
+  assert.equal(await resolveTableItem({name:'Herb',documentUuid:target.uuid},{fromUuidFn:async()=>target,items:{contents:[]},packs:[]}),target);
+  assert.equal(await resolveTableItem(ref,{fromUuidFn:async()=>target,items:{contents:[]},packs:[]}),target);
+});
+test('v14 description without item reference can match existing Item',async()=>{
+  const target=item('Marsh Reed');
+  const res=await resolveTableItem({name:'Gathering Result',description:'<p>{@item Marsh Reed|xge}</p>'},{fromUuidFn:async()=>null,items:{contents:[target]},packs:[]});
+  assert.equal(res,target);
+});
+test('v11 @Item notation can resolve direct world Item',()=>{
+  assert.deepEqual(itemReferenceCandidates({text:'@Item[ABC123]{Magic Lamp}'}),['Item.ABC123']);
+});
+test('text-only Plutonium results remain visible for manual conversion, with no fabricated price',async()=>{
+  const {textResultAsLoot,plainResultLabel} = await import('../src/tables.js');
+  const table14={documentName:'RollTable',name:'Gathering',roll:async()=>({results:[{name:'A handful of swamp moss',description:'<p>No linked item.</p>'}]})};
+  const rolled=await rollLinkedTable({uuid:'RollTable.gather',name:'Gathering',rolls:1},{fromUuidFn:async()=>table14,items:{contents:[]},packs:[]});
+  assert.deepEqual(rolled.unresolved,['A handful of swamp moss']);
+  assert.equal(plainResultLabel({name:'Test Material',description:'<p>Description</p>'}),'Test Material');
+  const loot=textResultAsLoot(rolled.unresolved[0]);
+  assert.equal(loot.type,'loot');
+  assert.equal(loot.system.price.value,0);
+  assert.equal(loot.toObject().name,rolled.unresolved[0]);
+  assert.equal(aggregatePreview([{table:'Gathering',resolved:[{document:loot,quantity:1}]}]).items.length,1);
+});

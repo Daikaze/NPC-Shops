@@ -1,5 +1,5 @@
 import {MODULE_ID, cpToGp, emptyShop, gpToCp, hasOwnership, itemPriceCp, moneyTotal, shopData, stockCopy, SALEABLE_TYPES} from "./core.js";
-import {addPreviewToStock, aggregatePreview, indexTableCompendiums, makeTableLink, normalizeTableLink, rollLinkedTable, tableChoices} from "./tables.js";
+import {addPreviewToStock, aggregatePreview, indexTableCompendiums, makeTableLink, normalizeTableLink, rollLinkedTable, tableChoices, textResultAsLoot} from "./tables.js";
 
 const windows = new Map();
 const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -95,7 +95,7 @@ export class ShopWindow {
         <nav class="ns-tabs">${button('tab-buy', 'Buy', `class="${this.mode === 'buy' ? 'active' : ''}"`)}${button('tab-sell', 'Sell', `class="${this.mode === 'sell' ? 'active' : ''}"`)}${this.gm ? `${button('tab-manage', 'Manage', `class="${this.mode === 'manage' ? 'active' : ''}"`)}${button('tab-tables', 'Rollable Tables', `class="${this.mode === 'tables' ? 'active' : ''}"`)}` : ''}</nav>
         ${this.mode === 'buy' ? this.renderBuy(shop, buyer) : this.mode === 'sell' ? this.renderSell(shop, buyer) : this.mode === 'tables' && this.gm ? this.renderTables(shop) : this.renderManage(shop)}
       ` : `<div class="ns-empty">${this.loading ? 'Loading shop items…' : this.gm ? 'Click Make Merchant to enable this NPC as a shop.' : 'Merchant information not available. A GM must be online.'}</div>`}
-      </main><footer>Foundry v${esc(game.version || game.release?.generation)} · NPC Shops v0.1.4 alpha</footer>`;
+      </main><footer>Foundry v${esc(game.version || game.release?.generation)} · NPC Shops v0.1.5 alpha</footer>`;
   }
   renderBuy(shop, buyer) {
     if (!shop.open) return '<div class="ns-empty">Shop is currently closed.</div>';
@@ -140,7 +140,7 @@ export class ShopWindow {
       ${button('roll-table', 'Roll')}${button('save-table', 'Save')}${button('remove-table', '×', 'title="Remove table"')}</div>`).join('') : '<div class="ns-empty">No linked RollTables. Drop a table above, or select one from the list.</div>'}</div>
       ${preview ? `<div class="ns-preview"><div class="ns-preview-head"><b>Rolled Items (${preview.items.length})</b><div>${button('add-all-rolled', 'Add All Items', preview.items.length ? '' : 'disabled')}${button('clear-rolled', 'Clear Preview')}</div></div>
       ${preview.items.length ? preview.items.map((x,i)=>`<div class="ns-item" data-preview-index="${i}"><img src="${esc(x.img || 'icons/svg/item-bag.svg')}" alt=""/><div class="ns-itemtext"><strong>${esc(x.name)}</strong><small>× ${x.quantity} · ${cpToGp(x.priceCp)} GP</small></div>${button('add-rolled', 'Add')}</div>`).join('') : '<p class="ns-table-info">No items were resolved from this roll.</p>'}
-      ${preview.skipped.length ? `<details class="ns-table-skipped"><summary>Unresolved results (${preview.skipped.length})</summary>${preview.skipped.map(x=>`<div>${esc(x.table)}: ${esc(x.text)}</div>`).join('')}<small>These results were NOT added. Import the matching Items via Plutonium or link them directly in your RollTables.</small></details>` : ''}</div>` : ''}
+      ${preview.skipped.length ? `<details class="ns-table-skipped" open><summary>Text-only / Unresolved results (${preview.skipped.length})</summary><p class="ns-table-info">These results are not Item documents. Drag a matching Item from Plutonium/Compendiums onto a row, or explicitly convert a text result into generic Loot (0 GP default; set its price first).</p>${preview.skipped.map((x,i)=>`<div class="ns-unresolved-item" data-unresolved-index="${i}" data-drop="unresolved"><strong>${esc(x.table)}:</strong> ${esc(x.text)}<div class="ns-unresolved-actions"><label>Price (GP) <input type="number" data-field="unresolved-price" step="0.01" min="0" value="0"/></label>${button('convert-text-loot','Convert to Loot')}</div><small>Drop imported Item here to use the actual Item instead.</small></div>`).join('')}</details>` : ''}</div>` : ''}
     </section>`;
   }
   async addLinkedTable(doc) {
@@ -169,6 +169,19 @@ export class ShopWindow {
     const found = this.preview.items.reduce((n,x)=>n+x.quantity,0);
     notify(`Rolled ${active.length} table(s): ${found} item(s); ${this.preview.skipped.length} unresolved result(s).`);
   }
+  /** Resolve one text-only result to a real imported Item or a manually-created loot item. */
+  stageUnresolvedItem(index, item) {
+    if (!this.gm || !this.preview?.skipped?.[index]) throw new Error('Unresolved preview row is no longer available');
+    if (!item || item.documentName !== 'Item' || !SALEABLE_TYPES.has(item.type)) throw new Error('Drop a supported Item document here');
+    const next = aggregatePreview([{table:this.preview.skipped[index].table,resolved:[{document:item,quantity:1}],unresolved:[]}]);
+    const entry=next.items[0];
+    if(!entry) throw new Error('The dropped item could not be read');
+    const existing=this.preview.items.find(i=>i.uuid===entry.uuid && i.priceCp===entry.priceCp);
+    if(existing) existing.quantity+=entry.quantity;
+    else this.preview.items.push(entry);
+    this.preview.skipped.splice(index,1);
+    this.render();
+  }
   async commitPreview(oneIndex = null) {
     if (!this.gm) throw new Error('Only the GM can add rolled items');
     const items = oneIndex === null ? this.preview?.items ?? [] : [this.preview?.items?.[oneIndex]].filter(Boolean);
@@ -184,14 +197,20 @@ export class ShopWindow {
     el.addEventListener("change", e => {
       if (e.target.matches('[data-field="buyer"]')) { this.buyerId = e.target.value; this.render(); }
     });
-    el.addEventListener("dragover", e => { if (this.gm && e.target.closest('[data-drop="items"], [data-drop="tables"]')) {e.preventDefault(); e.dataTransfer.dropEffect = 'copy';} });
+    el.addEventListener("dragover", e => { if (this.gm && e.target.closest('[data-drop="items"], [data-drop="tables"], [data-drop="unresolved"]')) {e.preventDefault(); e.dataTransfer.dropEffect = 'copy';} });
     el.addEventListener("drop", async e => {
       if (!this.gm) return;
       const tableDrop=!!e.target.closest('[data-drop="tables"]');
-      if (!tableDrop && !e.target.closest('[data-drop="items"]')) return;
+      const unresolved=e.target.closest('[data-unresolved-index]');
+      if (!tableDrop && !unresolved && !e.target.closest('[data-drop="items"]')) return;
       e.preventDefault();
-      try { if (tableDrop) await this.handleTableDrop(e); else await this.handleDrop(e); }
-      catch (err) { notify(err.message, true); }
+      try {
+        if (unresolved) {
+          const item=await this.itemFromDrop(e);
+          this.stageUnresolvedItem(Number(unresolved.dataset.unresolvedIndex),item);
+        } else if (tableDrop) await this.handleTableDrop(e);
+        else await this.handleDrop(e);
+      } catch (err) { notify(err.message,true); }
     });
     el.addEventListener("click", async e => {
       const target = e.target.closest("button[data-action]");
@@ -202,6 +221,17 @@ export class ShopWindow {
       try {
         if (action === 'close') return this.close();
         if (action.startsWith('tab-')) {this.mode = action.slice(4); return this.render();}
+        if (action === 'convert-text-loot') {
+          if(!this.gm) return;
+          const row=target.closest('[data-unresolved-index]');
+          const index=Number(row?.dataset.unresolvedIndex);
+          const skipped=this.preview?.skipped?.[index];
+          if(!skipped) throw new Error('Text result is no longer available');
+          const priceCp=gpToCp(row.querySelector('[data-field="unresolved-price"]')?.value ?? 0);
+          this.stageUnresolvedItem(index,textResultAsLoot(skipped.text,priceCp));
+          notify('Text result converted into generic Loot for preview. Review its price before adding to stock.');
+          return;
+        }
         if (action === 'add-table') {
           if (!this.gm) return;
           const uuid=el.querySelector('[data-field="table-choice"]')?.value;
@@ -290,19 +320,22 @@ export class ShopWindow {
     if (!document && data.type === 'RollTable' && data.id) document=game.tables.get(data.id);
     await this.addLinkedTable(document);
   }
+  async itemFromDrop(event) {
+    const raw=event.dataTransfer.getData('text/plain') || event.dataTransfer.getData('application/json');
+    if (!raw) throw new Error('No Foundry Item drag data');
+    const data=JSON.parse(raw);
+    let document=data.uuid ? await fromUuid(data.uuid) : null;
+    if(!document && data.type==='Item' && data.id) document=game.items.get(data.id);
+    if(!document && data.type==='Item' && data.pack && data.id) document=await game.packs.get(data.pack)?.getDocument(data.id);
+    if(!document && data.type==='Item' && data.data) document=data.data;
+    if (!document || !SALEABLE_TYPES.has(document.type)) throw new Error('Drag a physical Item from Items or an Item Compendium');
+    if (document.documentName==='Item') return document;
+    return { ...document, documentName:'Item', uuid:document.uuid??`NPCShops.Dropped.${document.name}`, toObject:()=>structuredClone(document) };
+  }
   async handleDrop(event) {
-    let raw = event.dataTransfer.getData('text/plain');
-    if (!raw) raw = event.dataTransfer.getData('application/json');
-    if (!raw) throw new Error('No Foundry item drag data');
-    const data = JSON.parse(raw);
-    let document = data.uuid ? await fromUuid(data.uuid) : null;
-    if (!document && data.type === 'Item' && data.id) document = game.items.get(data.id);
-    if (!document && data.type === 'Item' && data.pack && data.id) document = await game.packs.get(data.pack)?.getDocument(data.id);
-    if (!document && data.type === 'Item' && data.data) document = data.data;
-    if (!document || (document.documentName !== 'Item' && document.type !== 'Item' && !document.system)) throw new Error('Drag an Item document, not an Actor');
-    const next = structuredClone(this.shop);
-    const original = document.toObject ? document : {toObject: () => structuredClone(document), system: document.system};
-    next.stock.push(stockCopy(original, 1));
+    const document=await this.itemFromDrop(event);
+    const next=structuredClone(this.shop);
+    next.stock.push(stockCopy(document,1));
     await this.saveShop(next);
     notify(`Added ${document.name} to shop; edit stock and price in Manage.`);
   }

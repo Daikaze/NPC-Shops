@@ -41,3 +41,9 @@
 .npc-shops-window .ns-table-skipped{margin-top:9px;border:1px solid #805f4e;padding:10px;border-radius:7px;color:#f2c8ab;font-size:12px}
 .npc-shops-window .ns-table-skipped div{border-top:1px solid #675144;margin-top:5px;padding-top:5px}
 .npc-shops-window .ns-table-skipped small{font-size:11px;color:#c6a99a;margin-top:7px}
+
+/* v0.1.5: inspect and explicitly resolve text-only table results. */
+.ns-unresolved-item{margin:8px 0;padding:9px;border:1px dashed #88734e;background:#242638;border-radius:7px;overflow-wrap:anywhere}
+.ns-unresolved-item .ns-unresolved-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:6px 0}
+.ns-unresolved-item input{width:85px!important;margin-left:5px}
+.ns-unresolved-item:hover{border-color:#deb76c}

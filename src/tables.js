@@ -1,6 +1,6 @@
 /** NPC Shops: optional integration with Foundry RollTables, including 5etools/Plutonium imports.
  * Does not require Plutonium or Item Piles to be installed.
- * Table results must reference an Item, or have an unambiguous exact Item name.
+ * Supports v11 text and v14 name/description schemas, direct UUID links, and text-only loot previews.
  */
 import {assertInt, itemPriceCp, SALEABLE_TYPES, stockCopy} from './core.js';
 
@@ -33,76 +33,110 @@ export async function indexTableCompendiums(packs) {
   return result;
 }
 
+/** v11 uses `text`; v14 uses `name` and HTML `description`. Some 5etools
+ * content uses Foundry links, 5etools {@item ...} tags, or HTML anchors.
+ */
+export function tableResultTexts(result) {
+  return [...new Set([result?.text, result?.name, result?.description]
+    .filter(v => typeof v === 'string' && v.trim()).map(v => v.trim()))];
+}
 export function itemReferenceCandidates(result) {
   const refs=[];
   const uuid=str(result?.documentUuid ?? result?.uuid);
   if (uuid) refs.push(uuid);
-  const coll = str(result?.documentCollection);
-  const id = str(result?.documentId);
+  const coll=str(result?.documentCollection);
+  const id=str(result?.documentId);
   if (coll && id) {
-    if (coll === 'Item' || coll === 'items') refs.push(`Item.${id}`);
+    if (['Item','items'].includes(coll)) refs.push(`Item.${id}`);
     else if (coll.startsWith('Compendium.')) refs.push(`${coll}.${id}`);
     else if (coll.includes('.')) refs.push(`Compendium.${coll}.${id}`);
   }
-  const raw=str(result?.text);
-  // Core / Plutonium entries can link an item in text markup rather than a document result.
-  for (const [,val] of raw.matchAll(/@UUID\[([^\]]+)\]/g)) refs.push(val);
-  for (const [,val] of raw.matchAll(/@Compendium\[([^\]]+)\]/g)) refs.push(val.startsWith('Compendium.') ? val : `Compendium.${val}`);
-  for (const [,val] of raw.matchAll(/data-uuid\s*=\s*["']([^"']+)["']/gi)) refs.push(val);
-  return [...new Set(refs)].filter(x => x.length < 500);
+  for (const raw of tableResultTexts(result)) {
+    for (const [,val] of raw.matchAll(/@UUID\[([^\]]+)\]/gi)) refs.push(val);
+    for (const [,val] of raw.matchAll(/@Compendium\[([^\]]+)\]/gi)) refs.push(val.startsWith('Compendium.') ? val : `Compendium.${val}`);
+    for (const [,val] of raw.matchAll(/@Item\[([^\]]+)\]/gi)) refs.push(val.startsWith('Item.') ? val : `Item.${val}`);
+    for (const [,val] of raw.matchAll(/data-(?:uuid|document-uuid)\s*=\s*["']([^"']+)["']/gi)) refs.push(val);
+  }
+  return [...new Set(refs)].filter(x=>x.length<500);
 }
 export function resultPlainName(value) {
-  return str(value).replace(/@(?:UUID|Compendium)\[[^\]]+\](?:\{([^}]+)\})?/g, (_,label) => label ?? '')
-    .replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/\s+/g,' ').trim();
+  return str(value)
+    .replace(/@(?:UUID|Compendium|Item)\[[^\]]+\](?:\{([^}]+)\})?/gi,(_,label)=>label??'')
+    .replace(/\{@(?:item|object|reward|variantrule)\s+([^}|]+)(?:\|[^}]*)?\}/gi,'$1')
+    .replace(/<[^>]+>/g,' ').replace(/&(?:nbsp|#160);/gi,' ')
+    .replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#39;/gi,"'")
+    .replace(/\s+/g,' ').trim();
+}
+export function nameCandidates(result) {
+  const names=[];
+  for (const raw of tableResultTexts(result)) {
+    const markupLabels=[...raw.matchAll(/@(?:UUID|Compendium|Item)\[[^\]]+\]\{([^}]+)\}/gi)].map(m=>m[1]);
+    const toolsLabels=[...raw.matchAll(/\{@item\s+([^}|]+)(?:\|[^}]*)?\}/gi)].map(m=>m[1]);
+    for (const candidate of [...markupLabels,...toolsLabels,resultPlainName(raw)]) {
+      const clean=str(candidate).replace(/^(?:(?:\d+|\d+d\d+)\s*(?:x|×|of)?\s+)/i,'').replace(/^[-•]\s*/,'').trim();
+      if (clean && !names.some(n=>n.toLocaleLowerCase()===clean.toLocaleLowerCase())) names.push(clean);
+    }
+  }
+  return names;
+}
+export function plainResultLabel(result) {
+  const names=nameCandidates(result);
+  return names[0] || str(result?.documentId) || 'Unknown table result';
 }
 const isItem = document => document?.documentName === 'Item' && SALEABLE_TYPES.has(document.type);
 async function resolveFromReferences(result, fromUuidFn) {
   for (const ref of itemReferenceCandidates(result)) {
     try {
-      const document = await fromUuidFn(ref);
+      const document=await fromUuidFn(ref);
       if (isItem(document)) return document;
-    } catch (err) { console.debug('NPC Shops: Unresolved table result reference', ref, err); }
+    } catch(err) { console.debug('NPC Shops: Unresolved result UUID',ref,err); }
   }
   return null;
 }
-
-/** Exact name fallback: prefer a unique world Item, then a unique Plutonium/5etools compendium Item.
- * Avoid silently choosing among multiple matches with different item definitions.
- */
+/** Avoid accidentally importing an unrelated item when two definitions share a name. */
 export async function findImportedItemByName(name, {items, packs}) {
-  const normalized = str(name).toLocaleLowerCase();
+  const normalized=str(name).toLocaleLowerCase();
   if (!normalized) return null;
-  const world = (items?.contents ?? []).filter(item => isItem(item) && item.name?.toLocaleLowerCase() === normalized);
-  if (world.length === 1) return world[0];
-  if (world.length > 1) return null;
-  const itemPacks=[...(packs ?? [])].filter(p => p.documentName === 'Item');
-  // Prefer known Plutonium/5etools compendiums, but permit custom-named packs.
-  const relevant=itemPacks.filter(p=>PREFERRED_PACK.test(`${p.collection} ${p.title ?? ''} ${p.metadata?.label ?? ''}`));
+  const world=(items?.contents??[]).filter(item=>isItem(item) && item.name?.toLocaleLowerCase()===normalized);
+  if (world.length===1) return world[0];
+  if (world.length>1) return null;
+  const itemPacks=[...(packs??[])].filter(p=>p.documentName==='Item');
+  const relevant=itemPacks.filter(p=>PREFERRED_PACK.test(`${p.collection} ${p.title??''} ${p.metadata?.label??''}`));
   const other=itemPacks.filter(p=>!relevant.includes(p));
-  for (const group of [relevant,other]) {
+  for(const group of [relevant,other]){
     const candidates=[];
-    for (const pack of group) {
-      try {
-        const index = await pack.getIndex();
-        for (const x of index) if (x.name?.toLocaleLowerCase() === normalized) candidates.push({pack,id:x._id ?? x.id});
-      } catch(err) {console.warn(`NPC Shops: Unable to search item pack ${pack.collection}`,err);}
+    for(const pack of group){
+      try{
+        const index=await pack.getIndex();
+        for(const x of index) if(x.name?.toLocaleLowerCase()===normalized) candidates.push({pack,id:x._id??x.id});
+      }catch(err){console.warn(`NPC Shops: Unable to search item pack ${pack.collection}`,err);}
     }
-    if (candidates.length > 1) return null;
-    if (candidates.length === 1) {
-      const document=await candidates[0].pack.getDocument(candidates[0].id);
-      return isItem(document) ? document : null;
+    if(candidates.length>1) return null;
+    if(candidates.length===1){
+      const doc=await candidates[0].pack.getDocument(candidates[0].id);
+      return isItem(doc)?doc:null;
     }
   }
   return null;
 }
-export async function resolveTableItem(result, {fromUuidFn=globalThis.fromUuid, items=globalThis.game?.items,packs=globalThis.game?.packs}={}) {
-  if (typeof fromUuidFn === 'function') {
-    const direct = await resolveFromReferences(result,fromUuidFn);
-    if (direct) return direct;
+export async function resolveTableItem(result, {fromUuidFn=globalThis.fromUuid,items=globalThis.game?.items,packs=globalThis.game?.packs}={}) {
+  if (typeof fromUuidFn==='function') {
+    const direct=await resolveFromReferences(result,fromUuidFn);
+    if(direct) return direct;
   }
-  const name=resultPlainName(result?.text);
-  if (!name) return null;
-  return findImportedItemByName(name,{items,packs});
+  for(const name of nameCandidates(result)){
+    const match=await findImportedItemByName(name,{items,packs});
+    if(match) return match;
+  }
+  return null;
+}
+/** Explicit manual conversion only: never fabricate an imported Plutonium item or its price. */
+export function textResultAsLoot(text,priceCp=0) {
+  const name=resultPlainName(text).slice(0,180);
+  if(!name) throw new Error('Cannot create loot from an empty table result');
+  const price=assertInt(priceCp,0,Number.MAX_SAFE_INTEGER);
+  const data={name,type:'loot',img:'icons/svg/item-bag.svg',system:{quantity:1,price:{value:price/100,denomination:'gp'}},flags:{'npc-shops':{generatedTextLoot:true}}};
+  return {documentName:'Item',...data,uuid:`NPCShops.TextLoot.${name}`,toObject:()=>structuredClone(data)};
 }
 export async function rollLinkedTable(link,{fromUuidFn=globalThis.fromUuid,items=globalThis.game?.items,packs=globalThis.game?.packs}={}) {
   const conf=normalizeTableLink(link);
@@ -115,7 +149,7 @@ export async function rollLinkedTable(link,{fromUuidFn=globalThis.fromUuid,items
     const draw=await table.roll({recursive:true});
     for (const r of draw.results ?? []) {
       const item=await resolveTableItem(r,{fromUuidFn,items,packs});
-      if (!item) {unresolved.push(resultPlainName(r.text) || r.documentId || 'Unknown table result');continue;}
+      if (!item) {unresolved.push(plainResultLabel(r));continue;}
       const qty=Number(item.system?.quantity ?? 1);
       const quantity=Number.isSafeInteger(qty) && qty>0 && qty<=9999 ? qty : 1;
       resolved.push({document:item,quantity});
