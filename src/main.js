@@ -1,11 +1,13 @@
 import {MODULE_ID, publicShop, shopData} from './core.js';
 import {executeTrade} from './transactions.js';
 import {openShop, refreshWindows, showDirectory} from './ui.js';
+import {shopPinFromToken, validShopPin, pinScreenPoint, clampButtonPosition} from './layout.js';
 
 const SOCKET = `module.${MODULE_ID}`;
 const pending = new Map();
 const badges = new Map();
 let badgesScheduled = false;
+const pinSyncing = new Set();
 const primaryGM = () => game.users.filter(u => u.isGM && u.active).sort((a,b) => a.id.localeCompare(b.id))[0];
 const requestId = () => globalThis.crypto?.randomUUID?.() ?? `${game.user.id}-${Date.now()}-${Math.random()}`;
 const worldActor = id => game.actors.get(id);
@@ -45,7 +47,12 @@ async function queryGM(action, fields) {
   return new Promise(resolve => {
     const timer = setTimeout(() => {pending.delete(payload.requestId); resolve({ok:false,message:'GM did not answer; please try again'});}, 15000);
     pending.set(payload.requestId, result => {clearTimeout(timer); resolve(result);});
-    game.socket.emit(SOCKET, {type:'request', payload});
+    try {
+      game.socket.emit(SOCKET, {type:'request', payload});
+    } catch (err) {
+      const cb = pending.get(payload.requestId);
+      if (cb) cb({ok:false,message:`Could not send shop request: ${err.message}`});
+    }
   });
 }
 function submitTrade(details) { return queryGM('trade', {details:{...details, userId:game.user.id, requestId:requestId()}}); }
@@ -98,53 +105,64 @@ function registerTokenHud() {
   });
 }
 async function syncTokenFlags(scene = canvas?.scene) {
-  if (!game.user.isGM || !scene) return;
-  const changes = [];
-  for (const doc of scene.tokens) {
-    if (!doc.actorId) continue;
-    const actor = worldActor(doc.actorId);
-    if (!actor) continue;
-    const enabled = !!shopData(actor).enabled;
-    const previous = doc.getFlag(MODULE_ID, 'merchant');
-    if ((enabled && previous !== true) || (!enabled && previous === true)) {
-      changes.push({_id:doc.id,[`flags.${MODULE_ID}.merchant`]:enabled});
+  if (!game.user.isGM || !scene || pinSyncing.has(scene.id)) return;
+  pinSyncing.add(scene.id);
+  try {
+    const changes = [];
+    const gridSize = scene.grid?.size || canvas?.grid?.size || 100;
+    for (const doc of scene.tokens) {
+      if (!doc.actorId) continue;
+      const actor = worldActor(doc.actorId);
+      if (!actor) continue;
+      const enabled = !!shopData(actor).enabled;
+      const previous = doc.getFlag(MODULE_ID, 'merchant');
+      const pin = doc.getFlag(MODULE_ID, 'shopPin');
+      const update = {_id:doc.id};
+      let changed = false;
+      if (previous !== enabled) {update[\`flags.\${MODULE_ID}.merchant\`] = enabled; changed = true;}
+      // Capture the starting location once; moving the NPC never moves its shop marker.
+      if (enabled && !validShopPin(pin)) {update[\`flags.\${MODULE_ID}.shopPin\`] = shopPinFromToken(doc, gridSize); changed = true;}
+      if (changed) changes.push(update);
     }
-  }
-  if (changes.length) {
-    try {await scene.updateEmbeddedDocuments('Token',changes);} catch (err) {console.warn('NPC Shops: token icon flag update failed',err);}
-  }
+    if (changes.length) await scene.updateEmbeddedDocuments('Token', changes);
+  } catch (err) {
+    console.warn('NPC Shops: merchant marker synchronization failed', err);
+  } finally {pinSyncing.delete(scene.id); refreshBadges();}
 }
 function updateBadges() {
   badgesScheduled = false;
   const live = new Set();
   if (canvas?.ready && canvas?.tokens?.placeables) {
-    const rect = (canvas.app?.canvas ?? canvas.app?.view)?.getBoundingClientRect?.();
+    const view = canvas.app?.canvas ?? canvas.app?.view;
+    const rect = view?.getBoundingClientRect?.();
+    const viewport = canvas.app?.renderer?.screen;
+    if (!rect || !canvas.stage?.toGlobal) return;
     for (const token of canvas.tokens.placeables) {
       if (!token?.document?.actorId || token.document.hidden || !token.visible) continue;
       const actor = worldActor(token.document.actorId);
       const enabled = !!(token.document.getFlag(MODULE_ID,'merchant') || (actor && shopData(actor).enabled));
       if (!enabled) continue;
-      const id = `${canvas.scene.id}:${token.document.id}`;
+      const id = \`\${canvas.scene.id}:\${token.document.id}\`;
       live.add(id);
       let badge = badges.get(id);
       if (!badge) {
         badge = document.createElement('button');
         badge.type = 'button';
         badge.className = 'npc-shop-badge';
-        badge.title = `Open shop: ${token.name}`;
+        badge.title = \`Open shop: \${token.name}\`;
         badge.innerHTML = '<i class="fas fa-store"></i>';
         badge.addEventListener('click', e => {e.preventDefault(); e.stopPropagation(); open(descriptorFromToken(token));});
         document.body.appendChild(badge);
         badges.set(id,badge);
       }
-      const x = token.x + (token.w || token.document.width * canvas.grid.size) - 8;
-      const y = token.y + 4;
+      const pin = token.document.getFlag(MODULE_ID,'shopPin') ?? shopPinFromToken(token.document, canvas.grid?.size);
       try {
-        const position = canvas.stage.toGlobal({x,y});
-        badge.style.left = `${(rect?.left ?? 0) + position.x}px`;
-        badge.style.top = `${(rect?.top ?? 0) + position.y}px`;
-      } catch (err) {badge.style.display = 'none'; continue;}
-      badge.style.display = '';
+        const position = pinScreenPoint(pin, p => canvas.stage.toGlobal(p), rect, viewport?.width, viewport?.height);
+        if (!position) throw new Error('Invalid shop pin');
+        badge.style.left = \`\${position.x}px\`;
+        badge.style.top = \`\${position.y}px\`;
+        badge.style.display = '';
+      } catch (err) {badge.style.display = 'none';}
     }
   }
   for (const [id,badge] of badges) if (!live.has(id)) {badge.remove(); badges.delete(id);}
@@ -160,13 +178,58 @@ function installAccessButton() {
   btn.id = 'npc-shops-access';
   btn.className = 'npc-shops-access';
   btn.type = 'button';
-  btn.title = 'Browse merchant NPCs on this scene';
-  btn.innerHTML = '<i class="fas fa-store"></i> Shops';
-  btn.addEventListener('click', openDirectory);
+  btn.title = 'Drag to move Shops · Click to browse · Right-click to reset position';
+  btn.innerHTML = '<i class="fas fa-store"></i> Shops <i class="fas fa-grip-vertical ns-drag-grip"></i>';
+  const getSaved = () => game.settings.get(MODULE_ID, 'buttonPosition');
+  const positionButton = position => {
+    const next = clampButtonPosition(position, window.innerWidth, window.innerHeight, btn.offsetWidth || 110, btn.offsetHeight || 36);
+    btn.style.left = \`\${next.x}px\`;
+    btn.style.top = \`\${next.y}px\`;
+    return next;
+  };
   document.body.appendChild(btn);
+  positionButton(getSaved());
+  let drag = null;
+  let ignoreClick = false;
+  btn.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    drag = {pointerId:e.pointerId, startX:e.clientX, startY:e.clientY, x:btn.offsetLeft, y:btn.offsetTop, moved:false};
+    btn.setPointerCapture(e.pointerId);
+  });
+  btn.addEventListener('pointermove', e => {
+    if (!drag || drag.pointerId !== e.pointerId) return;
+    const deltaX = e.clientX-drag.startX, deltaY = e.clientY-drag.startY;
+    if (Math.hypot(deltaX, deltaY) > 4) drag.moved = true;
+    if (drag.moved) {e.preventDefault(); positionButton({x:drag.x+deltaX,y:drag.y+deltaY});}
+  });
+  btn.addEventListener('pointerup', e => {
+    if (!drag || drag.pointerId !== e.pointerId) return;
+    if (drag.moved) {
+      ignoreClick = true;
+      const saved = {x:btn.offsetLeft,y:btn.offsetTop};
+      game.settings.set(MODULE_ID, 'buttonPosition', saved).catch(err => console.warn('NPC Shops: cannot save button position', err));
+    }
+    drag = null;
+  });
+  btn.addEventListener('pointercancel', () => {drag=null;});
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    if (ignoreClick) {e.preventDefault(); ignoreClick=false;return;}
+    openDirectory();
+  });
+  btn.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    const position=positionButton({x:window.innerWidth-340,y:115});
+    game.settings.set(MODULE_ID,'buttonPosition',position);
+    ui.notifications.info('NPC Shops: Button position reset');
+  });
+  window.addEventListener('resize', () => positionButton({x:btn.offsetLeft,y:btn.offsetTop}));
 }
 
 Hooks.once('init', () => {
+  game.settings.register(MODULE_ID, 'buttonPosition', {name:'Shops button position', scope:'client', config:false, type:Object, default:{}});
   game.settings.register(MODULE_ID, 'hotkeyEnabled', {name:'Enable Alt+S shop shortcut', hint:'GM: select an NPC token, then press Alt+S. Players: use the Shops button or the store badge.', scope:'client', config:true, type:Boolean, default:true});
 });
 Hooks.once('ready', () => {
@@ -193,8 +256,14 @@ Hooks.once('ready', () => {
     if (data?.type !== 'request' || !game.user.isGM || primaryGM()?.id !== game.user.id) return;
     const payload = data.payload;
     if (!payload || typeof payload.userId !== 'string' || !game.users.get(payload.userId)?.active) return;
-    const result = await dispatch(payload);
-    game.socket.emit(SOCKET, {type:'response',to:payload.userId,requestId:payload.requestId,result});
+    let result;
+    try { result = await dispatch(payload); }
+    catch (err) {
+      console.error('NPC Shops: GM socket request failed', err);
+      result = {ok:false, message:\`GM could not process \${payload.action}: \${err?.message || 'unknown error'}\`};
+    }
+    try { game.socket.emit(SOCKET, {type:'response',to:payload.userId,requestId:payload.requestId,result}); }
+    catch (err) { console.error('NPC Shops: unable to send shop response', err); }
   });
   Hooks.on('canvasReady', () => {refreshBadges(); syncTokenFlags();});
   Hooks.on('canvasPan', refreshBadges);
@@ -214,5 +283,5 @@ Hooks.once('ready', () => {
     if (item.parent?.documentName === 'Actor') refreshWindows(item.parent.id);
   });
   game.modules.get(MODULE_ID).api = {open, openSelected, openDirectory};
-  console.info('NPC Shops v0.1.1 alpha ready. GM: Alt+S on an NPC. Players: Shops button.');
+  console.info('NPC Shops v0.1.2 alpha ready. GM: Alt+S on an NPC. Players: Shops button.');
 });

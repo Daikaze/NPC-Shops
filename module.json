@@ -2,7 +2,7 @@
   "id": "npc-shops",
   "title": "NPC Shops",
   "description": "Drag-and-drop NPC merchants with player buying and selling for dnd5e.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "authors": [
     {
       "name": "Daikaze"
@@ -33,5 +33,6 @@
   "manifest": "https://raw.githubusercontent.com/Daikaze/NPC-Shops/main/module.json",
   "download": "https://github.com/Daikaze/NPC-Shops/releases/latest/download/npc-shops.zip",
   "readme": "README.md",
-  "license": "LICENSE"
+  "license": "LICENSE",
+  "socket": true
 }

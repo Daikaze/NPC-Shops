@@ -1,6 +1,6 @@
 # NPC Shops
 
-**Experimental alpha v0.1.1** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+**Experimental alpha v0.1.2** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
 
 ## Features
 
@@ -23,10 +23,18 @@ The `download` in the manifest requires a successfully published GitHub release 
 
 1. As GM, place an NPC token on a Scene; select it and press **Alt+S**, or click the shop icon in its Token HUD. The merchant window shows **Make Merchant** for regular NPCs.
 2. As GM, click **Make Merchant**, open the **Manage** tab, and drag Items into the drop zone. New stock starts at quantity 1; customize the price and stock, then **Save**.
-3. Players click the **Shops** button (upper-right) to browse visible merchants on the active scene, or the small store badge on a merchant token. Choose their owned character and use **Buy** / **Sell**. They do **not** need permission to control the NPC. Player **Alt+S** also opens the scene Shops list.
-4. A GM must be online to process player transactions. All shop configuration happens on the GM client.
+3. Players click the movable **Shops** button to browse visible merchants on the active scene, or the small store badge pinned to where the merchant was made. Choose their owned character and use **Buy** / **Sell**. They do **not** need permission to control the NPC. Player **Alt+S** also opens the scene Shops list.
+4. A GM with NPC Shops enabled must be online to process player transactions. All shop configuration happens on the GM client.
 
 The actor remains a normal NPC; shop stock is stored independently in `flags.npc-shops.shop` rather than mixed with the NPC's combat inventory.
+
+## v0.1.2 fixes
+
+- Enable the required `"socket": true` manifest setting so Foundry forwards merchant requests and GM responses. Previously missing, causing perpetual loading and GM timeout messages.
+- Store a per-token shop marker at the original merchant placement in the scene. Marker does not follow the NPC when it moves.
+- Project shop markers using canvas screen scaling, so scene pan/zoom tracks the fixed marker rather than lagging.
+- Allow each player to drag the **Shops** button to any screen position; save position per client across reloads. Right-click Shops to restore default position.
+- Return actionable GM error messages when a request fails instead of waiting indefinitely.
 
 ## v0.1.1 fixes
 
