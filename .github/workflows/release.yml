@@ -1,0 +1,41 @@
+name: Package NPC Shops
+on:
+  push:
+    branches: [main]
+    paths:
+      - module.json
+      - src/**
+      - styles/**
+      - README.md
+      - LICENSE
+      - .github/workflows/release.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm test && npm run check
+      - name: Bundle module
+        run: |
+          node -p "JSON.parse(require('fs').readFileSync('module.json','utf8')).version" > module-version.txt
+          mkdir -p dist/npc-shops
+          cp module.json README.md LICENSE dist/npc-shops/
+          cp -r src styles dist/npc-shops/
+          (cd dist && zip -qr ../npc-shops.zip npc-shops)
+      - name: Publish or replace release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(cat module-version.txt)
+          TAG="v${VERSION}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" npc-shops.zip --clobber
+          else
+            gh release create "$TAG" npc-shops.zip --title "NPC Shops $TAG" --notes "Experimental alpha release; see README before using."
+          fi
