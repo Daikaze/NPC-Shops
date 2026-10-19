@@ -92,12 +92,13 @@ export function itemPriceCp(item) {
   return Number.isSafeInteger(cp) && cp >= 0 ? cp : 0;
 }
 export function emptyShop() {
-  return {enabled: false, open: true, allowSelling: true, sellRate: 0.5, stock: [], ledger: []};
+  return {enabled: false, open: true, allowSelling: true, sellRate: 0.5, stock: [], tables: [], ledger: []};
 }
 export function shopData(actor) {
   const saved = actor?.getFlag?.(MODULE_ID, "shop") ?? {};
   const clean = {...emptyShop(), ...saved};
   clean.stock = Array.isArray(clean.stock) ? clean.stock : [];
+  clean.tables = Array.isArray(clean.tables) ? clean.tables : [];
   clean.ledger = Array.isArray(clean.ledger) ? clean.ledger : [];
   return clean;
 }

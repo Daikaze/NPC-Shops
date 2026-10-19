@@ -1,4 +1,5 @@
 import {MODULE_ID, cpToGp, emptyShop, gpToCp, hasOwnership, itemPriceCp, moneyTotal, shopData, stockCopy, SALEABLE_TYPES} from "./core.js";
+import {addPreviewToStock, aggregatePreview, indexTableCompendiums, makeTableLink, normalizeTableLink, rollLinkedTable, tableChoices} from "./tables.js";
 
 const windows = new Map();
 const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -18,6 +19,9 @@ export class ShopWindow {
     this.loading = false;
     this.buyerId = null;
     this.remoteShop = null;
+    this.preview = null; // GM-only ephemeral result previews; never sent to players.
+    this.compendiumTables = [];
+    this.browsedCompendiums = false;
   }
   get actor() { return game.actors.get(this.actorId); }
   get shop() { return this.gm ? shopData(this.actor) : (this.remoteShop ?? emptyShop()); }
@@ -88,10 +92,10 @@ export class ShopWindow {
       ${this.gm ? `<div class="ns-gmbar">${!shop.enabled ? button('enable', 'Make Merchant') : `${button('toggle-open', shop.open ? 'Close Shop' : 'Open Shop')}${button('toggle-sell', shop.allowSelling ? 'Disable Selling' : 'Enable Selling')}`}</div>` : ''}
       ${shop.enabled ? `
         <div class="ns-wallet"><label>Shopping as <select data-field="buyer"><option value="">Select character</option>${buyers.map(a => `<option value="${esc(a.id)}" ${buyer?.id === a.id ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></label><div>${buyer ? `${esc(buyer.name)} · ${(moneyTotal(buyer.system.currency) / 100).toFixed(2)} GP` : 'No owned characters'}</div></div>
-        <nav class="ns-tabs">${button('tab-buy', 'Buy', `class="${this.mode === 'buy' ? 'active' : ''}"`)}${button('tab-sell', 'Sell', `class="${this.mode === 'sell' ? 'active' : ''}"`)}${this.gm ? button('tab-manage', 'Manage', `class="${this.mode === 'manage' ? 'active' : ''}"`) : ''}</nav>
-        ${this.mode === 'buy' ? this.renderBuy(shop, buyer) : this.mode === 'sell' ? this.renderSell(shop, buyer) : this.renderManage(shop)}
+        <nav class="ns-tabs">${button('tab-buy', 'Buy', `class="${this.mode === 'buy' ? 'active' : ''}"`)}${button('tab-sell', 'Sell', `class="${this.mode === 'sell' ? 'active' : ''}"`)}${this.gm ? `${button('tab-manage', 'Manage', `class="${this.mode === 'manage' ? 'active' : ''}"`)}${button('tab-tables', 'Rollable Tables', `class="${this.mode === 'tables' ? 'active' : ''}"`)}` : ''}</nav>
+        ${this.mode === 'buy' ? this.renderBuy(shop, buyer) : this.mode === 'sell' ? this.renderSell(shop, buyer) : this.mode === 'tables' && this.gm ? this.renderTables(shop) : this.renderManage(shop)}
       ` : `<div class="ns-empty">${this.loading ? 'Loading shop items…' : this.gm ? 'Click Make Merchant to enable this NPC as a shop.' : 'Merchant information not available. A GM must be online.'}</div>`}
-      </main><footer>Foundry v${esc(game.version || game.release?.generation)} · NPC Shops v0.1.2 alpha</footer>`;
+      </main><footer>Foundry v${esc(game.version || game.release?.generation)} · NPC Shops v0.1.4 alpha</footer>`;
   }
   renderBuy(shop, buyer) {
     if (!shop.open) return '<div class="ns-empty">Shop is currently closed.</div>';
@@ -114,15 +118,80 @@ export class ShopWindow {
       <div class="ns-items">${shop.stock.map(s => `<div class="ns-item ns-manage-item" data-sku="${esc(s.id)}"><img src="${esc(s.item.img || 'icons/svg/item-bag.svg')}" alt=""/><div class="ns-itemtext"><strong>${esc(s.item.name)}</strong><small>Price GP <input data-field="price" type="number" min="0" step="0.01" value="${cpToGp(s.priceCp)}"/> Stock <input data-field="stock" type="number" min="0" step="1" value="${esc(s.quantity)}"/> <label><input type="checkbox" data-field="unlimited" ${s.unlimited ? 'checked' : ''}/> ∞</label></small></div>${button('save-item', 'Save')}${button('remove', '×')}</div>`).join('')}</div>
       <details class="ns-ledger"><summary>Transaction History (${shop.ledger.length})</summary>${shop.ledger.slice().reverse().map(l => `<div>${esc(l.at?.slice(0,16))}: ${esc(l.actorName)} ${esc(l.kind)} ${esc(l.quantity)} × ${esc(l.itemName)} (${cpToGp(l.totalCp)} GP)</div>`).join('') || 'No transactions yet'}</details>`;
   }
+  renderTables(shop) {
+    if (!this.gm) return '';
+    const tables = Array.isArray(shop.tables) ? shop.tables : [];
+    const candidates = tableChoices([
+      ...(game.tables?.contents ?? []).map(t => ({uuid:t.uuid,name:t.name}))
+    ], this.compendiumTables).filter(t => !tables.some(link => link.uuid === t.uuid));
+    const preview = this.preview;
+    return `<section class="ns-tables">
+      <div class="ns-table-toolbar"><b><i class="fas fa-dice-d20"></i> Rollable Tables</b>
+        ${button('roll-all-tables', '<i class="fas fa-dice-d20"></i> Roll All Tables', (!tables.some(t => t.enabled !== false) || this.busy) ? 'disabled' : '')}</div>
+      <p class="ns-table-info">Import RollTables and Items through Plutonium, then link tables here. Results with Item document links add real item data to the shop.</p>
+      <div class="ns-drop" data-drop="tables">Drag a RollTable here from Roll Tables or a compendium.</div>
+      <div class="ns-table-add"><select data-field="table-choice"><option value="">Choose an imported/world RollTable</option>${candidates.map(t => `<option value="${esc(t.uuid)}">${esc(t.name)}</option>`).join('')}</select>
+      ${button('add-table', '<i class="fas fa-plus"></i> Add Table')}
+      ${button('browse-tables', this.browsedCompendiums ? 'Refresh Compendium Tables' : 'Browse Compendium Tables')}</div>
+      <div class="ns-items">${tables.length ? tables.map((t,index) => `<div class="ns-item ns-linked-table" data-table-index="${index}">
+      <div class="ns-table-icon"><i class="fas fa-table-list"></i></div>
+      <div class="ns-itemtext"><strong>${esc(t.name)}</strong><small title="${esc(t.uuid)}">${esc(t.uuid)}</small><label>Rolls <input data-field="table-rolls" type="number" min="1" max="50" step="1" value="${esc(t.rolls ?? 1)}"/></label>
+      <label><input type="checkbox" data-field="table-enabled" ${t.enabled !== false ? 'checked' : ''}/> Include in Roll All</label></div>
+      ${button('roll-table', 'Roll')}${button('save-table', 'Save')}${button('remove-table', '×', 'title="Remove table"')}</div>`).join('') : '<div class="ns-empty">No linked RollTables. Drop a table above, or select one from the list.</div>'}</div>
+      ${preview ? `<div class="ns-preview"><div class="ns-preview-head"><b>Rolled Items (${preview.items.length})</b><div>${button('add-all-rolled', 'Add All Items', preview.items.length ? '' : 'disabled')}${button('clear-rolled', 'Clear Preview')}</div></div>
+      ${preview.items.length ? preview.items.map((x,i)=>`<div class="ns-item" data-preview-index="${i}"><img src="${esc(x.img || 'icons/svg/item-bag.svg')}" alt=""/><div class="ns-itemtext"><strong>${esc(x.name)}</strong><small>× ${x.quantity} · ${cpToGp(x.priceCp)} GP</small></div>${button('add-rolled', 'Add')}</div>`).join('') : '<p class="ns-table-info">No items were resolved from this roll.</p>'}
+      ${preview.skipped.length ? `<details class="ns-table-skipped"><summary>Unresolved results (${preview.skipped.length})</summary>${preview.skipped.map(x=>`<div>${esc(x.table)}: ${esc(x.text)}</div>`).join('')}<small>These results were NOT added. Import the matching Items via Plutonium or link them directly in your RollTables.</small></details>` : ''}</div>` : ''}
+    </section>`;
+  }
+  async addLinkedTable(doc) {
+    if (!this.gm) throw new Error('GM only');
+    const table = makeTableLink(doc);
+    const next = structuredClone(this.shop);
+    next.tables = Array.isArray(next.tables) ? next.tables : [];
+    if (next.tables.some(t=>t.uuid === table.uuid)) throw new Error('This RollTable is already linked to this shop');
+    next.tables.push(table);
+    await this.saveShop(next);
+    notify(`Linked ${table.name} to ${this.actor?.name ?? this.name}`);
+  }
+  tableConfigFromRow(row) {
+    const table = this.shop.tables?.[Number(row?.dataset.tableIndex)];
+    if (!table) throw new Error('RollTable entry was not found');
+    return normalizeTableLink({...table,rolls:row.querySelector('[data-field="table-rolls"]')?.value ?? table.rolls,enabled:row.querySelector('[data-field="table-enabled"]')?.checked ?? table.enabled});
+  }
+  async rollTables(links) {
+    if (!this.gm) throw new Error('Only a GM can roll shop inventory');
+    const active = links.map(normalizeTableLink).filter(t=>t.enabled);
+    if (!active.length) throw new Error('Choose at least one enabled RollTable');
+    this.preview = null;
+    const draws=[];
+    for (const table of active) draws.push(await rollLinkedTable(table));
+    this.preview = aggregatePreview(draws);
+    const found = this.preview.items.reduce((n,x)=>n+x.quantity,0);
+    notify(`Rolled ${active.length} table(s): ${found} item(s); ${this.preview.skipped.length} unresolved result(s).`);
+  }
+  async commitPreview(oneIndex = null) {
+    if (!this.gm) throw new Error('Only the GM can add rolled items');
+    const items = oneIndex === null ? this.preview?.items ?? [] : [this.preview?.items?.[oneIndex]].filter(Boolean);
+    if (!items.length) throw new Error('No rolled items to add');
+    const next = structuredClone(this.shop);
+    next.stock = addPreviewToStock(next.stock,{items});
+    await this.saveShop(next);
+    if (oneIndex === null) this.preview = null;
+    else this.preview.items.splice(oneIndex,1);
+    notify(`Added ${items.reduce((n,x)=>n+x.quantity,0)} item(s) to merchant stock.`);
+  }
   bindEvents(el) {
     el.addEventListener("change", e => {
       if (e.target.matches('[data-field="buyer"]')) { this.buyerId = e.target.value; this.render(); }
     });
-    el.addEventListener("dragover", e => { if (e.target.closest('[data-drop="items"]')) {e.preventDefault(); e.dataTransfer.dropEffect = 'copy';} });
+    el.addEventListener("dragover", e => { if (this.gm && e.target.closest('[data-drop="items"], [data-drop="tables"]')) {e.preventDefault(); e.dataTransfer.dropEffect = 'copy';} });
     el.addEventListener("drop", async e => {
-      if (!e.target.closest('[data-drop="items"]') || !this.gm) return;
+      if (!this.gm) return;
+      const tableDrop=!!e.target.closest('[data-drop="tables"]');
+      if (!tableDrop && !e.target.closest('[data-drop="items"]')) return;
       e.preventDefault();
-      try { await this.handleDrop(e); } catch (err) { notify(err.message, true); }
+      try { if (tableDrop) await this.handleTableDrop(e); else await this.handleDrop(e); }
+      catch (err) { notify(err.message, true); }
     });
     el.addEventListener("click", async e => {
       const target = e.target.closest("button[data-action]");
@@ -133,6 +202,41 @@ export class ShopWindow {
       try {
         if (action === 'close') return this.close();
         if (action.startsWith('tab-')) {this.mode = action.slice(4); return this.render();}
+        if (action === 'add-table') {
+          if (!this.gm) return;
+          const uuid=el.querySelector('[data-field="table-choice"]')?.value;
+          if (!uuid) throw new Error('Select a RollTable first');
+          const doc=await fromUuid(uuid);
+          return await this.addLinkedTable(doc);
+        }
+        if (action === 'browse-tables') {
+          if (!this.gm) return;
+          this.busy=true;
+          this.compendiumTables=await indexTableCompendiums(game.packs);
+          this.browsedCompendiums=true;
+          notify(`Found ${this.compendiumTables.length} compendium RollTables`);
+          return;
+        }
+        if (['save-table','remove-table','roll-table','roll-all-tables','add-all-rolled','clear-rolled','add-rolled'].includes(action)) {
+          if (!this.gm) return;
+          if (action==='clear-rolled') {this.preview=null;return;}
+          if (action==='add-all-rolled') {this.busy=true;return await this.commitPreview();}
+          if (action==='add-rolled') {this.busy=true;return await this.commitPreview(Number(target.closest('[data-preview-index]')?.dataset.previewIndex));}
+          if (action==='roll-all-tables') {
+            this.busy=true;
+            // Respect unsaved roll counts displayed in each row for this immediate roll.
+            const links=[...el.querySelectorAll('[data-table-index]')].map(row=>this.tableConfigFromRow(row));
+            return await this.rollTables(links);
+          }
+          const row=target.closest('[data-table-index]');
+          const link=this.tableConfigFromRow(row);
+          if (action==='roll-table') {this.busy=true;return await this.rollTables([{...link,enabled:true}]);}
+          const next=structuredClone(this.shop);
+          if (action==='remove-table') next.tables.splice(Number(row.dataset.tableIndex),1);
+          else next.tables[Number(row.dataset.tableIndex)]=link;
+          this.preview=null;
+          return await this.saveShop(next);
+        }
         if (action === 'enable') return await this.saveShop({...emptyShop(), enabled: true});
         if (action === 'toggle-open') return await this.saveShop({...this.shop, open: !this.shop.open});
         if (action === 'toggle-sell') return await this.saveShop({...this.shop, allowSelling: !this.shop.allowSelling});
@@ -175,6 +279,16 @@ export class ShopWindow {
     if (!this.actor) throw new Error('Could not locate world Actor for merchant');
     await this.actor.setFlag(MODULE_ID, 'shop', data);
     this.render();
+  }
+  async handleTableDrop(event) {
+    const raw=event.dataTransfer.getData('text/plain') || event.dataTransfer.getData('application/json');
+    if (!raw) throw new Error('No Foundry RollTable drag data');
+    const data=JSON.parse(raw);
+    if (data.type !== 'RollTable' && !String(data.uuid ?? '').startsWith('RollTable.') && !String(data.uuid ?? '').startsWith('Compendium.')) throw new Error('Drag a RollTable document here');
+    let document=data.uuid ? await fromUuid(data.uuid) : null;
+    if (!document && data.type === 'RollTable' && data.pack && data.id) document=await game.packs.get(data.pack)?.getDocument(data.id);
+    if (!document && data.type === 'RollTable' && data.id) document=game.tables.get(data.id);
+    await this.addLinkedTable(document);
   }
   async handleDrop(event) {
     let raw = event.dataTransfer.getData('text/plain');

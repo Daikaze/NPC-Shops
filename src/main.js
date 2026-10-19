@@ -88,7 +88,8 @@ function registerTokenHud() {
     const token = app?.object ?? canvas?.tokens?.controlled?.[0];
     if (!token?.document?.actorId) return;
     const actor = worldActor(token.document.actorId);
-    if (!game.user.isGM) return; // Players access the merchant via its token badge.
+    // Player storefront access is the clickable badge on the token, not the GM Token HUD.
+    if (!game.user.isGM) return;
     const root = html?.[0] ?? html;
     if (!root?.querySelector || root.querySelector('.npc-shop-hud')) return;
     const btn = document.createElement('div');
@@ -119,7 +120,7 @@ async function syncTokenFlags(scene = canvas?.scene) {
       const update = {_id:doc.id};
       let changed = false;
       if (previous !== enabled) {update[`flags.${MODULE_ID}.merchant`] = enabled; changed = true;}
-      // Marker is now a child of the token and follows movement.
+      // v0.1.3: icon is a PIXI Token child, so it follows the NPC without persisted coordinates.
       if (changed) changes.push(update);
     }
     if (changes.length) await scene.updateEmbeddedDocuments('Token', changes);
@@ -129,7 +130,10 @@ async function syncTokenFlags(scene = canvas?.scene) {
 }
 function updateBadges() {
   badgesScheduled = false;
-  if (!canvas?.ready) {tokenBadges?.clear(); return;}
+  if (!canvas?.ready) {
+    tokenBadges?.clear();
+    return;
+  }
   if (!tokenBadges) tokenBadges = new TokenShopBadges({
     pixi: PIXI,
     open: token => open(descriptorFromToken(token)),
@@ -138,8 +142,8 @@ function updateBadges() {
       return Boolean(token.document.getFlag(MODULE_ID,'merchant') || (actor && shopData(actor).enabled));
     }
   });
-  try {tokenBadges.sync(canvas.tokens?.placeables);}
-  catch (err) {console.error('NPC Shops: could not draw token badges',err);}
+  try { tokenBadges.sync(canvas.tokens?.placeables); }
+  catch (err) { console.error('NPC Shops: unable to draw shop token badges', err); }
 }
 function refreshBadges() {
   if (badgesScheduled) return;
@@ -147,7 +151,7 @@ function refreshBadges() {
   requestAnimationFrame(updateBadges);
 }
 function installAccessButton() {
-  if (!game.user.isGM) return; // GM-only Shops toolbar button.
+  if (!game.user.isGM) return; // Only the GM gets the floating Shops directory.
   if (document.getElementById('npc-shops-access')) return;
   const btn = document.createElement('button');
   btn.id = 'npc-shops-access';
@@ -205,7 +209,7 @@ function installAccessButton() {
 
 Hooks.once('init', () => {
   game.settings.register(MODULE_ID, 'buttonPosition', {name:'Shops button position', scope:'client', config:false, type:Object, default:{}});
-  game.settings.register(MODULE_ID, 'hotkeyEnabled', {name:'Enable Alt+S shop shortcut', hint:'GM only: select an NPC token and press Alt+S. Players use the icon attached to a merchant token.', scope:'client', config:!!game.user?.isGM, type:Boolean, default:true});
+  game.settings.register(MODULE_ID, 'hotkeyEnabled', {name:'Enable Alt+S shop shortcut', hint:'GM only: select an NPC token and press Alt+S. Players open shops from the merchant badge on the token.', scope:'client', config:!!game.user?.isGM, type:Boolean, default:true});
 });
 Hooks.once('ready', () => {
   if (game.system?.id !== 'dnd5e') {ui.notifications.warn('NPC Shops requires the dnd5e game system'); return;}
@@ -216,7 +220,7 @@ Hooks.once('ready', () => {
   refreshBadges();
   syncTokenFlags();
   window.addEventListener('keydown', e => {
-    if (!game.user.isGM) return; // Players have no shop shortcut.
+    if (!game.user.isGM) return; // Never intercept a player's Alt+S shortcut.
     if (!game.settings.get(MODULE_ID,'hotkeyEnabled') || !e.altKey || e.ctrlKey || e.metaKey || e.code !== 'KeyS') return;
     if (e.target.closest?.('input,textarea,select,[contenteditable="true"]')) return;
     e.preventDefault();
@@ -261,5 +265,5 @@ Hooks.once('ready', () => {
     if (item.parent?.documentName === 'Actor') refreshWindows(item.parent.id);
   });
   game.modules.get(MODULE_ID).api = game.user.isGM ? {open, openSelected, openDirectory} : {open};
-  console.info('NPC Shops v0.1.3 alpha ready: GM Alt+S, players click merchant badge.');
+  console.info('NPC Shops v0.1.4 alpha ready. GM: Alt+S. Players: click the token shop badge.');
 });

@@ -15,6 +15,29 @@
 .npc-shop-hud{display:flex!important;align-items:center;justify-content:center;min-width:35px;min-height:35px;pointer-events:auto!important}
 
 
-/* Badges now render in the canvas, not in the DOM. */
+/* Token badges are rendered inside Foundry's PIXI scene graph. */
 
 
+
+/* Rollable Tables editor — GM-only and fully contained in the shop window. */
+.npc-shops-window .ns-tabs{flex-wrap:wrap}
+.npc-shops-window .ns-tabs button{flex:0 1 auto;white-space:nowrap}
+.npc-shops-window .ns-table-toolbar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:9px}
+.npc-shops-window .ns-table-toolbar b{font-size:15px;color:#e9d2a0}
+.npc-shops-window .ns-table-toolbar button,.npc-shops-window .ns-preview-head button{background:#55462f;border:1px solid #c09552}
+.npc-shops-window .ns-table-info{font-size:12px;color:#bec9d9;margin:8px 0 12px;line-height:1.5}
+.npc-shops-window .ns-table-add{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:10px 0 16px}
+.npc-shops-window .ns-table-add select{flex:1 1 200px;min-width:0;margin:0}
+.npc-shops-window .ns-linked-table{align-items:center;flex-wrap:wrap}
+.npc-shops-window .ns-linked-table .ns-itemtext{min-width:140px}
+.npc-shops-window .ns-linked-table small{max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.npc-shops-window .ns-linked-table label{display:inline-flex;align-items:center;margin:5px 9px 0 0;gap:5px;font-size:12px}
+.npc-shops-window .ns-linked-table input[type=number]{max-width:54px;min-height:26px}
+.npc-shops-window .ns-linked-table input[type=checkbox]{min-height:0}
+.npc-shops-window .ns-table-icon{display:grid;place-items:center;width:38px;height:38px;border-radius:6px;background:#4c3b2a;color:#efd29b;font-size:21px;flex-shrink:0}
+.npc-shops-window .ns-preview{border-top:1px solid #8b734d;margin-top:18px;padding-top:12px;display:flex;flex-direction:column;gap:7px}
+.npc-shops-window .ns-preview-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:5px}
+.npc-shops-window .ns-preview-head>div{display:flex;gap:6px}
+.npc-shops-window .ns-table-skipped{margin-top:9px;border:1px solid #805f4e;padding:10px;border-radius:7px;color:#f2c8ab;font-size:12px}
+.npc-shops-window .ns-table-skipped div{border-top:1px solid #675144;margin-top:5px;padding-top:5px}
+.npc-shops-window .ns-table-skipped small{font-size:11px;color:#c6a99a;margin-top:7px}

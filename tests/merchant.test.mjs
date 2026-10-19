@@ -71,3 +71,18 @@ test('GM sees Make Merchant for an unconfigured NPC', async () => {
   win.render();
   assert.match(win.element.innerHTML,/Make Merchant/);
 });
+
+test('rollable table management is visible only to the GM', async () => {
+  const {ShopWindow}=await import('../src/ui.js');
+  const merchant={id:'merchant',name:'Mura',img:'npc.png',getFlag:()=>({enabled:true,open:true,stock:[],tables:[],ledger:[]})};
+  globalThis.game={user:{id:'gm',isGM:true},version:'14',tables:{contents:[]},actors:{contents:[],get:()=>merchant}};
+  const gmWin=new ShopWindow({actorId:'merchant'},async()=>{},async()=>{});
+  gmWin.mode='tables';gmWin.element={innerHTML:''};gmWin.render();
+  assert.match(gmWin.element.innerHTML,/Rollable Tables/);
+  assert.match(gmWin.element.innerHTML,/Roll All Tables/);
+  globalThis.game.user={id:'p',isGM:false};
+  const playerWin=new ShopWindow({actorId:'merchant'},async()=>{},async()=>{});
+  playerWin.mode='tables';playerWin.remoteShop={enabled:true,open:true,stock:[],ledger:[],allowSelling:true};playerWin.element={innerHTML:''};playerWin.render();
+  assert.doesNotMatch(playerWin.element.innerHTML,/Rollable Tables/);
+  assert.doesNotMatch(playerWin.element.innerHTML,/Roll All Tables/);
+});
