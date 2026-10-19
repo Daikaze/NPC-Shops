@@ -47,3 +47,9 @@
 .ns-unresolved-item .ns-unresolved-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:6px 0}
 .ns-unresolved-item input{width:85px!important;margin-left:5px}
 .ns-unresolved-item:hover{border-color:#deb76c}
+
+/* v0.1.6 generic Loot fallback settings */
+.npc-shops-window .ns-table-options{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px;margin:10px 0;background:#252c3d;border:1px solid #4b5870;border-radius:7px}
+.npc-shops-window .ns-table-options label{display:inline-flex;align-items:center;gap:6px;font-size:12px}
+.npc-shops-window .ns-table-options input[type=number]{width:82px;margin:0}
+.npc-shops-window .ns-table-options input[type=checkbox]{min-height:auto}

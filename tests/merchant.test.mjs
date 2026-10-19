@@ -86,3 +86,38 @@ test('rollable table management is visible only to the GM', async () => {
   assert.doesNotMatch(playerWin.element.innerHTML,/Rollable Tables/);
   assert.doesNotMatch(playerWin.element.innerHTML,/Roll All Tables/);
 });
+
+test('successful player sale posts one chat receipt and duplicate ID does not repeat it',async()=>{
+  const gm={id:'gm',name:'GM',isGM:true,active:true},player={id:'seller',name:'Stoyan',isGM:false,active:true};
+  const shop={...emptyShop(),enabled:true,allowSelling:true,sellRate:0.5};
+  const merchant={id:'merchant-sell',name:'Kiro Shop',getFlag:()=>shop,setFlag:async function(_mid,_key,s){Object.assign(shop,s);}};
+  const source={id:'gillyweed',name:'Gillyweed',type:'loot',system:{quantity:2,price:{value:10,denomination:'gp'}},toObject(){return {name:this.name,type:this.type,system:this.system};}};
+  const stock=new Map([[source.id,source]]);
+  const buyer={id:'herb-seller',name:'Rashira',system:{currency:wallet({gp:2})},items:{get:id=>stock.get(id)},testUserPermission:()=>true,
+    update:async function(paths){for(const [path,val] of Object.entries(paths))this.system.currency[path.replace('system.currency.','')]=val;},
+    deleteEmbeddedDocuments:async(_type,ids)=>{for(const id of ids)stock.delete(id);}};
+  const chat=[];
+  globalThis.ChatMessage={getSpeaker:({alias})=>({alias}),create:async data=>chat.push(data)};
+  globalThis.game={user:gm,users:{get:id=>id===player.id?player:null},actors:{get:id=>id===merchant.id?merchant:id===buyer.id?buyer:null}};
+  const req={kind:'sell',merchantId:merchant.id,buyerId:buyer.id,itemId:source.id,quantity:2,userId:player.id,requestId:'v016-sale-test'};
+  const result=await executeTrade(req);
+  assert.equal(result.ok,true,result.message);assert.equal(buyer.system.currency.gp,12);
+  assert.equal(chat.length,1);assert.match(chat[0].content,/Stoyan/);
+  assert.match(chat[0].content,/Rashira/);assert.match(chat[0].content,/Kiro Shop/);
+  assert.match(chat[0].content,/2 × Gillyweed/);
+  assert.deepEqual(chat[0].whisper,[]);
+  await executeTrade(req);assert.equal(chat.length,1);
+  delete globalThis.ChatMessage;
+});
+test('failed purchase never announces sale',async()=>{
+  const gm={id:'gm',isGM:true,active:true},player={id:'buyer',isGM:false,active:true};
+  const shop={...emptyShop(),enabled:true,stock:[{id:'s1',item:{name:'Potion',type:'consumable'},priceCp:10000,quantity:1,unlimited:false}]};
+  const merchant={id:'merchant-failure',name:'Mura',getFlag:()=>shop};
+  const buyer={id:'hero-failure',name:'Hero',system:{currency:wallet({gp:1})},testUserPermission:()=>true};
+  const chat=[];
+  globalThis.ChatMessage={create:async m=>chat.push(m)};
+  globalThis.game={user:gm,users:{get:id=>id===player.id?player:null},actors:{get:id=>id===merchant.id?merchant:id===buyer.id?buyer:null}};
+  const result=await executeTrade({kind:'buy',merchantId:merchant.id,buyerId:buyer.id,skuId:'s1',quantity:1,userId:player.id,requestId:'v016-failure-test'});
+  assert.equal(result.ok,false);assert.equal(chat.length,0);
+  delete globalThis.ChatMessage;
+});

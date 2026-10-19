@@ -67,20 +67,30 @@ export function resultPlainName(value) {
     .replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#39;/gi,"'")
     .replace(/\s+/g,' ').trim();
 }
-export function nameCandidates(result) {
+/** Strip the table title from Plutonium gathering result labels. */
+export function stripTablePrefix(name, tableName) {
+  const label=str(name), table=str(tableName);
+  if (!label || !table || label.slice(0,table.length).toLocaleLowerCase()!==table.toLocaleLowerCase()) return label;
+  const suffix=label.slice(table.length).replace(/^\s*[:–—-]\s*/, '').trim();
+  return suffix || label;
+}
+export function nameCandidates(result, tableName='') {
   const names=[];
   for (const raw of tableResultTexts(result)) {
     const markupLabels=[...raw.matchAll(/@(?:UUID|Compendium|Item)\[[^\]]+\]\{([^}]+)\}/gi)].map(m=>m[1]);
     const toolsLabels=[...raw.matchAll(/\{@item\s+([^}|]+)(?:\|[^}]*)?\}/gi)].map(m=>m[1]);
     for (const candidate of [...markupLabels,...toolsLabels,resultPlainName(raw)]) {
       const clean=str(candidate).replace(/^(?:(?:\d+|\d+d\d+)\s*(?:x|×|of)?\s+)/i,'').replace(/^[-•]\s*/,'').trim();
-      if (clean && !names.some(n=>n.toLocaleLowerCase()===clean.toLocaleLowerCase())) names.push(clean);
+      const stripped=stripTablePrefix(clean,tableName);
+      for(const val of [stripped,clean]) {
+        if (val && !names.some(n=>n.toLocaleLowerCase()===val.toLocaleLowerCase())) names.push(val);
+      }
     }
   }
   return names;
 }
-export function plainResultLabel(result) {
-  const names=nameCandidates(result);
+export function plainResultLabel(result, tableName='') {
+  const names=nameCandidates(result,tableName);
   return names[0] || str(result?.documentId) || 'Unknown table result';
 }
 const isItem = document => document?.documentName === 'Item' && SALEABLE_TYPES.has(document.type);
@@ -119,18 +129,18 @@ export async function findImportedItemByName(name, {items, packs}) {
   }
   return null;
 }
-export async function resolveTableItem(result, {fromUuidFn=globalThis.fromUuid,items=globalThis.game?.items,packs=globalThis.game?.packs}={}) {
+export async function resolveTableItem(result, {fromUuidFn=globalThis.fromUuid,items=globalThis.game?.items,packs=globalThis.game?.packs,tableName=''}={}) {
   if (typeof fromUuidFn==='function') {
     const direct=await resolveFromReferences(result,fromUuidFn);
     if(direct) return direct;
   }
-  for(const name of nameCandidates(result)){
+  for(const name of nameCandidates(result,tableName)){
     const match=await findImportedItemByName(name,{items,packs});
     if(match) return match;
   }
   return null;
 }
-/** Explicit manual conversion only: never fabricate an imported Plutonium item or its price. */
+/** Explicit generic Loot fallback. No Plutonium stats or price are invented. */
 export function textResultAsLoot(text,priceCp=0) {
   const name=resultPlainName(text).slice(0,180);
   if(!name) throw new Error('Cannot create loot from an empty table result');
@@ -148,14 +158,27 @@ export async function rollLinkedTable(link,{fromUuidFn=globalThis.fromUuid,items
     // .roll is a non-consuming roll and never posts secret GM results to player chat.
     const draw=await table.roll({recursive:true});
     for (const r of draw.results ?? []) {
-      const item=await resolveTableItem(r,{fromUuidFn,items,packs});
-      if (!item) {unresolved.push(plainResultLabel(r));continue;}
+      const item=await resolveTableItem(r,{fromUuidFn,items,packs,tableName:table.name});
+      if (!item) {unresolved.push(plainResultLabel(r,table.name));continue;}
       const qty=Number(item.system?.quantity ?? 1);
       const quantity=Number.isSafeInteger(qty) && qty>0 && qty<=9999 ? qty : 1;
       resolved.push({document:item,quantity});
     }
   }
   return {table:table.name,resolved,unresolved};
+}
+/** If enabled by the GM, stage unmatched table text as plain Loot at a stated price. */
+export function prepareTableDraws(draws, {autoTextLoot=false,textLootPriceCp=0}={}) {
+  if (!autoTextLoot) return draws;
+  const price=assertInt(textLootPriceCp,0,Number.MAX_SAFE_INTEGER);
+  return draws.map(draw=>{
+    const resolved=[...(draw.resolved??[])],unresolved=[];
+    for(const text of draw.unresolved??[]){
+      try {resolved.push({document:textResultAsLoot(text,price),quantity:1});}
+      catch {unresolved.push(text);}
+    }
+    return {...draw,resolved,unresolved};
+  });
 }
 export function aggregatePreview(draws) {
   const grouped=new Map(), skipped=[];

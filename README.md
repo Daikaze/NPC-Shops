@@ -1,6 +1,6 @@
 # NPC Shops
 
-**Experimental alpha v0.1.5** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+**Experimental alpha v0.1.6** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
 
 ## Features
 
@@ -27,7 +27,7 @@ The `download` in the manifest requires a successfully published GitHub release 
 3. Players click the small store badge **attached to the merchant token** to open its shop. Choose their owned character and use **Buy** / **Sell**. They do **not** need permission to control the NPC. Only the GM sees the movable **Shops** directory button and uses **Alt+S**.
 4. A GM with NPC Shops enabled must be online to process player transactions. All shop configuration happens on the GM client.
 
-## Rollable Tables + Plutonium (v0.1.5)
+## Rollable Tables + Plutonium (v0.1.6)
 
 1. Import **Items** and **RollTables** using Plutonium / 5etools into the world or an Item/RollTable compendium. This module does not download content and does not require Plutonium's own runtime.
 2. As GM, open an enabled merchant and select **Rollable Tables** (beside Buy/Sell/Manage). Drag a world or compendium RollTable into the drop box, choose a world table from the dropdown, or press **Browse Compendium Tables** to load table compendium indexes and choose one.
@@ -39,13 +39,13 @@ The `download` in the manifest requires a successfully published GitHub release 
 
 The actor remains a normal NPC; shop stock is stored independently in `flags.npc-shops.shop` rather than mixed with the NPC's combat inventory.
 
-## v0.1.5 additions
+## v0.1.6 additions
 
 - New GM Rollable Tables tab with world/compendium tables, drag and drop, and Roll All Tables.
 - Plutonium-linked Item references and cautious exact-name matching to imported Items.
 - Preview before adding generated items to shop stock; players see only the resulting shop inventory.
 
-## v0.1.5 Rollable Tables fixes
+## v0.1.6 Rollable Tables fixes
 
 - Fix Foundry v14 roll results: v14 uses `name`, `description`, `documentUuid`; v11 uses `text`, `documentCollection`, `documentId`.
 - Follow embedded UUID/Compendium/Item links in descriptions and support `{@item ...}` tags from 5etools content.
@@ -100,3 +100,10 @@ The actor remains a normal NPC; shop stock is stored independently in `flags.npc
 ## License
 
 MIT.
+
+## v0.1.6 — Gathering RollTables and public trade chat
+
+- Strips a matching table title from results such as `Gathering: Coast: Gillyweed` before looking for an imported Item named `Gillyweed`.
+- Optional, **enabled by default**, automatic **generic Loot** fallback for text-only results. Use the Rollable Tables settings to choose its default price (0 GP initially), or disable fallback to retain unresolved results. These generated items contain no invented Plutonium statistics or effects.
+- Every successfully committed purchase or sale creates one **public chat receipt** with player, character, merchant, item, quantity, and price. Failed transactions produce no trade receipt; repeat request IDs do not double-post.
+- Test on a copy of the world; real Foundry v11/v14 client integration still needs validation.

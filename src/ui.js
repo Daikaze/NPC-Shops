@@ -1,5 +1,5 @@
 import {MODULE_ID, cpToGp, emptyShop, gpToCp, hasOwnership, itemPriceCp, moneyTotal, shopData, stockCopy, SALEABLE_TYPES} from "./core.js";
-import {addPreviewToStock, aggregatePreview, indexTableCompendiums, makeTableLink, normalizeTableLink, rollLinkedTable, tableChoices, textResultAsLoot} from "./tables.js";
+import {addPreviewToStock, aggregatePreview, indexTableCompendiums, makeTableLink, normalizeTableLink, rollLinkedTable, tableChoices, textResultAsLoot, prepareTableDraws} from "./tables.js";
 
 const windows = new Map();
 const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -95,7 +95,7 @@ export class ShopWindow {
         <nav class="ns-tabs">${button('tab-buy', 'Buy', `class="${this.mode === 'buy' ? 'active' : ''}"`)}${button('tab-sell', 'Sell', `class="${this.mode === 'sell' ? 'active' : ''}"`)}${this.gm ? `${button('tab-manage', 'Manage', `class="${this.mode === 'manage' ? 'active' : ''}"`)}${button('tab-tables', 'Rollable Tables', `class="${this.mode === 'tables' ? 'active' : ''}"`)}` : ''}</nav>
         ${this.mode === 'buy' ? this.renderBuy(shop, buyer) : this.mode === 'sell' ? this.renderSell(shop, buyer) : this.mode === 'tables' && this.gm ? this.renderTables(shop) : this.renderManage(shop)}
       ` : `<div class="ns-empty">${this.loading ? 'Loading shop items…' : this.gm ? 'Click Make Merchant to enable this NPC as a shop.' : 'Merchant information not available. A GM must be online.'}</div>`}
-      </main><footer>Foundry v${esc(game.version || game.release?.generation)} · NPC Shops v0.1.5 alpha</footer>`;
+      </main><footer>Foundry v${esc(game.version || game.release?.generation)} · NPC Shops v0.1.6 alpha</footer>`;
   }
   renderBuy(shop, buyer) {
     if (!shop.open) return '<div class="ns-empty">Shop is currently closed.</div>';
@@ -128,7 +128,10 @@ export class ShopWindow {
     return `<section class="ns-tables">
       <div class="ns-table-toolbar"><b><i class="fas fa-dice-d20"></i> Rollable Tables</b>
         ${button('roll-all-tables', '<i class="fas fa-dice-d20"></i> Roll All Tables', (!tables.some(t => t.enabled !== false) || this.busy) ? 'disabled' : '')}</div>
-      <p class="ns-table-info">Import RollTables and Items through Plutonium, then link tables here. Results with Item document links add real item data to the shop.</p>
+      <p class="ns-table-info">Real imported Items are used when found. Unmatched text can become <b>generic Loot</b> (name and quantity only; no inferred Plutonium mechanics).</p>
+      <div class="ns-table-options"><label><input type="checkbox" data-field="auto-text-loot" ${shop.autoTextLoot !== false ? 'checked' : ''}/> Automatically turn unmatched table text into generic Loot</label>
+      <label>Default Loot price (GP) <input type="number" data-field="text-loot-price" min="0" step="0.01" value="${cpToGp(shop.textLootPriceCp ?? 0)}"/></label>
+      ${button('save-text-loot', 'Save Settings')}</div>
       <div class="ns-drop" data-drop="tables">Drag a RollTable here from Roll Tables or a compendium.</div>
       <div class="ns-table-add"><select data-field="table-choice"><option value="">Choose an imported/world RollTable</option>${candidates.map(t => `<option value="${esc(t.uuid)}">${esc(t.name)}</option>`).join('')}</select>
       ${button('add-table', '<i class="fas fa-plus"></i> Add Table')}
@@ -139,7 +142,7 @@ export class ShopWindow {
       <label><input type="checkbox" data-field="table-enabled" ${t.enabled !== false ? 'checked' : ''}/> Include in Roll All</label></div>
       ${button('roll-table', 'Roll')}${button('save-table', 'Save')}${button('remove-table', '×', 'title="Remove table"')}</div>`).join('') : '<div class="ns-empty">No linked RollTables. Drop a table above, or select one from the list.</div>'}</div>
       ${preview ? `<div class="ns-preview"><div class="ns-preview-head"><b>Rolled Items (${preview.items.length})</b><div>${button('add-all-rolled', 'Add All Items', preview.items.length ? '' : 'disabled')}${button('clear-rolled', 'Clear Preview')}</div></div>
-      ${preview.items.length ? preview.items.map((x,i)=>`<div class="ns-item" data-preview-index="${i}"><img src="${esc(x.img || 'icons/svg/item-bag.svg')}" alt=""/><div class="ns-itemtext"><strong>${esc(x.name)}</strong><small>× ${x.quantity} · ${cpToGp(x.priceCp)} GP</small></div>${button('add-rolled', 'Add')}</div>`).join('') : '<p class="ns-table-info">No items were resolved from this roll.</p>'}
+      ${preview.items.length ? preview.items.map((x,i)=>`<div class="ns-item" data-preview-index="${i}"><img src="${esc(x.img || 'icons/svg/item-bag.svg')}" alt=""/><div class="ns-itemtext"><strong>${esc(x.name)}</strong><small>× ${x.quantity} · ${cpToGp(x.priceCp)} GP${x.document?.flags?.['npc-shops']?.generatedTextLoot ? ' · Generic Loot (text-only)' : ''}</small></div>${button('add-rolled', 'Add')}</div>`).join('') : '<p class="ns-table-info">No items were resolved from this roll.</p>'}
       ${preview.skipped.length ? `<details class="ns-table-skipped" open><summary>Text-only / Unresolved results (${preview.skipped.length})</summary><p class="ns-table-info">These results are not Item documents. Drag a matching Item from Plutonium/Compendiums onto a row, or explicitly convert a text result into generic Loot (0 GP default; set its price first).</p>${preview.skipped.map((x,i)=>`<div class="ns-unresolved-item" data-unresolved-index="${i}" data-drop="unresolved"><strong>${esc(x.table)}:</strong> ${esc(x.text)}<div class="ns-unresolved-actions"><label>Price (GP) <input type="number" data-field="unresolved-price" step="0.01" min="0" value="0"/></label>${button('convert-text-loot','Convert to Loot')}</div><small>Drop imported Item here to use the actual Item instead.</small></div>`).join('')}</details>` : ''}</div>` : ''}
     </section>`;
   }
@@ -165,7 +168,9 @@ export class ShopWindow {
     this.preview = null;
     const draws=[];
     for (const table of active) draws.push(await rollLinkedTable(table));
-    this.preview = aggregatePreview(draws);
+    const auto = this.element?.querySelector('[data-field="auto-text-loot"]')?.checked ?? (this.shop.autoTextLoot !== false);
+    const priceCp = gpToCp(this.element?.querySelector('[data-field="text-loot-price"]')?.value ?? (this.shop.textLootPriceCp ?? 0)/100);
+    this.preview = aggregatePreview(prepareTableDraws(draws,{autoTextLoot:auto,textLootPriceCp:priceCp}));
     const found = this.preview.items.reduce((n,x)=>n+x.quantity,0);
     notify(`Rolled ${active.length} table(s): ${found} item(s); ${this.preview.skipped.length} unresolved result(s).`);
   }
@@ -231,6 +236,12 @@ export class ShopWindow {
           this.stageUnresolvedItem(index,textResultAsLoot(skipped.text,priceCp));
           notify('Text result converted into generic Loot for preview. Review its price before adding to stock.');
           return;
+        }
+        if (action === 'save-text-loot') {
+          if (!this.gm) return;
+          const autoTextLoot = !!el.querySelector('[data-field="auto-text-loot"]')?.checked;
+          const textLootPriceCp = gpToCp(el.querySelector('[data-field="text-loot-price"]')?.value ?? 0);
+          return await this.saveShop({...this.shop,autoTextLoot,textLootPriceCp});
         }
         if (action === 'add-table') {
           if (!this.gm) return;

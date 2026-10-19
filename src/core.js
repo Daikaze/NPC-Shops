@@ -92,7 +92,7 @@ export function itemPriceCp(item) {
   return Number.isSafeInteger(cp) && cp >= 0 ? cp : 0;
 }
 export function emptyShop() {
-  return {enabled: false, open: true, allowSelling: true, sellRate: 0.5, stock: [], tables: [], ledger: []};
+  return {enabled: false, open: true, allowSelling: true, sellRate: 0.5, autoTextLoot: true, textLootPriceCp: 0, stock: [], tables: [], ledger: []};
 }
 export function shopData(actor) {
   const saved = actor?.getFlag?.(MODULE_ID, "shop") ?? {};

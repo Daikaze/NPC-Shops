@@ -1,4 +1,5 @@
 import {MODULE_ID, SALEABLE_TYPES, assertInt, changeWallet, hasOwnership, itemCopy, itemPriceCp, moneyTotal, recordTransaction, shopData, stockCopy, walletCoins} from "./core.js";
+import {publishTradeReceipt} from './chat.js';
 
 const locks = new Set();
 const processed = new Map();
@@ -52,7 +53,8 @@ async function buy({user, merchant, buyer, shop}, request, qty) {
     const target = next.stock.find(s => s.id === sku.id);
     if (!target.unlimited) target.quantity -= qty;
     await setShop(merchant, recordTransaction(next, logEntry(user, buyer, "buy", sku.item.name, qty, priceCp)));
-    return {message: `${buyer.name} bought ${qty} × ${sku.item.name} for ${(priceCp / 100).toFixed(2)} GP`};
+    return {message: `${buyer.name} bought ${qty} × ${sku.item.name} for ${(priceCp / 100).toFixed(2)} GP`,
+      receipt:{kind:'buy',buyerName:buyer.name,userName:user.name,merchantName:merchant.name,itemName:sku.item.name,quantity:qty,totalCp:priceCp}};
   } catch (err) {
     if (created.length) await buyer.deleteEmbeddedDocuments("Item", created.map(i => i.id)).catch(e => console.error("NPC Shops rollback item error", e));
     if (moneyAttempted) await setCurrency(buyer, before).catch(e => console.error("NPC Shops refund error", e));
@@ -84,7 +86,8 @@ async function sell({user, merchant, buyer, shop}, request, qty) {
     if (matching) matching.quantity += qty;
     else next.stock.push(stockCopy(source, qty));
     await setShop(merchant, recordTransaction(next, logEntry(user, buyer, "sell", source.name, qty, priceCp)));
-    return {message: `${buyer.name} sold ${qty} × ${source.name} for ${(priceCp / 100).toFixed(2)} GP`};
+    return {message: `${buyer.name} sold ${qty} × ${source.name} for ${(priceCp / 100).toFixed(2)} GP`,
+      receipt:{kind:'sell',buyerName:buyer.name,userName:user.name,merchantName:merchant.name,itemName:source.name,quantity:qty,totalCp:priceCp}};
   } catch (err) {
     if (moneyAttempted) await setCurrency(buyer, before).catch(e => console.error("NPC Shops refund error", e));
     if (changedInventory) {
@@ -109,9 +112,12 @@ export async function executeTrade(request) {
     const result = request.kind === "buy" ? await buy(context, request, qty)
       : request.kind === "sell" ? await sell(context, request, qty)
       : (() => {throw new Error("Unknown transaction type")})();
-    const response = {ok: true, ...result};
-    processed.set(request.requestId, response);
-    if (processed.size > 300) processed.delete(processed.keys().next().value);
+    // Commit success before posting chat to avoid duplicate/failed-chat reruns.
+    const response={ok:true,message:result.message};
+    processed.set(request.requestId,response);
+    if(processed.size>300) processed.delete(processed.keys().next().value);
+    try {await publishTradeReceipt(result.receipt);}
+    catch(err){console.warn('NPC Shops: Trade completed, but public chat receipt failed',err);}
     return response;
   } catch (err) {
     return {ok: false, message: String(err?.message ?? err)};

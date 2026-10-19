@@ -84,3 +84,24 @@ test('text-only Plutonium results remain visible for manual conversion, with no 
   assert.equal(loot.toObject().name,rolled.unresolved[0]);
   assert.equal(aggregatePreview([{table:'Gathering',resolved:[{document:loot,quantity:1}]}]).items.length,1);
 });
+
+test('Gathering: Coast prefix is removed and Gillyweed is found in a compendium',async()=>{
+  const target=item('Gillyweed','Compendium.world.herbs.abc');
+  const pack={documentName:'Item',collection:'world.herbs',getIndex:async()=>[{name:'Gillyweed',_id:'abc'}],getDocument:async()=>target};
+  const gather={documentName:'RollTable',name:'Gathering: Coast',roll:async()=>({results:[{name:'Gathering: Coast: Gillyweed'}]})};
+  const rolled=await rollLinkedTable({uuid:'RollTable.coast',name:gather.name},{fromUuidFn:async uuid=>uuid==='RollTable.coast'?gather:null,items:{contents:[]},packs:[pack]});
+  assert.equal(rolled.resolved[0].document,target);
+  assert.equal(rolled.unresolved.length,0);
+});
+test('Optional text-only fallback converts to named generic Loot and groups quantities',async()=>{
+  const {prepareTableDraws,stripTablePrefix}=await import('../src/tables.js');
+  assert.equal(stripTablePrefix('Gathering: Coast: Gillyweed','Gathering: Coast'),'Gillyweed');
+  assert.equal(stripTablePrefix('Different: Gillyweed','Gathering: Coast'),'Different: Gillyweed');
+  const draws=[{table:'Gathering: Mountains',resolved:[],unresolved:["Pixie's Parasol","Pixie's Parasol"]}];
+  assert.equal(prepareTableDraws(draws,{autoTextLoot:false})[0].unresolved.length,2);
+  const preview=aggregatePreview(prepareTableDraws(draws,{autoTextLoot:true,textLootPriceCp:250}));
+  assert.equal(preview.items.length,1);
+  assert.equal(preview.items[0].quantity,2);
+  assert.equal(preview.items[0].priceCp,250);
+  assert.equal(preview.items[0].document.flags['npc-shops'].generatedTextLoot,true);
+});
