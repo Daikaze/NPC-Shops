@@ -1,11 +1,21 @@
-import {MODULE_ID, SALEABLE_TYPES, assertInt, changeWallet, emptyShop, hasOwnership, itemCopy, itemPriceCp, moneyTotal, recordTransaction, shopData, stockCopy} from "./core.js";
+import {MODULE_ID, SALEABLE_TYPES, assertInt, changeWallet, hasOwnership, itemCopy, itemPriceCp, moneyTotal, recordTransaction, shopData, stockCopy, walletCoins} from "./core.js";
 
 const locks = new Set();
 const processed = new Map();
 const ERROR_PREFIX = "NPC Shops: ";
 function ensure(condition, msg) { if (!condition) throw new Error(ERROR_PREFIX + msg); }
-function currency(actor) { return {...(actor.system?.currency ?? {})}; }
-async function setCurrency(actor, next) { await actor.update({"system.currency": next}); }
+function currency(actor) { return walletCoins(actor.system?.currency ?? {}); }
+
+/** dnd5e v11 & v14: explicitly update every denomination, then verify the persisted system values. */
+export async function setCurrency(actor, next) {
+  const target = walletCoins(next);
+  const paths = Object.fromEntries(Object.entries(target).map(([coin, value]) => [`system.currency.${coin}`, value]));
+  await actor.update(paths);
+  const actual = currency(actor);
+  if (Object.keys(target).some(coin => actual[coin] !== target[coin])) {
+    throw new Error(ERROR_PREFIX + "Currency update did not persist on the character sheet");
+  }
+}
 async function setShop(actor, shop) { await actor.setFlag(MODULE_ID, "shop", shop); }
 function logEntry(user, buyer, kind, itemName, quantity, priceCp) {
   return {at: new Date().toISOString(), userId: user.id, actorId: buyer.id, actorName: buyer.name, kind, itemName, quantity, totalCp: priceCp};
@@ -21,7 +31,6 @@ function validateActors(request) {
   ensure(shop.enabled && shop.open, "This shop is closed");
   return {user, merchant, buyer, shop};
 }
-
 async function buy({user, merchant, buyer, shop}, request, qty) {
   const sku = shop.stock.find(s => s.id === request.skuId);
   ensure(sku && sku.item, "Item is no longer available");
@@ -30,59 +39,54 @@ async function buy({user, merchant, buyer, shop}, request, qty) {
   ensure(Number.isSafeInteger(priceCp), "Invalid total");
   const before = currency(buyer);
   ensure(moneyTotal(before) >= priceCp, "Not enough coins");
-  const toAdd = itemCopy(sku.item, qty);
+  const nextWallet = changeWallet(before, -priceCp);
   let created = [];
-  let moneyUpdated = false;
+  let moneyAttempted = false;
   try {
-    created = await buyer.createEmbeddedDocuments("Item", [toAdd]);
+    // Debit first. Never deliver a free item if currency update fails or is ignored.
+    moneyAttempted = true;
+    await setCurrency(buyer, nextWallet);
+    created = await buyer.createEmbeddedDocuments("Item", [itemCopy(sku.item, qty)]);
     ensure(created?.length === 1, "Item delivery failed");
-    await setCurrency(buyer, changeWallet(before, -priceCp));
-    moneyUpdated = true;
     const next = structuredClone(shop);
     const target = next.stock.find(s => s.id === sku.id);
     if (!target.unlimited) target.quantity -= qty;
-    const logged = recordTransaction(next, logEntry(user, buyer, "buy", sku.item.name, qty, priceCp));
-    await setShop(merchant, logged);
+    await setShop(merchant, recordTransaction(next, logEntry(user, buyer, "buy", sku.item.name, qty, priceCp)));
     return {message: `${buyer.name} bought ${qty} × ${sku.item.name} for ${(priceCp / 100).toFixed(2)} GP`};
   } catch (err) {
-    // Best effort only: Foundry cannot atomically update two separate Actors.
-    if (moneyUpdated) await setCurrency(buyer, before).catch(e => console.error("NPC Shops refund error", e));
-    if (created.length) await buyer.deleteEmbeddedDocuments("Item", created.map(i => i.id)).catch(e => console.error("NPC Shops rollback error", e));
+    if (created.length) await buyer.deleteEmbeddedDocuments("Item", created.map(i => i.id)).catch(e => console.error("NPC Shops rollback item error", e));
+    if (moneyAttempted) await setCurrency(buyer, before).catch(e => console.error("NPC Shops refund error", e));
     throw err;
   }
 }
-
 async function sell({user, merchant, buyer, shop}, request, qty) {
   ensure(shop.allowSelling, "This merchant does not buy items");
   const source = buyer.items.get(request.itemId);
   ensure(source && SALEABLE_TYPES.has(source.type), "Item cannot be sold");
   const existingQty = assertInt(source.system?.quantity ?? 1, 0);
   ensure(existingQty >= qty, "Not enough items");
-  // Merchant purchase rate applies to the item base price, not to custom shop listing prices.
   const rate = Number(shop.sellRate);
   ensure(Number.isFinite(rate) && rate >= 0 && rate <= 1, "Invalid shop selling rate");
-  const perUnit = Math.floor(itemPriceCp(source) * rate);
-  const priceCp = perUnit * qty;
+  const priceCp = Math.floor(itemPriceCp(source) * rate) * qty;
   ensure(Number.isSafeInteger(priceCp), "Invalid sale total");
   const before = currency(buyer);
   const savedItem = source.toObject();
   let changedInventory = false;
-  let changedMoney = false;
+  let moneyAttempted = false;
   try {
     if (existingQty === qty) await buyer.deleteEmbeddedDocuments("Item", [source.id]);
     else await buyer.updateEmbeddedDocuments("Item", [{_id: source.id, "system.quantity": existingQty - qty}]);
     changedInventory = true;
+    moneyAttempted = true;
     await setCurrency(buyer, changeWallet(before, priceCp));
-    changedMoney = true;
     const next = structuredClone(shop);
     const matching = next.stock.find(s => s.item?.name === source.name && s.item?.type === source.type && s.priceCp === itemPriceCp(source) && !s.unlimited);
     if (matching) matching.quantity += qty;
     else next.stock.push(stockCopy(source, qty));
-    const logged = recordTransaction(next, logEntry(user, buyer, "sell", source.name, qty, priceCp));
-    await setShop(merchant, logged);
+    await setShop(merchant, recordTransaction(next, logEntry(user, buyer, "sell", source.name, qty, priceCp)));
     return {message: `${buyer.name} sold ${qty} × ${source.name} for ${(priceCp / 100).toFixed(2)} GP`};
   } catch (err) {
-    if (changedMoney) await setCurrency(buyer, before).catch(e => console.error("NPC Shops refund error", e));
+    if (moneyAttempted) await setCurrency(buyer, before).catch(e => console.error("NPC Shops refund error", e));
     if (changedInventory) {
       const current = buyer.items.get(source.id);
       if (current) await buyer.updateEmbeddedDocuments("Item", [{_id: source.id, "system.quantity": existingQty}]).catch(e => console.error("NPC Shops restore error", e));
@@ -91,7 +95,6 @@ async function sell({user, merchant, buyer, shop}, request, qty) {
     throw err;
   }
 }
-
 export async function executeTrade(request) {
   let key;
   try {
