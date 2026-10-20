@@ -1,113 +1,93 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {TokenShopBadges,tokenCornerOnScreen,merchantBadgeSize} from '../src/token-badges.js';
-function world(){
-  const buttons=[],calls=new Map(),listeners=new Map();let next=0;
-  const doc={
-    body:{appendChild(el){buttons.push(el);}},
-    createElement(){const callbacks={},properties={};
-      return {style:{properties,setProperty(name,value){properties[name]=value;}},callbacks,setAttribute(){},
-        addEventListener(n,fn){callbacks[n]=fn;},
-        remove(){this.removed=true;},
-        fire(n){callbacks[n]?.({preventDefault(){},stopPropagation(){},stopImmediatePropagation(){}})}
-      };
-    }
-  };
-  const board={getBoundingClientRect(){return {left:10,top:20,width:800,height:600,right:810,bottom:620};}};
-  const ticker={
-    add(fn,ctx,priority){listeners.set('tick',{fn,ctx,priority});},
-    remove(fn,ctx){const t=listeners.get('tick');if(t?.fn===fn && t.ctx===ctx)listeners.delete('tick');}
-  };
-  const canvas={ready:true,app:{canvas:board,ticker,renderer:{screen:{width:800,height:600}}}};
-  const requestFrame=fn=>{calls.set(++next,fn);return next;};
-  const cancelFrame=id=>calls.delete(id);
-  return {doc,board,canvas,buttons,calls,listeners,requestFrame,cancelFrame};
+import {TokenShopBadges,merchantBadgePosition,makeShopBadge} from '../src/token-badges.js';
+
+class Container {
+  constructor(){
+    this.children=[];this.parent=null;this.destroyed=false;this.visible=true;
+    this.handlers={};this.position={set:(x,y)=>{this.x=x;this.y=y;}};
+    this.scale={set:n=>{this.scaleValue=n}};
+  }
+  addChild(obj){this.children.push(obj);obj.parent=this;}
+  removeChild(obj){this.children=this.children.filter(x=>x!==obj);obj.parent=null;}
+  destroy(){this.destroyed=true;}
+  on(type,callback){this.handlers[type]=callback;}
 }
-function token(){
-  const obj={document:{id:'token',actorId:'merchant',hidden:false},visible:true,destroyed:false,
-    w:100,h:100,name:'Merchant',x:120,y:150,zoom:1};
-  obj.toGlobal=({x,y})=>({x:obj.x+x*obj.zoom,y:obj.y+y*obj.zoom});
-  return obj;
+class Circle{constructor(x,y,radius){this.x=x;this.y=y;this.radius=radius;}}
+class Graphics7 extends Container {
+  lineStyle(){return this;}beginFill(){return this;}drawCircle(){return this;}
+  drawRect(){return this;}endFill(){return this;}
 }
-function manager(w,open=()=>{},isMerchant=()=>true){
-  return new TokenShopBadges({open,isMerchant,documentRef:w.doc,getCanvas:()=>w.canvas,
-    requestFrame:w.requestFrame,cancelFrame:w.cancelFrame});
+class Graphics8 extends Container {
+  circle(){return this;}fill(){return this;}stroke(){return this;}rect(){return this;}
 }
-test('small tokens have a small visible icon and large tokens have a larger one',()=>{
-  assert.equal(merchantBadgeSize(60,60),14);
-  assert.equal(merchantBadgeSize(100,100),16);
-  assert.equal(merchantBadgeSize(200,200),32);
-  assert.equal(merchantBadgeSize(350,350),44);
-  assert.equal(merchantBadgeSize(1000,1000),44);
-});
-test('corner position tracks token and icon stays inside top-right quadrant',()=>{
-  const w=world(),t=token();
-  const expected=[
-    {zoom:.5,x:170,y:180,size:14},
-    {zoom:1,x:219,y:181,size:16},
-    {zoom:2,x:311,y:189,size:32},
-    {zoom:4,x:505,y:195,size:44}
-  ];
-  for (const v of expected) {
-    t.zoom=v.zoom;
-    const p=tokenCornerOnScreen(t,w.board,{width:800,height:600});
-    assert.equal(p.x,v.x);
-    assert.equal(p.y,v.y);
-    assert.equal(p.size,v.size);
+function token(width=100,height=100){
+  const t=new Container();
+  t.document={id:'t1',actorId:'merchant',hidden:false};
+  t.w=width;t.h=height;t.name='Shop NPC';t.visible=true;
+  return t;
+}
+const emit=(badge)=>badge.handlers.pointertap({stopPropagation(){}});
+test('merchant icon is fully inside the upper-right of the token at all sizes',()=>{
+  for(const [w,h] of [[50,50],[100,100],[200,100],[100,200],[400,400]]){
+    const pos=merchantBadgePosition({w,h});
+    assert.ok(pos.x-pos.size>0);
+    assert.ok(pos.x+pos.size<w);
+    assert.ok(pos.y-pos.size>0);
+    assert.ok(pos.y+pos.size<h);
+    assert.ok(pos.x>w/2);
+    assert.ok(pos.y<h/2);
   }
 });
-test('viewport conversion handles a rescaled Foundry canvas',()=>{
-  const w=world(),t=token();
-  w.board.getBoundingClientRect=()=>({left:10,top:20,width:400,height:300,right:410,bottom:320});
-  const p=tokenCornerOnScreen(t,w.board,{width:800,height:600});
-  assert.equal(p.size,14);
-  assert.equal(p.x,110);
-  assert.equal(p.y,105);
+test('merchant icon does not use canvas zoom; inherits token transform precisely',()=>{
+  const t=token(),pos=merchantBadgePosition(t);
+  const expected=merchantBadgePosition({...t,zoom:4});
+  assert.deepEqual(expected,pos);
+  assert.equal(pos.x,84.5);
+  assert.equal(pos.y,15.5);
+  assert.equal(pos.size,11.5);
 });
-test('button uses proportional icon CSS but maintains accessible hit area and opens shop',()=>{
-  const w=world(),t=token();let count=0;
-  const badges=manager(w,()=>count++);
-  badges.sync([t]);
-  const button=w.buttons[0];
-  assert.match(button.innerHTML,/npc-shop-token-badge/);
-  assert.equal(button.style.left,'219px');
-  assert.equal(button.style.top,'181px');
-  assert.equal(button.style.properties['--ns-shop-badge-size'],'16px');
-  assert.equal(button.style.properties['--ns-shop-hit-size'],'24px');
-  button.fire('click');assert.equal(count,1);
-  t.zoom=4;badges.updatePositions();
-  assert.equal(button.style.properties['--ns-shop-badge-size'],'44px');
-  assert.equal(button.style.properties['--ns-shop-hit-size'],'44px');
-  button.fire('click');assert.equal(count,2);
-  badges.clear();assert.equal(button.removed,true);
+for(const Graphics of [Graphics7,Graphics8]){
+  test('token child icon draws, opens shop, and survives movement/zoom without HTML overlay',()=>{
+    const t=token();let opens=0;
+    const m=new TokenShopBadges({pixi:{Container,Graphics,Circle},
+      isMerchant:()=>true,open:()=>opens++});
+    m.sync([t]);
+    const badge=t.children[0];
+    assert.equal(badge.parent,t);
+    assert.equal(badge.eventMode,'static');
+    assert.equal(badge.hitArea.radius,17);
+    assert.equal(badge.x,84.5);
+    assert.equal(badge.y,15.5);
+    assert.equal(badge.scaleValue,11.5/16);
+    emit(badge);assert.equal(opens,1);
+    // PIXI local coordinates and child identity stay the same after movement.
+    t.x=450;t.y=220;t.zoom=.2;
+    m.sync([t]);assert.equal(t.children[0],badge);
+    assert.equal(badge.scaleValue,11.5/16);
+    emit(badge);assert.equal(opens,2);
+    m.clear();
+    assert.equal(badge.destroyed,true);
+    assert.equal(t.children.length,0);
+  });
+}
+test('hidden NPC, disabled shop and token removal clear badge and revoke interaction',()=>{
+  const t=token();let enabled=true,opens=0;
+  const m=new TokenShopBadges({pixi:{Container,Graphics:Graphics7,Circle},
+    isMerchant:()=>enabled,open:()=>opens++});
+  m.sync([t]);const badge=t.children[0];
+  enabled=false;emit(badge);assert.equal(opens,0);
+  m.sync([t]);assert.equal(badge.destroyed,true);
+  enabled=true;m.sync([t]);assert.equal(t.children.length,1);
+  t.document.hidden=true;
+  m.sync([t]);assert.equal(t.children.length,0);
+  t.document.hidden=false;
+  m.sync([t]);assert.equal(t.children.length,1);
+  m.sync([]);assert.equal(t.children.length,0);
 });
-test('render ticker follows animation, without a delayed CSS size transition',()=>{
-  const w=world(),t=token(),badges=manager(w);
-  badges.sync([t]);assert.equal(w.listeners.get('tick').priority,-1000);
-  t.x+=180;t.y+=75;t.zoom=2;
-  const {fn,ctx}=w.listeners.get('tick');fn.call(ctx);
-  assert.equal(w.buttons[0].style.left,'491px');
-  assert.equal(w.buttons[0].style.top,'264px');
-  assert.equal(w.buttons[0].style.properties['--ns-shop-badge-size'],'32px');
-  badges.clear();assert.equal(w.listeners.size,0);
-});
-test('hidden NPC and offscreen merchant have no clickable icon',()=>{
-  const w=world(),t=token();let enabled=true,count=0;
-  const badges=manager(w,()=>count++,()=>enabled);
-  badges.sync([t]);let btn=w.buttons[0];
-  enabled=false;btn.fire('click');assert.equal(count,0);
-  badges.sync([]);assert.equal(btn.removed,true);
-  enabled=true;badges.sync([t]);btn=w.buttons[1];
-  t.visible=false;badges.updatePositions();assert.equal(btn.style.display,'none');
-  t.visible=true;t.x=3000;badges.updatePositions();assert.equal(btn.style.display,'none');
-  badges.clear();
-});
-test('v11 fallback still updates via animation frame',()=>{
-  const w=world(),t=token(),badges=manager(w);
-  delete w.canvas.app.ticker;
-  badges.sync([t]);assert.equal(w.calls.size,1);
-  t.x+=120;
-  const [id,fn]=[...w.calls][0];w.calls.delete(id);fn();
-  assert.equal(w.buttons[0].style.left,'339px');
-  badges.clear();assert.equal(w.calls.size,0);
+test('no icon on invalid or destroyed tokens',()=>{
+  const t=token();t.destroyed=true;
+  const m=new TokenShopBadges({pixi:{Container,Graphics:Graphics8,Circle},isMerchant:()=>true,open:()=>{}});
+  m.sync([t]);assert.equal(t.children.length,0);
+  assert.equal(merchantBadgePosition({w:0,h:100}),null);
 });

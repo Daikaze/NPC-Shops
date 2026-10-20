@@ -1,6 +1,6 @@
 # NPC Shops
 
-**Experimental alpha v0.1.15** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+**Experimental alpha v0.1.16** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
 
 ## v0.1.9 — GM merchant creation control
 
@@ -50,6 +50,13 @@
 - The previous 30px fixed-size badge was tiny at high zoom and oversized at low zoom. The badge now scales **proportionally to the token's displayed size** (16%, minimum 14px, maximum 44px).
 - Remains in the token's upper-right corner, with a transparent clickable area of at least 24px and no CSS movement animation.
 - Uses actual displayed token corners and updates in the Foundry ticker. Player click-to-shop, shops/merchant settings, categories, chat receipts, Buy/Sell and history remain untouched.
+
+## v0.1.16 — Revert to proven token-child badge (v0.1.3)
+
+- Restores the **v0.1.3 PIXI-only token-child badge**, the approach that previously solved shop icons showing over Character Sheets.
+- Places the badge **inside the upper-right token corner**, rather than above/outside the token, so v14 can hit-test the icon without a separate HTML button.
+- No per-frame HTML overlay, canvas projection, CSS badge resizing or camera-zoom calculation. The badge follows the token's exact native movement and zoom at a proportional size.
+- Players retain click-to-shop access. Buy/Sell/Manage, item grouping, trade chat and Clear History are unchanged.
 
 ## Features
 
