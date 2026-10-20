@@ -1,6 +1,6 @@
 # NPC Shops
 
-**Experimental alpha v0.1.11** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+**Experimental alpha v0.1.12** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
 
 ## v0.1.9 — GM merchant creation control
 
@@ -23,6 +23,13 @@
 - The round gold merchant icon stays **above** the token, follows token motion and canvas pan/zoom on each animation frame, and is clickable without NPC ownership.
 - Badges hide when a merchant becomes invisible/hidden or leaves the view; cleanup on scene changes avoids stale buttons. UI windows appear above the badges.
 - Other shop features are unchanged, including Buy/Sell/Manage, automatic item categories, GM-only controls and chat receipts.
+
+## v0.1.12 — Fixed-size shop badge that moves with token
+
+- The visible merchant badge is once again a PIXI child of each merchant token; it inherits every animated token movement transform directly rather than trailing behind in HTML.
+- Its visible size and spacing above the token remain constant through zoom by inverse-scaling against the live canvas transform.
+- A transparent, fixed-size HTML click area continues to allow players to open the shop above the token's PIXI hit area.
+- No changes to shop inventory, categories, trading, player access or transaction history.
 
 ## Features
 
