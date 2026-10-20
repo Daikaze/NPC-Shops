@@ -117,7 +117,10 @@ export async function executeTrade(request) {
     processed.set(request.requestId,response);
     if(processed.size>300) processed.delete(processed.keys().next().value);
     try {await publishTradeReceipt(result.receipt);}
-    catch(err){console.warn('NPC Shops: Trade completed, but public chat receipt failed',err);}
+    catch(err){
+      console.warn('NPC Shops: Trade completed, but public chat receipt failed',err);
+      globalThis.ui?.notifications?.warn?.('NPC Shops: Trade succeeded, but the public chat message could not be posted. Check the GM console (F12).');
+    }
     return response;
   } catch (err) {
     return {ok: false, message: String(err?.message ?? err)};

@@ -1,6 +1,6 @@
 # NPC Shops
 
-**Experimental alpha v0.1.17** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+**Experimental alpha v0.1.18** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
 
 ## v0.1.9 — GM merchant creation control
 
@@ -64,6 +64,14 @@
 - Alt+S on a PC token warns the GM instead of attempting to make a PC a shop.
 - The merchant creation action and shop settings save path also validate the NPC type, preventing creation through a hidden button or direct UI event.
 - Buy, Sell, Manage, token shop badges, categories, chat receipts and Clear History remain unchanged for NPC merchants.
+
+## v0.1.18 — Restore public purchase/sale chat receipts in Foundry v11
+
+- Foundry 11 chat receipts now explicitly use the numeric `CONST.CHAT_MESSAGE_TYPES.OOC` and GM user ID; v14 uses the modern chat style when available.
+- Trade messages remain public, with the buying/selling player, character, merchant, item, quantity, and total price.
+- Added a safe fallback for errors creating enriched legacy v11 messages, and GM console/notification diagnostics if both attempts fail or message creation is blocked.
+- Trading commits are not rolled back just because a chat notification fails; duplicate trade requests still do not create duplicate chat messages.
+- No changes to merchant stock, Shop UI, NPC-only controls, player permissions, token icons or Transaction History.
 
 ## Features
 
