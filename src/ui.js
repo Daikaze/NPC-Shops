@@ -1,5 +1,6 @@
 import {MODULE_ID, cpToGp, emptyShop, gpToCp, hasOwnership, itemPriceCp, moneyTotal, shopData, stockCopy, SALEABLE_TYPES} from "./core.js";
 import {groupItems} from "./categories.js";
+import {isNpcActor} from "./merchant-types.js";
 
 const windows = new Map();
 const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -107,13 +108,13 @@ export class ShopWindow {
     this.element.innerHTML = `
       <header class="ns-header"><div class="ns-identity"><img src="${esc(avatar)}" alt="" /><div><b>${esc(label)}</b><small>NPC Shops · ${this.loading ? 'Loading' : (shop.enabled ? (shop.open ? 'Open' : 'Closed') : 'Not a shop')}</small></div></div>${button('close', '×', 'class="ns-close" aria-label="Close"')}</header>
       <main class="ns-content">
-      ${this.gm ? `<div class="ns-gmbar">${!shop.enabled ? button('enable', 'Make Merchant') : `${button('toggle-open', shop.open ? 'Close Shop' : 'Open Shop')}${button('toggle-sell', shop.allowSelling ? 'Disable Selling' : 'Enable Selling')}`}</div>` : ''}
+      ${this.gm && isNpcActor(actor) ? `<div class="ns-gmbar">${!shop.enabled ? button('enable', 'Make Merchant') : `${button('toggle-open', shop.open ? 'Close Shop' : 'Open Shop')}${button('toggle-sell', shop.allowSelling ? 'Disable Selling' : 'Enable Selling')}`}</div>` : ''}
       ${shop.enabled ? `
         <div class="ns-wallet"><label>Shopping as <select data-field="buyer"><option value="">Select character</option>${buyers.map(a => `<option value="${esc(a.id)}" ${buyer?.id === a.id ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></label><div>${buyer ? `${esc(buyer.name)} · ${(moneyTotal(buyer.system.currency) / 100).toFixed(2)} GP` : 'No owned characters'}</div></div>
         <nav class="ns-tabs">${button('tab-buy', 'Buy', `class="${this.mode === 'buy' ? 'active' : ''}"`)}${button('tab-sell', 'Sell', `class="${this.mode === 'sell' ? 'active' : ''}"`)}${this.gm ? button('tab-manage', 'Manage', `class="${this.mode === 'manage' ? 'active' : ''}"`) : ''}</nav>
         ${this.mode === 'buy' ? this.renderBuy(shop, buyer) : this.mode === 'sell' ? this.renderSell(shop, buyer) : this.renderManage(shop)}
-      ` : `<div class="ns-empty">${this.loading ? 'Loading shop items…' : this.gm ? 'Click Make Merchant to enable this NPC as a shop.' : 'Merchant information not available. A GM must be online.'}</div>`}
-      </main><footer>Foundry v${esc(game.version || game.release?.generation)} · NPC Shops v0.1.10 alpha</footer>`;
+      ` : `<div class="ns-empty">${this.loading ? 'Loading shop items…' : this.gm && !isNpcActor(actor) ? 'Only NPC actors can be converted into shops.' : this.gm ? 'Click Make Merchant to enable this NPC as a shop.' : 'Merchant information not available. A GM must be online.'}</div>`}
+      </main><footer>Foundry v${esc(game.version || game.release?.generation)} · NPC Shops v0.1.17 alpha</footer>`;
   }
   /** Collapsible, alphabetically sorted categories. No item data is changed. */
   renderCategories(entries, itemFor, renderRow) {
@@ -178,7 +179,10 @@ export class ShopWindow {
           if (result.cleared) notify(`NPC Shops: Cleared ${result.cleared} transaction(s) for ${this.actor.name}.`);
           return;
         }
-        if (action === 'enable') return await this.saveShop({...emptyShop(), enabled: true});
+        if (action === 'enable') {
+          if (!this.gm || !isNpcActor(this.actor)) throw new Error('Only NPC actors can be made merchants');
+          return await this.saveShop({...emptyShop(), enabled: true});
+        }
         if (action === 'toggle-open') return await this.saveShop({...this.shop, open: !this.shop.open});
         if (action === 'toggle-sell') return await this.saveShop({...this.shop, allowSelling: !this.shop.allowSelling});
         if (action === 'save-rate') {
@@ -218,6 +222,7 @@ export class ShopWindow {
   async saveShop(data) {
     if (!this.gm) throw new Error('GM only');
     if (!this.actor) throw new Error('Could not locate world Actor for merchant');
+    if (!isNpcActor(this.actor)) throw new Error('Only NPC actors can be managed as merchants');
     await this.actor.setFlag(MODULE_ID, 'shop', data);
     this.render();
   }

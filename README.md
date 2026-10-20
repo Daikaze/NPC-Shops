@@ -1,6 +1,6 @@
 # NPC Shops
 
-**Experimental alpha v0.1.16** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+**Experimental alpha v0.1.17** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
 
 ## v0.1.9 — GM merchant creation control
 
@@ -57,6 +57,13 @@
 - Places the badge **inside the upper-right token corner**, rather than above/outside the token, so v14 can hit-test the icon without a separate HTML button.
 - No per-frame HTML overlay, canvas projection, CSS badge resizing or camera-zoom calculation. The badge follows the token's exact native movement and zoom at a proportional size.
 - Players retain click-to-shop access. Buy/Sell/Manage, item grouping, trade chat and Clear History are unchanged.
+
+## v0.1.17 — NPC-only shop creation
+
+- **GM merchant creation controls now appear only for D&D 5e actors with type `npc`.** PC characters (`character`) do not receive a shop creation button in Token HUD (v11/v14), in the GM Shop window, or in the selected-shop directory entry.
+- Alt+S on a PC token warns the GM instead of attempting to make a PC a shop.
+- The merchant creation action and shop settings save path also validate the NPC type, preventing creation through a hidden button or direct UI event.
+- Buy, Sell, Manage, token shop badges, categories, chat receipts and Clear History remain unchanged for NPC merchants.
 
 ## Features
 

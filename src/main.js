@@ -4,6 +4,7 @@ import {openShop, refreshWindows, showDirectory} from './ui.js';
 import {clampButtonPosition} from './layout.js';
 import {TokenShopBadges} from './token-badges.js';
 import {injectMerchantHudControl, isTokenHudApplication} from './hud-controls.js';
+import {isNpcToken} from './merchant-types.js';
 
 const SOCKET = `module.${MODULE_ID}`;
 const pending = new Map();
@@ -65,7 +66,7 @@ function descriptorFromToken(token) {
 function open(merchant) {return openShop(merchant, submitTrade, info);}
 function openSelected() {
   const token = canvas?.tokens?.controlled?.[0];
-  if (!token?.document?.actorId) return ui.notifications.warn('NPC Shops: Select one NPC token first');
+  if (!isNpcToken(token, worldActor)) return ui.notifications.warn('NPC Shops: Select an NPC token (not a player character) to create or edit a shop');
   open(descriptorFromToken(token));
 }
 async function openDirectory() {
@@ -79,7 +80,7 @@ async function openDirectory() {
       const token = canvas?.tokens?.get(s.tokenId);
       return !!token && token.visible && !token.document.hidden;
     })};
-  }, open, () => openSelected());
+  }, open, isNpcToken(canvas?.tokens?.controlled?.[0], worldActor) ? () => openSelected() : null);
 }
 
 // GM-only merchant control: support both the legacy v11 HUD and the v14 ApplicationV2 HUD.

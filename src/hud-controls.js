@@ -1,3 +1,4 @@
+import {isNpcToken} from './merchant-types.js';
 /** Compatibility layer for GM-only NPC shop control in Foundry v11 and v14 Token HUD. */
 export function isTokenHudApplication(app, knownHud = null) {
   return !!app && ((knownHud && app === knownHud) || app.constructor?.name === 'TokenHUD');
@@ -13,7 +14,7 @@ export function currentHudToken(app, fallbackToken) {
 export function injectMerchantHudControl({app, html, isGM, fallbackToken, onOpen}) {
   if (!isGM || typeof onOpen !== 'function') return false;
   const token = currentHudToken(app, fallbackToken);
-  if (!token) return false;
+  if (!isNpcToken(token)) return false;
   const root = hudElement(app, html);
   if (!root || root.querySelector('.npc-shop-hud')) return false;
   const doc = root.ownerDocument ?? globalThis.document;
@@ -40,7 +41,7 @@ export function injectMerchantHudControl({app, html, isGM, fallbackToken, onOpen
     event.preventDefault();
     event.stopPropagation();
     const selected = currentHudToken(app, fallbackToken);
-    if (selected) onOpen(selected);
+    if (isNpcToken(selected)) onOpen(selected);
   });
   return true;
 }

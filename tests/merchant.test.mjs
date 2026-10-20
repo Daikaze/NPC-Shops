@@ -65,7 +65,7 @@ test('player can render a remotely loaded storefront without owning the NPC acto
 });
 test('GM sees Make Merchant for an unconfigured NPC', async () => {
   const {ShopWindow}=await import('../src/ui.js');
-  globalThis.game={user:{id:'gm',isGM:true},version:'11',actors:{contents:[],get:()=>({id:'unconfigured',name:'Town NPC',img:'npc.png',getFlag:()=>undefined})}};
+  globalThis.game={user:{id:'gm',isGM:true},version:'11',actors:{contents:[],get:()=>({id:'unconfigured',name:'Town NPC',type:'npc',img:'npc.png',getFlag:()=>undefined})}};
   const win=new ShopWindow({actorId:'unconfigured',name:'Town NPC'},async()=>{},async()=>{});
   win.element={innerHTML:''};
   win.render();
@@ -125,4 +125,17 @@ test('failed purchase never announces sale',async()=>{
   const result=await executeTrade({kind:'buy',merchantId:merchant.id,buyerId:buyer.id,skuId:'s1',quantity:1,userId:player.id,requestId:'v016-failure-test'});
   assert.equal(result.ok,false);assert.equal(chat.length,0);
   delete globalThis.ChatMessage;
+});
+
+test('GM cannot see Make Merchant for a PC, even with an empty shop', async()=>{
+  const {ShopWindow}=await import('../src/ui.js');
+  const actor={id:'pc-1',name:'Hero',type:'character',img:'hero.png',getFlag:()=>undefined,setFlag:async()=>{throw Error('PC should never become merchant')}};
+  globalThis.game={user:{id:'gm',isGM:true},version:'14',actors:{contents:[],get:()=>actor}};
+  const win=new ShopWindow({actorId:actor.id,name:actor.name},async()=>{},async()=>{});
+  win.element={innerHTML:''};
+  win.render();
+  assert.doesNotMatch(win.element.innerHTML,/data-action="enable"/);
+  assert.doesNotMatch(win.element.innerHTML,/Make Merchant/);
+  assert.match(win.element.innerHTML,/Only NPC actors/);
+  await assert.rejects(()=>win.saveShop({...emptyShop(),enabled:true}),/Only NPC actors/);
 });

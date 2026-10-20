@@ -21,7 +21,8 @@ function mockUi(classic = false) {
   };
   return {root,button,container};
 }
-const token={document:{actorId:'npc-1'},name:'NPC'};
+const token={actor:{id:'npc-1',type:'npc'},document:{actorId:'npc-1'},name:'NPC'};
+const pcToken={actor:{id:'character-1',type:'character'},document:{actorId:'character-1'},name:'Player Character'};
 test('v14 TokenHUD can be identified by class or instance',()=>{
   assert.equal(isTokenHudApplication({constructor:{name:'TokenHUD'}}),true);
   const app={};assert.equal(isTokenHudApplication(app,app),true);
@@ -59,4 +60,21 @@ test('players never receive merchant editor button',()=>{
 test('no actor token does not get a merchant control',()=>{
   const {root}=mockUi();
   assert.equal(injectMerchantHudControl({app:{object:{document:{}}},html:root,isGM:true,onOpen:()=>{}}),false);
+});
+
+test('GM does not receive merchant HUD button on player characters (v11 and v14)',()=>{
+  for(const classic of [false,true]) {
+    const {root,container}=mockUi(classic);
+    assert.equal(injectMerchantHudControl({app:{object:pcToken},html:root,isGM:true,onOpen:()=>{throw Error('PC merchant opened');}}),false);
+    assert.equal(container.child,undefined);
+  }
+});
+test('HUD click rejects an NPC token that becomes a character',()=>{
+  const {root,button}=mockUi();
+  const mutable={actor:{type:'npc'},document:{actorId:'npc-a'}};
+  let calls=0;
+  assert.equal(injectMerchantHudControl({app:{object:mutable},html:root,isGM:true,onOpen:()=>calls++}),true);
+  mutable.actor.type='character';
+  button.fire('click');
+  assert.equal(calls,0);
 });
