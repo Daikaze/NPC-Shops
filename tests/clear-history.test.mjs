@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {clearMerchantHistory, ShopWindow} from '../src/ui.js';
 import {MODULE_ID} from '../src/core.js';
 function merchant() {
-  const shop={enabled:true,stock:[{id:'x',priceCp:123,quantity:5}],sellRate:0.5,ledger:[{itemName:'Rope'},{itemName:'Potion'}]};
+  const shop={enabled:true,stock:[{id:'x',item:{name:'Potion',img:'icons/svg/item-bag.svg'},priceCp:123,quantity:5,unlimited:false}],sellRate:0.5,ledger:[{at:'2026-10-20T01:02:03Z',actorName:'Player',kind:'buy',quantity:1,itemName:'Rope',totalCp:100},{at:'2026-10-20T01:04:05Z',actorName:'Player',kind:'sell',quantity:2,itemName:'Potion',totalCp:200}]};
   const updates=[];
   return {name:'Kiro Shop',shop,updates,getFlag(m,k){assert.equal(m,MODULE_ID);assert.equal(k,'shop');return shop;},async update(data){updates.push(data);assert.deepEqual(Object.keys(data),['flags.npc-shops.shop.ledger']);shop.ledger=data['flags.npc-shops.shop.ledger'];}};
 }

@@ -5,6 +5,8 @@ on:
     paths:
       - module.json
       - src/**
+      - tests/**
+      - package.json
       - styles/**
       - README.md
       - LICENSE
