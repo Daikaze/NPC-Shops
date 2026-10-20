@@ -1,36 +1,51 @@
 /**
- * NPC Shops merchant marker. One fixed-size HTML button in the token's TOP RIGHT
- * corner (not above the token). This uses no PIXI icon, icon scaling, or CSS
- * animation. Move/zoom position is projected from the displayed Token itself.
- *
- * In v14 the PIXI application ticker is used after token animation ticks; v11
- * can use requestAnimationFrame when the ticker is unavailable.
+ * NPC Shops: proportional merchant badges in token's upper-right corner.
+ * A 30px fixed badge was too small on zoom-in and too large on zoom-out.
+ * Use the actual displayed token bounds to keep the badge's visual size
+ * proportionate to the token. HTML stays clickable without NPC ownership.
  */
-export const SHOP_ICON_SIZE = 30;
-export const SHOP_ICON_INSET = 16;
+export const SHOP_BADGE_RATIO = 0.16;
+export const SHOP_BADGE_MIN = 14;
+export const SHOP_BADGE_MAX = 44;
+export const SHOP_BADGE_PADDING = 3;
+export const SHOP_MIN_HIT_AREA = 24;
 
-export function tokenCornerOnScreen(token, board, rendererScreen, inset = SHOP_ICON_INSET) {
-  if (!token || !board || typeof board.getBoundingClientRect !== 'function'
-      || typeof token.toGlobal !== 'function') return null;
+/** Screen-space size based on the token's displayed dimensions in CSS pixels. */
+export function merchantBadgeSize(screenWidth, screenHeight) {
+  const smaller = Math.min(Number(screenWidth), Number(screenHeight));
+  if (!(smaller > 0) || !Number.isFinite(smaller)) return SHOP_BADGE_MIN;
+  return Math.max(SHOP_BADGE_MIN, Math.min(SHOP_BADGE_MAX, Math.round(smaller * SHOP_BADGE_RATIO)));
+}
+
+export function tokenCornerOnScreen(token, board, rendererScreen) {
+  if (!token || !board?.getBoundingClientRect || typeof token.toGlobal !== 'function') return null;
   const bounds = board.getBoundingClientRect();
-  const screenWidth = Number(rendererScreen?.width) || bounds.width;
-  const screenHeight = Number(rendererScreen?.height) || bounds.height;
-  const tokenWidth = Number(token.w ?? token.width ?? 0);
-  if (!(screenWidth > 0 && screenHeight > 0 && tokenWidth > 0)) return null;
+  const sw = Number(rendererScreen?.width) || bounds.width;
+  const sh = Number(rendererScreen?.height) || bounds.height;
+  const tw = Number(token.w ?? token.width ?? 0);
+  const th = Number(token.h ?? token.height ?? 0);
+  if (!(sw>0 && sh>0 && tw>0 && th>0)) return null;
 
-  // We read the live token transform AFTER Foundry has updated its position.
-  // The absolute top-right corner is projected into the viewport, then we
-  // subtract a CSS-pixel inset. This prevents zoom from resizing the icon.
-  const corner = token.toGlobal({x: tokenWidth, y: 0});
-  if (!Number.isFinite(corner?.x) || !Number.isFinite(corner?.y)) return null;
-  const cornerX = bounds.left + corner.x * bounds.width / screenWidth;
-  const cornerY = bounds.top + corner.y * bounds.height / screenHeight;
-  const x = cornerX - inset;
-  const y = cornerY + inset;
-  const radius = SHOP_ICON_SIZE / 2;
-  return {x,y,onScreen:
-    x >= bounds.left + radius && x <= bounds.right - radius &&
-    y >= bounds.top + radius && y <= bounds.bottom - radius};
+  // Use displayed coordinates rather than Foundry's document position:
+  // this tracks moving/animated tokens and camera zoom on both v11/v14.
+  const tl=token.toGlobal({x:0,y:0});
+  const tr=token.toGlobal({x:tw,y:0});
+  const br=token.toGlobal({x:tw,y:th});
+  if (![tl?.x,tl?.y,tr?.x,tr?.y,br?.x,br?.y].every(Number.isFinite)) return null;
+  const sx=bounds.width/sw, sy=bounds.height/sh;
+  const tokenWidth=Math.hypot((tr.x-tl.x)*sx,(tr.y-tl.y)*sy);
+  const tokenHeight=Math.hypot((br.x-tr.x)*sx,(br.y-tr.y)*sy);
+  const size=merchantBadgeSize(tokenWidth,tokenHeight);
+  const offset=size/2+SHOP_BADGE_PADDING;
+  const cornerX=bounds.left+tr.x*sx,cornerY=bounds.top+tr.y*sy;
+  const x=cornerX-offset, y=cornerY+offset;
+  const hitSize=Math.max(size,SHOP_MIN_HIT_AREA);
+  // The badge can slightly overlap the edge of the viewport; hide it if
+  // the icon's center is too close to be completely clickable.
+  const radius=hitSize/2;
+  return {x,y,size,hitSize,onScreen:
+    x>=bounds.left+radius && x<=bounds.right-radius &&
+    y>=bounds.top+radius && y<=bounds.bottom-radius};
 }
 
 export class TokenShopBadges {
@@ -58,7 +73,7 @@ export class TokenShopBadges {
     button.className = 'npc-shop-token-button';
     button.title = 'Open ' + (token.name || token.actor?.name || 'merchant') + ' shop';
     button.setAttribute('aria-label', button.title);
-    button.innerHTML = '<i class="fas fa-store" aria-hidden="true"></i>';
+    button.innerHTML = '<span class="npc-shop-token-badge"><i class="fas fa-store" aria-hidden="true"></i></span>';
     for (const name of ['pointerdown','mousedown','pointerup']) {
       button.addEventListener(name, e => e.stopPropagation());
     }
@@ -95,6 +110,9 @@ export class TokenShopBadges {
       // position is set directly each render tick: no easing, tween or scaling.
       button.style.left=point.x+'px';
       button.style.top=point.y+'px';
+      button.style.setProperty('--ns-shop-badge-size',point.size+'px');
+      button.style.setProperty('--ns-shop-hit-size',point.hitSize+'px');
+      button.style.setProperty('--ns-shop-font-size',Math.max(9,Math.round(point.size*.48))+'px');
     }
   }
   tick() {

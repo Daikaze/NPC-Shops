@@ -42,24 +42,35 @@
 .npc-shops-window .ns-category-items{padding:8px;display:flex;flex-direction:column;gap:7px}
 .npc-shops-window .ns-category-items>.ns-item{margin:0}
 
-/* v0.1.14: Visible, clickable fixed-size corner control, not affected by map zoom */
+/* v0.1.15: proportional badge, fixed CSS positioning and no zoom tween.
+   The invisible hitbox is >=24px, while visible icon follows token size. */
 .npc-shop-token-button {
- position:fixed!important;
- left:0;top:0;z-index:25!important;
+ position:fixed!important;left:0;top:0;z-index:25!important;
  display:flex!important;align-items:center!important;justify-content:center!important;
- width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;
+ width:var(--ns-shop-hit-size,30px)!important;
+ height:var(--ns-shop-hit-size,30px)!important;
+ min-width:0!important;min-height:0!important;
  padding:0!important;margin:0!important;
  box-sizing:border-box!important;
  transform:translate(-50%,-50%)!important;
  transition:none!important;animation:none!important;
- border:2px solid #f1ca76!important;border-radius:50%!important;
- background:#382a18!important;color:#ffdf9c!important;
- box-shadow:0 1px 6px #0009!important;
- font-size:14px!important;line-height:1!important;opacity:1!important;
- cursor:pointer!important;pointer-events:auto!important;
+ border:0!important;border-radius:50%!important;
+ background:transparent!important;color:#ffdf9c!important;
+ box-shadow:none!important;cursor:pointer!important;pointer-events:auto!important;
  appearance:none!important;-webkit-appearance:none!important;
 }
-.npc-shop-token-button i{pointer-events:none!important;font-size:14px!important}
-.npc-shop-token-button:hover,.npc-shop-token-button:focus-visible{
+.npc-shop-token-button .npc-shop-token-badge {
+ display:flex;align-items:center;justify-content:center;flex:none;
+ width:var(--ns-shop-badge-size,30px)!important;
+ height:var(--ns-shop-badge-size,30px)!important;
+ border:2px solid #f1ca76!important;border-radius:50%!important;
+ box-sizing:border-box!important;
+ background:#382a18!important;color:#ffdf9c!important;
+ box-shadow:0 1px 6px #0009!important;
+ font-size:var(--ns-shop-font-size,14px)!important;
+ line-height:1!important;pointer-events:none!important;
+}
+.npc-shop-token-button .npc-shop-token-badge i{pointer-events:none!important;font-size:inherit!important}
+.npc-shop-token-button:hover .npc-shop-token-badge,.npc-shop-token-button:focus-visible .npc-shop-token-badge {
  background:#614522!important;outline:2px solid #f8d78d!important;outline-offset:1px!important;
 }
