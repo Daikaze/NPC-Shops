@@ -11,7 +11,7 @@ function world(){
         remove(){this.removed=true},
         fire(n){callbacks[n]?.({preventDefault(){},stopPropagation(){},stopImmediatePropagation(){}})}
       };
-    }}
+    }
   };
   const board={getBoundingClientRect(){return {left:10,top:20,width:800,height:600,right:810,bottom:620};}};
   const ticker={
