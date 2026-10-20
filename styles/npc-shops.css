@@ -41,3 +41,23 @@
 .npc-shops-window .ns-category-count{font-weight:400;color:#c7d3e7;font-size:11px}
 .npc-shops-window .ns-category-items{padding:8px;display:flex;flex-direction:column;gap:7px}
 .npc-shops-window .ns-category-items>.ns-item{margin:0}
+
+/* v0.1.11: Native hit targets above tokens remain clickable on Foundry v14.
+   z-index 25 is below regular Character Sheet windows. */
+.npc-shop-token-button {
+ position:fixed!important;z-index:25!important;
+ display:flex;align-items:center;justify-content:center;
+ left:0;top:0;width:40px;height:40px;
+ transform:translate(-50%,-50%);
+ padding:0!important;margin:0!important;
+ border:2px solid #f1ca76!important;border-radius:50%!important;
+ background:#382a18!important;color:#ffdf9c!important;
+ box-shadow:0 2px 7px #000b!important;
+ font-size:21px;line-height:1!important;
+ cursor:pointer!important;pointer-events:auto!important;
+ appearance:none;-webkit-appearance:none;
+}
+.npc-shop-token-button:hover,.npc-shop-token-button:focus-visible {
+ background:#594122!important;outline:2px solid #ffd690;outline-offset:2px;
+}
+.npc-shop-token-button i {pointer-events:none}
