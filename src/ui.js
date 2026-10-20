@@ -101,7 +101,7 @@ export class ShopWindow {
     const label = this.gm ? actor?.name ?? this.name : this.name;
     const avatar = this.gm ? actor?.img ?? this.img : this.img;
     // Preserve accordion state across purchases, updates and tab changes.
-    for (const section of this.element.querySelectorAll(".ns-category[data-category]")) {
+    for (const section of this.element.querySelectorAll?.(".ns-category[data-category]") ?? []) {
       this.categoryState.set(`${section.dataset.view}:${section.dataset.category}`, section.open);
     }
     this.element.innerHTML = `
