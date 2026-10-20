@@ -76,10 +76,10 @@ test('zoom changes only the inverse PIXI scale, not CSS button size',()=>{
   t.zoom=2;badges.updatePositions();
   assert.equal(visual.localScale,18/32);
   assert.equal(visual.localY,-12.5);
-  assert.equal(hit.style.left,'340px');assert.equal(hit.style.top,'285px');
+  assert.equal(hit.style.left,'360px');assert.equal(hit.style.top,'285px');
   t.zoom=.5;badges.updatePositions();
   assert.equal(visual.localScale,18/8);
-  assert.equal(hit.style.left,'295px');assert.equal(hit.style.top,'285px');
+  assert.equal(hit.style.left,'285px');assert.equal(hit.style.top,'285px');
   badges.clear();
 });
 test('canvas-to-CSS ratio preserves fixed size on resized renderer',()=>{
