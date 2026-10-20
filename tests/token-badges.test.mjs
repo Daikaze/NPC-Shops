@@ -9,7 +9,8 @@ function world(){
       return {style:{},callbacks,setAttribute(){},
         addEventListener(n,fn){callbacks[n]=fn;},
         remove(){this.removed=true},
-        fire(n){callbacks[n]?.({preventDefault(){},stopPropagation(){},stopImmediatePropagation(){}})};
+        fire(n){callbacks[n]?.({preventDefault(){},stopPropagation(){},stopImmediatePropagation(){}})}
+      };
     }}
   };
   const board={getBoundingClientRect(){return {left:10,top:20,width:800,height:600,right:810,bottom:620};}};
