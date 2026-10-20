@@ -14,14 +14,32 @@ export function merchantBadgePosition(token, pixelsPerLocalUnit = 1) {
 }
 
 /** Derived screen scale includes canvas zoom, token transforms, and DPI/resizing. */
-export function tokenPixelsPerLocalUnit(token, board, rendererScreen) {
-  if (!token || typeof token.toGlobal !== 'function') return 1;
-  const a = token.toGlobal({x:0,y:0});
-  const b = token.toGlobal({x:1,y:0});
+export function tokenPixelsPerLocalUnit(token, board, rendererScreen, stage = null) {
+  if (!token) return 1;
   const rect = board?.getBoundingClientRect?.();
   const clientWidth = Number(rect?.width) || Number(rendererScreen?.width) || 1;
   const rendererWidth = Number(rendererScreen?.width) || clientWidth;
-  const px = Math.hypot(b.x-a.x,b.y-a.y) * clientWidth / rendererWidth;
+  const cssScale = clientWidth / rendererWidth;
+
+  // In v14, toGlobal() can report a stale matrix while the camera is zooming.
+  // The stage scale is the authoritative live camera zoom, independent of the
+  // token's movement tween. Multiply ancestor scales only up to the stage.
+  const cameraZoom = Math.abs(Number(stage?.scale?.x));
+  if (Number.isFinite(cameraZoom) && cameraZoom >= MIN_SCALE) {
+    let tokenScale = 1;
+    for (let node = token; node && node !== stage; node = node.parent) {
+      const local = Math.abs(Number(node.scale?.x ?? 1));
+      if (Number.isFinite(local) && local >= MIN_SCALE) tokenScale *= local;
+    }
+    const px = cameraZoom * tokenScale * cssScale;
+    if (Number.isFinite(px) && px >= MIN_SCALE) return px;
+  }
+
+  // Fallback for earlier Foundry versions without an accessible stage scale.
+  if (typeof token.toGlobal !== 'function') return 1;
+  const a = token.toGlobal({x:0,y:0});
+  const b = token.toGlobal({x:1,y:0});
+  const px = Math.hypot(b.x-a.x,b.y-a.y) * cssScale;
   return Number.isFinite(px) && px >= MIN_SCALE ? px : 1;
 }
 
@@ -61,6 +79,7 @@ export class TokenShopBadges {
     this.pixi=pixi;this.open=open;this.isMerchant=isMerchant;this.getCanvas=getCanvas;
     this.document=documentRef;this.requestFrame=requestFrame;this.cancelFrame=cancelFrame;
     this.current=new Map();this.frame=null;
+    this.ticker=null;
   }
   createHitButton(token){
     const button=this.document.createElement('button');
@@ -92,6 +111,7 @@ export class TokenShopBadges {
   clear(){
     if(this.frame!==null)this.cancelFrame(this.frame);
     this.frame=null;
+    if(this.ticker){this.ticker.remove(this.updatePositions,this);this.ticker=null;}
     for(const id of [...this.current.keys()])this.remove(id);
   }
   updatePositions(){
@@ -103,7 +123,7 @@ export class TokenShopBadges {
         visual.visible=false;button.style.display='none';continue;
       }
       if(visual.parent!==token&&!visual.destroyed)token.addChild(visual);
-      const pxScale=tokenPixelsPerLocalUnit(token,board,screen);
+      const pxScale=tokenPixelsPerLocalUnit(token,board,screen,canvas?.stage);
       const position=merchantBadgePosition(token,pxScale);
       visual.position.set(position.x,position.y);
       visual.scale.set(position.size/16);
@@ -136,7 +156,17 @@ export class TokenShopBadges {
     }
     for(const id of [...this.current.keys()])if(!live.has(id))this.remove(id);
     this.updatePositions();
-    if(this.current.size&&this.frame===null)this.frame=this.requestFrame(()=>this.tick());
-    if(!this.current.size&&this.frame!==null){this.cancelFrame(this.frame);this.frame=null;}
+    // Update in the same PIXI ticker as token movement and scene rendering.
+    // Fallback to requestAnimationFrame on older clients lacking a ticker.
+    const ticker=this.getCanvas()?.app?.ticker;
+    if (this.ticker && (this.ticker!==ticker || !this.current.size)) {
+      this.ticker.remove(this.updatePositions,this);
+      this.ticker=null;
+    }
+    if (this.current.size && ticker?.add) {
+      if(this.frame!==null){this.cancelFrame(this.frame);this.frame=null;}
+      if(!this.ticker){ticker.add(this.updatePositions,this,-100);this.ticker=ticker;}
+    } else if (this.current.size && this.frame===null) this.frame=this.requestFrame(()=>this.tick());
+    if (!this.current.size && this.frame!==null){this.cancelFrame(this.frame);this.frame=null;}
   }
 }

@@ -1,6 +1,6 @@
 # NPC Shops
 
-**Experimental alpha v0.1.12** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+**Experimental alpha v0.1.13** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
 
 ## v0.1.9 — GM merchant creation control
 
@@ -30,6 +30,13 @@
 - Its visible size and spacing above the token remain constant through zoom by inverse-scaling against the live canvas transform.
 - A transparent, fixed-size HTML click area continues to allow players to open the shop above the token's PIXI hit area.
 - No changes to shop inventory, categories, trading, player access or transaction history.
+
+## v0.1.13 — Live Foundry v14 zoom compensation
+
+- Fix the shop badge's size at different zoom levels using the **live canvas stage zoom**, not potentially stale token matrix values.
+- Run visual correction on Foundry's PIXI ticker (when available), synchronized with token animation and scene rendering; retain requestAnimationFrame fallback for earlier versions.
+- Account for token/container scaling and browser canvas pixel ratio while keeping the same clickable badge above the moving NPC.
+- Existing shop inventory, trading, item categories and GM settings are unchanged.
 
 ## Features
 

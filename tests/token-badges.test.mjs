@@ -117,3 +117,47 @@ test('hidden, disabled, off-screen and teardown remove or hide hit target and vi
   assert.equal(t.children[0].visible,false);
   badges.clear();
 });
+
+test('v14 live stage zoom wins over stale toGlobal matrices',()=>{
+  const w=world(),t=merchant(),badges=manager(w);
+  w.canvas.stage={scale:{x:1}};
+  // Simulate a v14 frame during zoom: the token matrix still reflects 1x.
+  t.zoom=1;
+  badges.sync([t]);
+  const visual=t.children[0];
+  assert.equal(visual.localScale,18/16);
+  w.canvas.stage.scale.x=2;
+  badges.updatePositions();
+  assert.equal(visual.localScale,18/32);
+  w.canvas.stage.scale.x=0.5;
+  badges.updatePositions();
+  assert.equal(visual.localScale,18/8);
+  badges.clear();
+});
+test('uses token and intermediate container scale without double-counting stage',()=>{
+  const w=world(),t=merchant();
+  const stage={scale:{x:2}};
+  const group={scale:{x:1.5},parent:stage};
+  t.parent=group;
+  t.scale={x:0.5};
+  assert.equal(tokenPixelsPerLocalUnit(t,w.board,{width:800,height:600},stage),1.5);
+});
+test('v14 PIXI ticker updates scale before canvas rendering',()=>{
+  const w=world(),t=merchant(),callbacks=new Map();
+  const ticker={
+    add(fn,context,priority){callbacks.set('update',{fn,context,priority});},
+    remove(fn,context){const c=callbacks.get('update');if(c?.fn===fn && c.context===context)callbacks.delete('update');}
+  };
+  w.canvas.app.ticker=ticker;
+  w.canvas.stage={scale:{x:1}};
+  const badges=manager(w);
+  badges.sync([t]);
+  assert.equal(callbacks.get('update').priority,-100);
+  assert.equal(w.calls.size,0,'avoid a parallel RAF loop');
+  w.canvas.stage.scale.x=3;
+  const job=callbacks.get('update');
+  job.fn.call(job.context);
+  assert.equal(t.children[0].localScale,18/48);
+  badges.clear();
+  assert.equal(callbacks.size,0);
+});
