@@ -3,6 +3,7 @@ import {executeTrade} from './transactions.js';
 import {openShop, refreshWindows, showDirectory} from './ui.js';
 import {clampButtonPosition} from './layout.js';
 import {TokenShopBadges} from './token-badges.js';
+import {injectMerchantHudControl, isTokenHudApplication} from './hud-controls.js';
 
 const SOCKET = `module.${MODULE_ID}`;
 const pending = new Map();
@@ -78,32 +79,24 @@ async function openDirectory() {
       const token = canvas?.tokens?.get(s.tokenId);
       return !!token && token.visible && !token.document.hidden;
     })};
-  }, open);
+  }, open, () => openSelected());
 }
 
-// Token HUD is primarily for GMs. A separate scene-level Shops button and token badges
-// give players access without ownership/control of a merchant NPC token.
+// GM-only merchant control: support both the legacy v11 HUD and the v14 ApplicationV2 HUD.
 function registerTokenHud() {
-  Hooks.on('renderTokenHUD', (app, html) => {
-    const token = app?.object ?? canvas?.tokens?.controlled?.[0];
-    if (!token?.document?.actorId) return;
-    const actor = worldActor(token.document.actorId);
-    // Player storefront access is the clickable badge on the token, not the GM Token HUD.
+  const inject = (app, html) => {
     if (!game.user.isGM) return;
-    const root = html?.[0] ?? html;
-    if (!root?.querySelector || root.querySelector('.npc-shop-hud')) return;
-    const btn = document.createElement('div');
-    btn.className = 'control-icon npc-shop-hud';
-    btn.setAttribute('role','button');
-    btn.setAttribute('tabindex','0');
-    btn.title = 'NPC Shops: Open / Make Merchant';
-    btn.innerHTML = '<i class="fas fa-store"></i>';
-    const launch = e => {e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation?.(); open(descriptorFromToken(token));};
-    btn.addEventListener('pointerdown', e => e.stopPropagation());
-    btn.addEventListener('mousedown', e => e.stopPropagation());
-    btn.addEventListener('click', launch, true);
-    btn.addEventListener('keydown', e => {if (e.key === 'Enter' || e.key === ' ') launch(e);});
-    (root.querySelector('.col.right') || root.querySelector('.right') || root).appendChild(btn);
+    injectMerchantHudControl({
+      app, html, isGM: game.user.isGM,
+      fallbackToken: () => canvas?.tokens?.controlled?.[0],
+      onOpen: token => open(descriptorFromToken(token))
+    });
+  };
+  Hooks.on('renderTokenHUD', inject);
+  // v14 may render the token HUD through the generic ApplicationV2 lifecycle.
+  Hooks.on('renderApplicationV2', (app, element) => {
+    if (!game.user.isGM || !isTokenHudApplication(app, canvas?.tokens?.hud)) return;
+    inject(app, element);
   });
 }
 async function syncTokenFlags(scene = canvas?.scene) {
@@ -265,5 +258,5 @@ Hooks.once('ready', () => {
     if (item.parent?.documentName === 'Actor') refreshWindows(item.parent.id);
   });
   game.modules.get(MODULE_ID).api = game.user.isGM ? {open, openSelected, openDirectory} : {open};
-  console.info('NPC Shops v0.1.6 alpha ready. GM: Alt+S. Players: click the token shop badge.');
+  console.info('NPC Shops v0.1.9 alpha ready. GM: Alt+S. Players: click the token shop badge.');
 });

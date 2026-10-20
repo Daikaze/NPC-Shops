@@ -107,7 +107,7 @@ export class ShopWindow {
         <nav class="ns-tabs">${button('tab-buy', 'Buy', `class="${this.mode === 'buy' ? 'active' : ''}"`)}${button('tab-sell', 'Sell', `class="${this.mode === 'sell' ? 'active' : ''}"`)}${this.gm ? button('tab-manage', 'Manage', `class="${this.mode === 'manage' ? 'active' : ''}"`) : ''}</nav>
         ${this.mode === 'buy' ? this.renderBuy(shop, buyer) : this.mode === 'sell' ? this.renderSell(shop, buyer) : this.renderManage(shop)}
       ` : `<div class="ns-empty">${this.loading ? 'Loading shop items…' : this.gm ? 'Click Make Merchant to enable this NPC as a shop.' : 'Merchant information not available. A GM must be online.'}</div>`}
-      </main><footer>Foundry v${esc(game.version || game.release?.generation)} · NPC Shops v0.1.8 alpha</footer>`;
+      </main><footer>Foundry v${esc(game.version || game.release?.generation)} · NPC Shops v0.1.9 alpha</footer>`;
   }
   renderBuy(shop, buyer) {
     if (!shop.open) return '<div class="ns-empty">Shop is currently closed.</div>';
@@ -236,7 +236,7 @@ export function openShop(merchant, submit, info) {
 export function refreshWindows(actorId) { windows.forEach(win => {if (win.actorId === actorId || win.buyer?.id === actorId) win.refresh();}); }
 
 /** Opened by the persistent Shop button; available even for players who cannot control NPC tokens. */
-export async function showDirectory(getDirectory, openMerchant) {
+export async function showDirectory(getDirectory, openMerchant, manageSelected = null) {
   let data;
   try {
     const result = await getDirectory();
@@ -247,10 +247,11 @@ export async function showDirectory(getDirectory, openMerchant) {
   const el = document.createElement('section');
   el.id = 'npc-shops-directory';
   el.className = 'npc-shops-window ns-directory';
-  el.innerHTML = `<header class="ns-header"><b><i class="fas fa-store"></i> NPC Shops · Current Scene</b>${button('close-directory', '×', 'class="ns-close"')}</header><main class="ns-content">${data.length ? data.map(s => `<button class="ns-directory-item" type="button" data-id="${esc(s.actorId)}" data-name="${esc(s.name)}" data-img="${esc(s.img)}"><img src="${esc(s.img)}" alt=""/><span>${esc(s.name)}<small>${s.open ? 'Open' : 'Closed'}</small></span></button>`).join('') : '<div class="ns-empty">No available merchant NPCs on this scene. GM: select an NPC and press Alt+S to create a shop.</div>'}</main>`;
+  el.innerHTML = `<header class="ns-header"><b><i class="fas fa-store"></i> NPC Shops · Current Scene</b>${button('close-directory', '×', 'class="ns-close"')}</header><main class="ns-content">${manageSelected ? `<div class="ns-directory-manage">${button("manage-selected", '<i class="fas fa-store"></i> Create / Edit Selected Shop')}</div>` : ""}${data.length ? data.map(s => `<button class="ns-directory-item" type="button" data-id="${esc(s.actorId)}" data-name="${esc(s.name)}" data-img="${esc(s.img)}"><img src="${esc(s.img)}" alt=""/><span>${esc(s.name)}<small>${s.open ? 'Open' : 'Closed'}</small></span></button>`).join('') : '<div class="ns-empty">No available merchant NPCs on this scene. GM: select an NPC and press Alt+S to create a shop.</div>'}</main>`;
   document.body.appendChild(el);
   el.addEventListener('click', e => {
     if (e.target.closest('[data-action="close-directory"]')) return el.remove();
+    if (e.target.closest('[data-action="manage-selected"]') && manageSelected) { manageSelected(); el.remove(); return; }
     const btn = e.target.closest('button[data-id]');
     if (btn) {openMerchant({actorId:btn.dataset.id,name:btn.dataset.name,img:btn.dataset.img}); el.remove();}
   });

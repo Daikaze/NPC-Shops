@@ -1,6 +1,13 @@
 # NPC Shops
 
-**Experimental alpha v0.1.8** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+**Experimental alpha v0.1.9** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+
+## v0.1.9 — GM merchant creation control
+
+- Adds compatibility with the Foundry v14 ApplicationV2 Token HUD. The GM receives the store icon to open any NPC as a shop; players do not.
+- The GM-only **Shops** button now includes **Create / Edit Selected Shop**. Select an NPC token and click this to open the merchant editor, even if another Token HUD module hides the HUD control.
+- **Alt+S** on a selected NPC continues to open its shop for the GM; when not a merchant, choose **Make Merchant**.
+- Preserves existing Buy / Sell / Manage, chat announcements, merchant inventory, token badges, and the Clear Transaction History feature.
 
 ## Features
 

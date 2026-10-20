@@ -21,3 +21,11 @@
 .npc-shops-window .ns-ledger-toolbar{display:flex;justify-content:flex-end;padding:8px 0;border-bottom:1px solid #3a4150}
 .npc-shops-window .ns-ledger-toolbar button{background:#493131;border:1px solid #91605c;color:#f9ded8;padding:5px 12px}
 .npc-shops-window .ns-ledger-toolbar button:hover:not(:disabled){background:#653b3b}
+
+/* NPC Shops v0.1.9: HUD variants used by Foundry v11 and ApplicationV2 v14. */
+.npc-shop-hud {color:#f6dda5!important;cursor:pointer!important;pointer-events:auto!important;z-index:5}
+.npc-shop-hud.ns-hud-floating{position:absolute!important;right:-47px!important;top:calc(50% - 17px)!important;width:36px!important;height:36px!important;display:flex!important;align-items:center;justify-content:center;padding:0!important;border-radius:7px!important;border:1px solid #be9652!important;background:#3a2f1f!important;box-shadow:0 2px 8px #000a!important}
+.npc-shop-hud.ns-hud-floating:hover{background:#675032!important}
+.npc-shop-hud .fa-store{font-size:17px!important}
+.npc-shops-window .ns-directory-manage{display:flex;justify-content:stretch;margin-bottom:12px}
+.npc-shops-window .ns-directory-manage button{width:100%!important;background:#53402a!important;border:1px solid #b99150!important;color:#fbe8c0!important}
