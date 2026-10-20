@@ -16,3 +16,8 @@
 
 
 /* Token badges are rendered inside Foundry's PIXI scene graph. */
+
+/* GM-only transaction history maintenance */
+.npc-shops-window .ns-ledger-toolbar{display:flex;justify-content:flex-end;padding:8px 0;border-bottom:1px solid #3a4150}
+.npc-shops-window .ns-ledger-toolbar button{background:#493131;border:1px solid #91605c;color:#f9ded8;padding:5px 12px}
+.npc-shops-window .ns-ledger-toolbar button:hover:not(:disabled){background:#653b3b}

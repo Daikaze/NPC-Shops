@@ -4,6 +4,22 @@ const windows = new Map();
 const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const button = (action, label, extra = "") => `<button type="button" data-action="${action}" ${extra}>${label}</button>`;
 const notify = (text, error = false) => (error ? ui.notifications.error(text) : ui.notifications.info(text));
+/** Clear this merchant's ledger only, leaving stock, prices and chat messages untouched. */
+export async function clearMerchantHistory(actor, confirmAction = globalThis.confirm) {
+  if (!globalThis.game?.user?.isGM) throw new Error('Only a GM can clear transaction history');
+  if (!actor?.update || !actor?.getFlag) throw new Error('Merchant is unavailable');
+  const current = shopData(actor);
+  const count = current.ledger.length;
+  if (!count) return {cleared: 0, cancelled: false};
+  if (typeof confirmAction !== 'function') throw new Error('Confirmation dialog is unavailable');
+  const approved = await confirmAction(`NPC Shops — ${actor.name}\n\nDelete ${count} transaction history entries for this shop?\n\nItems, prices, money, stock, and chat messages will not be changed.\nThis action cannot be undone.`);
+  if (!approved) return {cleared: 0, cancelled: true};
+  // Update just this nested field, not the entire shop object.
+  await actor.update({[`flags.${MODULE_ID}.shop.ledger`]: []});
+  if (shopData(actor).ledger.length) throw new Error('History was not cleared; please try again');
+  return {cleared: count, cancelled: false};
+}
+
 
 export class ShopWindow {
   constructor(merchant, submit, info) {
@@ -91,7 +107,7 @@ export class ShopWindow {
         <nav class="ns-tabs">${button('tab-buy', 'Buy', `class="${this.mode === 'buy' ? 'active' : ''}"`)}${button('tab-sell', 'Sell', `class="${this.mode === 'sell' ? 'active' : ''}"`)}${this.gm ? button('tab-manage', 'Manage', `class="${this.mode === 'manage' ? 'active' : ''}"`) : ''}</nav>
         ${this.mode === 'buy' ? this.renderBuy(shop, buyer) : this.mode === 'sell' ? this.renderSell(shop, buyer) : this.renderManage(shop)}
       ` : `<div class="ns-empty">${this.loading ? 'Loading shop items…' : this.gm ? 'Click Make Merchant to enable this NPC as a shop.' : 'Merchant information not available. A GM must be online.'}</div>`}
-      </main><footer>Foundry v${esc(game.version || game.release?.generation)} · NPC Shops v0.1.7 alpha</footer>`;
+      </main><footer>Foundry v${esc(game.version || game.release?.generation)} · NPC Shops v0.1.8 alpha</footer>`;
   }
   renderBuy(shop, buyer) {
     if (!shop.open) return '<div class="ns-empty">Shop is currently closed.</div>';
@@ -112,7 +128,7 @@ export class ShopWindow {
     return `<div class="ns-config"><label>Buyback percentage <input data-field="rate" type="number" min="0" max="100" step="1" value="${Math.round(shop.sellRate * 100)}"/></label>${button('save-rate', 'Save Rate')}</div>
       <div class="ns-drop" data-drop="items">Drag & drop items here from Items, Compendiums or Actor sheets</div>
       <div class="ns-items">${shop.stock.map(s => `<div class="ns-item ns-manage-item" data-sku="${esc(s.id)}"><img src="${esc(s.item.img || 'icons/svg/item-bag.svg')}" alt=""/><div class="ns-itemtext"><strong>${esc(s.item.name)}</strong><small>Price GP <input data-field="price" type="number" min="0" step="0.01" value="${cpToGp(s.priceCp)}"/> Stock <input data-field="stock" type="number" min="0" step="1" value="${esc(s.quantity)}"/> <label><input type="checkbox" data-field="unlimited" ${s.unlimited ? 'checked' : ''}/> ∞</label></small></div>${button('save-item', 'Save')}${button('remove', '×')}</div>`).join('')}</div>
-      <details class="ns-ledger"><summary>Transaction History (${shop.ledger.length})</summary>${shop.ledger.slice().reverse().map(l => `<div>${esc(l.at?.slice(0,16))}: ${esc(l.actorName)} ${esc(l.kind)} ${esc(l.quantity)} × ${esc(l.itemName)} (${cpToGp(l.totalCp)} GP)</div>`).join('') || 'No transactions yet'}</details>`;
+      <details class="ns-ledger"><summary>Transaction History (${shop.ledger.length})</summary><div class="ns-ledger-toolbar">${button("clear-history", "Clear History", !shop.ledger.length ? "disabled" : "")}</div>${shop.ledger.slice().reverse().map(l => `<div>${esc(l.at?.slice(0,16))}: ${esc(l.actorName)} ${esc(l.kind)} ${esc(l.quantity)} × ${esc(l.itemName)} (${cpToGp(l.totalCp)} GP)</div>`).join('') || 'No transactions yet'}</details>`;
   }
   bindEvents(el) {
     el.addEventListener("change", e => {
@@ -139,6 +155,12 @@ export class ShopWindow {
       try {
         if (action === 'close') return this.close();
         if (action.startsWith('tab-')) {this.mode = action.slice(4); return this.render();}
+        if (action === 'clear-history') {
+          if (!this.gm) throw new Error('GM only');
+          const result = await clearMerchantHistory(this.actor);
+          if (result.cleared) notify(`NPC Shops: Cleared ${result.cleared} transaction(s) for ${this.actor.name}.`);
+          return;
+        }
         if (action === 'enable') return await this.saveShop({...emptyShop(), enabled: true});
         if (action === 'toggle-open') return await this.saveShop({...this.shop, open: !this.shop.open});
         if (action === 'toggle-sell') return await this.saveShop({...this.shop, allowSelling: !this.shop.allowSelling});
