@@ -29,3 +29,15 @@
 .npc-shop-hud .fa-store{font-size:17px!important}
 .npc-shops-window .ns-directory-manage{display:flex;justify-content:stretch;margin-bottom:12px}
 .npc-shops-window .ns-directory-manage button{width:100%!important;background:#53402a!important;border:1px solid #b99150!important;color:#fbe8c0!important}
+
+/* v0.1.10 — collapsible merchandise categories across Buy, Sell and Manage. */
+.npc-shops-window .ns-category{display:block;margin:8px 0 11px;background:#1c2635;border:1px solid #4e6080;border-radius:8px;overflow:hidden}
+.npc-shops-window .ns-category>summary{display:flex;align-items:center;gap:9px;background:#28384d;padding:9px 11px;color:#f2dbad;cursor:pointer;font-size:13px;font-weight:700;user-select:none;list-style:none}
+.npc-shops-window .ns-category>summary::-webkit-details-marker{display:none}
+.npc-shops-window .ns-category>summary::before{content:"▸";color:#f1c477}
+.npc-shops-window .ns-category[open]>summary::before{content:"▾"}
+.npc-shops-window .ns-category-title{display:inline-flex;align-items:center;gap:8px;flex:1}
+.npc-shops-window .ns-category-title i{width:17px;text-align:center}
+.npc-shops-window .ns-category-count{font-weight:400;color:#c7d3e7;font-size:11px}
+.npc-shops-window .ns-category-items{padding:8px;display:flex;flex-direction:column;gap:7px}
+.npc-shops-window .ns-category-items>.ns-item{margin:0}

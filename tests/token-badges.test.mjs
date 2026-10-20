@@ -17,10 +17,12 @@ for(const Graphics of [V7Graphics,V8Graphics]){
   let opens=0;
   const m=new TokenShopBadges({pixi:{Container,Graphics,Circle},open:()=>opens++,isMerchant:()=>true});
   m.sync([t]);const badge=t.children[0];
-  assert.equal(badge.parent,t);assert.equal(badge.x,50);
+  assert.equal(badge.parent,t);assert.equal(badge.x,50);assert.equal(badge.y,-23);
   badge.handlers.pointertap({stopPropagation(){}});assert.equal(opens,1);
   t.x=500;m.sync([t]);assert.equal(t.children[0],badge);
   m.sync([]);assert.equal(t.children.length,0);
  });
 }
-test('merchant marker coordinates are local to token',()=>assert.deepEqual(merchantBadgePosition({w:100,h:100}),{x:50,y:18,size:16}));
+test('merchant marker coordinates are local to token',()=>assert.deepEqual(merchantBadgePosition({w:100,h:100}),{x:50,y:-23,size:16}));
+
+test('merchant badge stays fully outside the token portrait',()=>{for(const edge of [50,100,200]){const p=merchantBadgePosition({w:edge,h:edge});assert.ok(p.y+p.size<0);assert.equal(p.x,edge/2);}});

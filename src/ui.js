@@ -1,4 +1,5 @@
 import {MODULE_ID, cpToGp, emptyShop, gpToCp, hasOwnership, itemPriceCp, moneyTotal, shopData, stockCopy, SALEABLE_TYPES} from "./core.js";
+import {groupItems} from "./categories.js";
 
 const windows = new Map();
 const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -34,6 +35,7 @@ export class ShopWindow {
     this.loading = false;
     this.buyerId = null;
     this.remoteShop = null;
+    this.categoryState = new Map();
   }
   get actor() { return game.actors.get(this.actorId); }
   get shop() { return this.gm ? shopData(this.actor) : (this.remoteShop ?? emptyShop()); }
@@ -98,6 +100,10 @@ export class ShopWindow {
     const actor = this.actor;
     const label = this.gm ? actor?.name ?? this.name : this.name;
     const avatar = this.gm ? actor?.img ?? this.img : this.img;
+    // Preserve accordion state across purchases, updates and tab changes.
+    for (const section of this.element.querySelectorAll(".ns-category[data-category]")) {
+      this.categoryState.set(`${section.dataset.view}:${section.dataset.category}`, section.open);
+    }
     this.element.innerHTML = `
       <header class="ns-header"><div class="ns-identity"><img src="${esc(avatar)}" alt="" /><div><b>${esc(label)}</b><small>NPC Shops · ${this.loading ? 'Loading' : (shop.enabled ? (shop.open ? 'Open' : 'Closed') : 'Not a shop')}</small></div></div>${button('close', '×', 'class="ns-close" aria-label="Close"')}</header>
       <main class="ns-content">
@@ -107,27 +113,38 @@ export class ShopWindow {
         <nav class="ns-tabs">${button('tab-buy', 'Buy', `class="${this.mode === 'buy' ? 'active' : ''}"`)}${button('tab-sell', 'Sell', `class="${this.mode === 'sell' ? 'active' : ''}"`)}${this.gm ? button('tab-manage', 'Manage', `class="${this.mode === 'manage' ? 'active' : ''}"`) : ''}</nav>
         ${this.mode === 'buy' ? this.renderBuy(shop, buyer) : this.mode === 'sell' ? this.renderSell(shop, buyer) : this.renderManage(shop)}
       ` : `<div class="ns-empty">${this.loading ? 'Loading shop items…' : this.gm ? 'Click Make Merchant to enable this NPC as a shop.' : 'Merchant information not available. A GM must be online.'}</div>`}
-      </main><footer>Foundry v${esc(game.version || game.release?.generation)} · NPC Shops v0.1.9 alpha</footer>`;
+      </main><footer>Foundry v${esc(game.version || game.release?.generation)} · NPC Shops v0.1.10 alpha</footer>`;
+  }
+  /** Collapsible, alphabetically sorted categories. No item data is changed. */
+  renderCategories(entries, itemFor, renderRow) {
+    return groupItems(entries, itemFor).map(group => {
+      const key = `${this.mode}:${group.id}`;
+      const isOpen = this.categoryState.get(key) !== false;
+      return `<details class="ns-category" data-view="${esc(this.mode)}" data-category="${esc(group.id)}" ${isOpen ? "open" : ""}>
+        <summary><span class="ns-category-title"><i class="fas ${group.icon}"></i> ${esc(group.label)}</span><span class="ns-category-count">${group.entries.length} item${group.entries.length===1 ? "" : "s"}</span></summary>
+        <div class="ns-category-items">${group.entries.map(renderRow).join("")}</div>
+      </details>`;
+    }).join("");
   }
   renderBuy(shop, buyer) {
     if (!shop.open) return '<div class="ns-empty">Shop is currently closed.</div>';
-    return `<div class="ns-items">${shop.stock.length ? shop.stock.map(s => `
+    return `<div class="ns-items">${shop.stock.length ? this.renderCategories(shop.stock, s => s.item, s => `
       <div class="ns-item" data-sku="${esc(s.id)}"><img src="${esc(s.item.img || 'icons/svg/item-bag.svg')}" alt=""/><div class="ns-itemtext"><strong>${esc(s.item.name)}</strong><small>${cpToGp(s.priceCp)} GP · ${s.unlimited ? '∞' : esc(s.quantity)} in stock</small></div><input type="number" class="ns-qty" min="1" max="9999" value="1" aria-label="Quantity"/>${button('buy', 'Buy', !buyer || this.busy || (!s.unlimited && s.quantity < 1) ? 'disabled' : '')}</div>
-    `).join('') : '<div class="ns-empty">No items for sale. GM: use Manage to add items.</div>'}</div>`;
+    `) : '<div class="ns-empty">No items for sale. GM: use Manage to add items.</div>'}</div>`;
   }
   renderSell(shop, buyer) {
     if (!shop.open || !shop.allowSelling) return '<div class="ns-empty">Merchant is not buying items.</div>';
     if (!buyer) return '<div class="ns-empty">Select a character you control.</div>';
     const inv = buyer.items.contents.filter(i => SALEABLE_TYPES.has(i.type) && Number(i.system?.quantity ?? 1) > 0);
-    return `<div class="ns-items">${inv.length ? inv.map(item => `
+    return `<div class="ns-items">${inv.length ? this.renderCategories(inv, item => item, item => `
       <div class="ns-item" data-item="${esc(item.id)}"><img src="${esc(item.img || 'icons/svg/item-bag.svg')}" alt=""/><div class="ns-itemtext"><strong>${esc(item.name)}</strong><small>${cpToGp(Math.floor(itemPriceCp(item) * shop.sellRate))} GP each · Owned: ${esc(item.system?.quantity ?? 1)}</small></div><input type="number" class="ns-qty" min="1" max="9999" value="1" aria-label="Quantity"/>${button('sell', 'Sell', this.busy ? 'disabled' : '')}</div>
-    `).join('') : '<div class="ns-empty">No saleable physical items.</div>'}</div>`;
+    `) : '<div class="ns-empty">No saleable physical items.</div>'}</div>`;
   }
   renderManage(shop) {
     if (!this.gm) return '';
     return `<div class="ns-config"><label>Buyback percentage <input data-field="rate" type="number" min="0" max="100" step="1" value="${Math.round(shop.sellRate * 100)}"/></label>${button('save-rate', 'Save Rate')}</div>
       <div class="ns-drop" data-drop="items">Drag & drop items here from Items, Compendiums or Actor sheets</div>
-      <div class="ns-items">${shop.stock.map(s => `<div class="ns-item ns-manage-item" data-sku="${esc(s.id)}"><img src="${esc(s.item.img || 'icons/svg/item-bag.svg')}" alt=""/><div class="ns-itemtext"><strong>${esc(s.item.name)}</strong><small>Price GP <input data-field="price" type="number" min="0" step="0.01" value="${cpToGp(s.priceCp)}"/> Stock <input data-field="stock" type="number" min="0" step="1" value="${esc(s.quantity)}"/> <label><input type="checkbox" data-field="unlimited" ${s.unlimited ? 'checked' : ''}/> ∞</label></small></div>${button('save-item', 'Save')}${button('remove', '×')}</div>`).join('')}</div>
+      <div class="ns-items">${this.renderCategories(shop.stock, s => s.item, s => `<div class="ns-item ns-manage-item" data-sku="${esc(s.id)}"><img src="${esc(s.item.img || 'icons/svg/item-bag.svg')}" alt=""/><div class="ns-itemtext"><strong>${esc(s.item.name)}</strong><small>Price GP <input data-field="price" type="number" min="0" step="0.01" value="${cpToGp(s.priceCp)}"/> Stock <input data-field="stock" type="number" min="0" step="1" value="${esc(s.quantity)}"/> <label><input type="checkbox" data-field="unlimited" ${s.unlimited ? 'checked' : ''}/> ∞</label></small></div>${button('save-item', 'Save')}${button('remove', '×')}</div>`)}</div>
       <details class="ns-ledger"><summary>Transaction History (${shop.ledger.length})</summary><div class="ns-ledger-toolbar">${button("clear-history", "Clear History", !shop.ledger.length ? "disabled" : "")}</div>${shop.ledger.slice().reverse().map(l => `<div>${esc(l.at?.slice(0,16))}: ${esc(l.actorName)} ${esc(l.kind)} ${esc(l.quantity)} × ${esc(l.itemName)} (${cpToGp(l.totalCp)} GP)</div>`).join('') || 'No transactions yet'}</details>`;
   }
   bindEvents(el) {

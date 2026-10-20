@@ -1,3 +1,4 @@
+import {itemCategory} from "./categories.js";
 export const MODULE_ID = "npc-shops";
 export const COINS = Object.freeze({pp: 1000, gp: 100, ep: 50, sp: 10, cp: 1});
 export const SALEABLE_TYPES = new Set(["weapon", "equipment", "consumable", "tool", "loot", "container"]);
@@ -106,7 +107,7 @@ export function publicShop(shop) {
   return {
     enabled: !!shop.enabled, open: !!shop.open, allowSelling: !!shop.allowSelling,
     sellRate: Number(shop.sellRate) || 0,
-    stock: (shop.stock ?? []).map(s => ({id: s.id, item: {name: String(s.item?.name ?? "Item"), img: String(s.item?.img ?? "icons/svg/item-bag.svg")}, priceCp: s.priceCp, quantity: s.quantity, unlimited: !!s.unlimited})),
+    stock: (shop.stock ?? []).map(s => ({id: s.id, item: {name: String(s.item?.name ?? "Item"), img: String(s.item?.img ?? "icons/svg/item-bag.svg"), category: itemCategory(s.item)}, priceCp: s.priceCp, quantity: s.quantity, unlimited: !!s.unlimited})),
     ledger: []
   };
 }

@@ -3,7 +3,7 @@ export function merchantBadgePosition(token) {
   const width=Number(token?.w ?? token?.width ?? 0);
   const height=Number(token?.h ?? token?.height ?? 0);
   const size=Math.max(10, Math.min(16, Math.min(width||80,height||80)/5));
-  return {x:Math.max(size+1,width/2),y:size+2,size};
+  return {x:Math.max(size+1,width/2),y:-size-7,size};
 }
 function fillCircle(g,r) {
   if(typeof g.circle==='function' && typeof g.fill==='function') g.circle(0,0,r).fill(0x382a18).stroke({width:2,color:0xf1ca76});
