@@ -42,16 +42,24 @@
 .npc-shops-window .ns-category-items{padding:8px;display:flex;flex-direction:column;gap:7px}
 .npc-shops-window .ns-category-items>.ns-item{margin:0}
 
-/* v0.1.12: Invisible, fixed-size click target for visible PIXI token child.
-   Zoom never modifies its width, height or CSS transform. */
-.npc-shop-token-button{
-  position:fixed!important;z-index:25!important;display:block;
-  left:0;top:0;width:44px!important;height:44px!important;
-  box-sizing:border-box!important;padding:0!important;margin:0!important;
-  transform:translate(-50%,-50%)!important;transition:none!important;animation:none!important;
-  border:0!important;background:transparent!important;box-shadow:none!important;
-  color:transparent!important;font-size:0!important;opacity:0!important;
-  cursor:pointer!important;pointer-events:auto!important;
-  appearance:none!important;-webkit-appearance:none!important;
+/* v0.1.14: Visible, clickable fixed-size corner control, not affected by map zoom */
+.npc-shop-token-button {
+ position:fixed!important;
+ left:0;top:0;z-index:25!important;
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;
+ padding:0!important;margin:0!important;
+ box-sizing:border-box!important;
+ transform:translate(-50%,-50%)!important;
+ transition:none!important;animation:none!important;
+ border:2px solid #f1ca76!important;border-radius:50%!important;
+ background:#382a18!important;color:#ffdf9c!important;
+ box-shadow:0 1px 6px #0009!important;
+ font-size:14px!important;line-height:1!important;opacity:1!important;
+ cursor:pointer!important;pointer-events:auto!important;
+ appearance:none!important;-webkit-appearance:none!important;
 }
-.npc-shop-token-button:focus-visible{outline:2px solid #f1ca76!important;outline-offset:1px}
+.npc-shop-token-button i{pointer-events:none!important;font-size:14px!important}
+.npc-shop-token-button:hover,.npc-shop-token-button:focus-visible{
+ background:#614522!important;outline:2px solid #f8d78d!important;outline-offset:1px!important;
+}

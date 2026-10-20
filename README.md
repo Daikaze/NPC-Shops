@@ -1,6 +1,6 @@
 # NPC Shops
 
-**Experimental alpha v0.1.13** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+**Experimental alpha v0.1.14** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
 
 ## v0.1.9 — GM merchant creation control
 
@@ -37,6 +37,13 @@
 - Run visual correction on Foundry's PIXI ticker (when available), synchronized with token animation and scene rendering; retain requestAnimationFrame fallback for earlier versions.
 - Account for token/container scaling and browser canvas pixel ratio while keeping the same clickable badge above the moving NPC.
 - Existing shop inventory, trading, item categories and GM settings are unchanged.
+
+## v0.1.14 — Fixed-size button at the top-right of NPC tokens
+
+- Changed to a **single visible 30px HTML store button** in the top-right corner of every merchant token, within the token bounds. This is deliberately not a PIXI visual and is never multiplied by Foundry's camera zoom.
+- Tracks the token corner from Foundry's displayed token transform in the late PIXI application ticker, with no CSS movement animation. There is no floating shop icon above the token.
+- Still clickable by players without actor ownership; hidden merchants do not show the button.
+- Buy, Sell, Manage, item categories, chat receipts and Clear History are unchanged.
 
 ## Features
 

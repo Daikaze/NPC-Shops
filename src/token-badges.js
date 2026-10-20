@@ -1,172 +1,129 @@
 /**
- * The visible icon is a PIXI token child. It inherits Foundry's animated
- * token movement exactly, without chasing it through HTML in subsequent frames.
- * A transparent browser hit target handles click events outside token bounds.
+ * NPC Shops merchant marker. One fixed-size HTML button in the token's TOP RIGHT
+ * corner (not above the token). This uses no PIXI icon, icon scaling, or CSS
+ * animation. Move/zoom position is projected from the displayed Token itself.
+ *
+ * In v14 the PIXI application ticker is used after token animation ticks; v11
+ * can use requestAnimationFrame when the ticker is unavailable.
  */
-const RADIUS_CSS = 18;
-const GAP_CSS = 7;
-const MIN_SCALE = 0.01;
+export const SHOP_ICON_SIZE = 30;
+export const SHOP_ICON_INSET = 16;
 
-export function merchantBadgePosition(token, pixelsPerLocalUnit = 1) {
-  const width = Number(token?.w ?? token?.width ?? 0);
-  const ratio = Math.max(MIN_SCALE, Number(pixelsPerLocalUnit) || 1);
-  return {x: width / 2, y: -(RADIUS_CSS + GAP_CSS) / ratio, size: RADIUS_CSS / ratio};
-}
+export function tokenCornerOnScreen(token, board, rendererScreen, inset = SHOP_ICON_INSET) {
+  if (!token || !board || typeof board.getBoundingClientRect !== 'function'
+      || typeof token.toGlobal !== 'function') return null;
+  const bounds = board.getBoundingClientRect();
+  const screenWidth = Number(rendererScreen?.width) || bounds.width;
+  const screenHeight = Number(rendererScreen?.height) || bounds.height;
+  const tokenWidth = Number(token.w ?? token.width ?? 0);
+  if (!(screenWidth > 0 && screenHeight > 0 && tokenWidth > 0)) return null;
 
-/** Derived screen scale includes canvas zoom, token transforms, and DPI/resizing. */
-export function tokenPixelsPerLocalUnit(token, board, rendererScreen, stage = null) {
-  if (!token) return 1;
-  const rect = board?.getBoundingClientRect?.();
-  const clientWidth = Number(rect?.width) || Number(rendererScreen?.width) || 1;
-  const rendererWidth = Number(rendererScreen?.width) || clientWidth;
-  const cssScale = clientWidth / rendererWidth;
-
-  // In v14, toGlobal() can report a stale matrix while the camera is zooming.
-  // The stage scale is the authoritative live camera zoom, independent of the
-  // token's movement tween. Multiply ancestor scales only up to the stage.
-  const cameraZoom = Math.abs(Number(stage?.scale?.x));
-  if (Number.isFinite(cameraZoom) && cameraZoom >= MIN_SCALE) {
-    let tokenScale = 1;
-    for (let node = token; node && node !== stage; node = node.parent) {
-      const local = Math.abs(Number(node.scale?.x ?? 1));
-      if (Number.isFinite(local) && local >= MIN_SCALE) tokenScale *= local;
-    }
-    const px = cameraZoom * tokenScale * cssScale;
-    if (Number.isFinite(px) && px >= MIN_SCALE) return px;
-  }
-
-  // Fallback for earlier Foundry versions without an accessible stage scale.
-  if (typeof token.toGlobal !== 'function') return 1;
-  const a = token.toGlobal({x:0,y:0});
-  const b = token.toGlobal({x:1,y:0});
-  const px = Math.hypot(b.x-a.x,b.y-a.y) * cssScale;
-  return Number.isFinite(px) && px >= MIN_SCALE ? px : 1;
-}
-
-export function badgeViewportPosition(token, board, rendererScreen, position=merchantBadgePosition(token)) {
-  if (!token || !board?.getBoundingClientRect || typeof token.toGlobal !== 'function') return null;
-  const p=token.toGlobal({x:position.x,y:position.y});
-  const rect=board.getBoundingClientRect();
-  const sw=Number(rendererScreen?.width)||rect.width;
-  const sh=Number(rendererScreen?.height)||rect.height;
-  if(!p || !Number.isFinite(p.x) || !Number.isFinite(p.y) || !(sw>0) || !(sh>0))return null;
-  const x=rect.left + p.x*rect.width/sw;
-  const y=rect.top + p.y*rect.height/sh;
-  const pad=RADIUS_CSS+2;
-  return {x,y,onScreen:x>=rect.left+pad&&x<=rect.right-pad&&y>=rect.top+pad&&y<=rect.bottom-pad};
-}
-
-function circle(g,r){
-  if(typeof g.circle==='function'&&typeof g.fill==='function')g.circle(0,0,r).fill(0x382a18).stroke({width:2,color:0xf1ca76});
-  else g.lineStyle(2,0xf1ca76).beginFill(0x382a18).drawCircle(0,0,r).endFill();
-}
-function rect(g,x,y,w,h,c){
-  if(typeof g.rect==='function'&&typeof g.fill==='function')g.rect(x,y,w,h).fill(c);
-  else g.beginFill(c).drawRect(x,y,w,h).endFill();
-}
-export function makeShopVisual(PIXI){
-  const visual=new PIXI.Container(),g=new PIXI.Graphics();
-  circle(g,16);rect(g,-8,-3,16,11,0xffdf9c);rect(g,-10,-8,20,5,0xffdf9c);rect(g,-2,2,4,6,0x382a18);
-  visual.addChild(g);
-  visual.eventMode='none';visual.interactive=false;visual.interactiveChildren=false;
-  return visual;
+  // We read the live token transform AFTER Foundry has updated its position.
+  // The absolute top-right corner is projected into the viewport, then we
+  // subtract a CSS-pixel inset. This prevents zoom from resizing the icon.
+  const corner = token.toGlobal({x: tokenWidth, y: 0});
+  if (!Number.isFinite(corner?.x) || !Number.isFinite(corner?.y)) return null;
+  const cornerX = bounds.left + corner.x * bounds.width / screenWidth;
+  const cornerY = bounds.top + corner.y * bounds.height / screenHeight;
+  const x = cornerX - inset;
+  const y = cornerY + inset;
+  const radius = SHOP_ICON_SIZE / 2;
+  return {x,y,onScreen:
+    x >= bounds.left + radius && x <= bounds.right - radius &&
+    y >= bounds.top + radius && y <= bounds.bottom - radius};
 }
 
 export class TokenShopBadges {
-  constructor({pixi=globalThis.PIXI,open,isMerchant,getCanvas=()=>globalThis.canvas,
-    documentRef=globalThis.document,requestFrame=callback=>globalThis.requestAnimationFrame(callback),
-    cancelFrame=id=>globalThis.cancelAnimationFrame(id)}={}){
-    this.pixi=pixi;this.open=open;this.isMerchant=isMerchant;this.getCanvas=getCanvas;
-    this.document=documentRef;this.requestFrame=requestFrame;this.cancelFrame=cancelFrame;
-    this.current=new Map();this.frame=null;
-    this.ticker=null;
+  constructor({open, isMerchant, getCanvas = () => globalThis.canvas,
+    documentRef = globalThis.document,
+    requestFrame = cb => globalThis.requestAnimationFrame(cb),
+    cancelFrame = id => globalThis.cancelAnimationFrame(id)} = {}) {
+    this.open = open;
+    this.isMerchant = isMerchant;
+    this.getCanvas = getCanvas;
+    this.document = documentRef;
+    this.requestFrame = requestFrame;
+    this.cancelFrame = cancelFrame;
+    this.current = new Map();
+    this.frame = null;
+    this.ticker = null;
   }
-  createHitButton(token){
-    const button=this.document.createElement('button');
-    button.type='button';button.className='npc-shop-token-button';
-    button.title=`Open ${token.name||token.actor?.name||'merchant'} shop`;
-    button.setAttribute('aria-label',button.title);
-    button.innerHTML='';
-    for(const type of ['pointerdown','mousedown','pointerup'])button.addEventListener(type,e=>e.stopPropagation());
-    button.addEventListener('click',e=>{
+  isVisibleMerchant(token) {
+    return Boolean(token && !token.destroyed && token.document?.actorId &&
+      !token.document.hidden && token.visible && this.isMerchant(token));
+  }
+  createButton(token) {
+    const button = this.document.createElement('button');
+    button.type = 'button';
+    button.className = 'npc-shop-token-button';
+    button.title = 'Open ' + (token.name || token.actor?.name || 'merchant') + ' shop';
+    button.setAttribute('aria-label', button.title);
+    button.innerHTML = '<i class="fas fa-store" aria-hidden="true"></i>';
+    for (const name of ['pointerdown','mousedown','pointerup']) {
+      button.addEventListener(name, e => e.stopPropagation());
+    }
+    button.addEventListener('click', e => {
       e.preventDefault();e.stopPropagation();e.stopImmediatePropagation?.();
       const pair=this.current.get(token.document.id);
-      if(pair && pair.token===token && this.isVisibleMerchant(token))this.open(token);
+      if (pair?.token === token && this.isVisibleMerchant(token)) this.open(token);
     });
     this.document.body.appendChild(button);
     return button;
   }
-  isVisibleMerchant(token){
-    return !!(token&&!token.destroyed&&token.document?.actorId&&!token.document.hidden&&token.visible&&this.isMerchant(token));
-  }
-  remove(id){
-    const pair=this.current.get(id);
-    pair?.button?.remove();
-    if(pair?.visual&&!pair.visual.destroyed){
-      pair.visual.parent?.removeChild(pair.visual);
-      pair.visual.destroy({children:true});
-    }
+  remove(id) {
+    this.current.get(id)?.button.remove();
     this.current.delete(id);
   }
-  clear(){
-    if(this.frame!==null)this.cancelFrame(this.frame);
-    this.frame=null;
-    if(this.ticker){this.ticker.remove(this.updatePositions,this);this.ticker=null;}
-    for(const id of [...this.current.keys()])this.remove(id);
+  clear() {
+    if (this.ticker) { this.ticker.remove(this.updatePositions,this); this.ticker=null; }
+    if (this.frame!==null) { this.cancelFrame(this.frame); this.frame=null; }
+    for (const id of [...this.current.keys()]) this.remove(id);
   }
-  updatePositions(){
-    const canvas=this.getCanvas();
-    const board=canvas?.app?.canvas??canvas?.app?.view??this.document?.querySelector?.('canvas#board');
-    const screen=canvas?.app?.renderer?.screen;
-    for(const {token,visual,button} of this.current.values()){
-      if(!canvas?.ready||!this.isVisibleMerchant(token)){
-        visual.visible=false;button.style.display='none';continue;
+  updatePositions() {
+    const scene=this.getCanvas();
+    const board=scene?.app?.canvas || scene?.app?.view || this.document?.querySelector?.('canvas#board');
+    const screen=scene?.app?.renderer?.screen;
+    for (const {token,button} of this.current.values()) {
+      if (!scene?.ready || !this.isVisibleMerchant(token)) {
+        button.style.display='none';continue;
       }
-      if(visual.parent!==token&&!visual.destroyed)token.addChild(visual);
-      const pxScale=tokenPixelsPerLocalUnit(token,board,screen,canvas?.stage);
-      const position=merchantBadgePosition(token,pxScale);
-      visual.position.set(position.x,position.y);
-      visual.scale.set(position.size/16);
-      visual.visible=true;
-      const hit=badgeViewportPosition(token,board,screen,position);
-      if(!hit?.onScreen){button.style.display='none';continue;}
+      const point=tokenCornerOnScreen(token,board,screen);
+      if (!point?.onScreen) {
+        button.style.display='none';continue;
+      }
       button.style.display='';
-      button.style.left=`${hit.x}px`;
-      button.style.top=`${hit.y}px`;
+      // position is set directly each render tick: no easing, tween or scaling.
+      button.style.left=point.x+'px';
+      button.style.top=point.y+'px';
     }
   }
-  tick(){
+  tick() {
     this.frame=null;
-    if(!this.current.size)return;
+    if (!this.current.size) return;
     this.updatePositions();
     this.frame=this.requestFrame(()=>this.tick());
   }
-  sync(tokens){
+  sync(tokens) {
     const live=new Set();
-    for(const token of tokens??[]){
-      if(!this.isVisibleMerchant(token)||!token.document.id)continue;
+    for (const token of tokens || []) {
+      if (!this.isVisibleMerchant(token) || !token.document.id) continue;
       const id=token.document.id;live.add(id);
       const pair=this.current.get(id);
-      if(pair&&(pair.token!==token||pair.visual.destroyed))this.remove(id);
-      if(!this.current.has(id)){
-        const visual=makeShopVisual(this.pixi);
-        token.addChild(visual);
-        this.current.set(id,{token,visual,button:this.createHitButton(token)});
-      }
+      if (pair?.token!==undefined && pair.token!==token) this.remove(id);
+      if (!this.current.has(id)) this.current.set(id,{token,button:this.createButton(token)});
     }
-    for(const id of [...this.current.keys()])if(!live.has(id))this.remove(id);
+    for (const id of [...this.current.keys()]) if (!live.has(id)) this.remove(id);
     this.updatePositions();
-    // Update in the same PIXI ticker as token movement and scene rendering.
-    // Fallback to requestAnimationFrame on older clients lacking a ticker.
+
+    // HIGHLY LATE in PIXI's render loop (after token motion is applied).
     const ticker=this.getCanvas()?.app?.ticker;
     if (this.ticker && (this.ticker!==ticker || !this.current.size)) {
-      this.ticker.remove(this.updatePositions,this);
-      this.ticker=null;
+      this.ticker.remove(this.updatePositions,this);this.ticker=null;
     }
     if (this.current.size && ticker?.add) {
       if(this.frame!==null){this.cancelFrame(this.frame);this.frame=null;}
-      if(!this.ticker){ticker.add(this.updatePositions,this,-100);this.ticker=ticker;}
-    } else if (this.current.size && this.frame===null) this.frame=this.requestFrame(()=>this.tick());
-    if (!this.current.size && this.frame!==null){this.cancelFrame(this.frame);this.frame=null;}
+      if(!this.ticker){ticker.add(this.updatePositions,this,-1000);this.ticker=ticker;}
+    } else if(this.current.size && this.frame===null) this.frame=this.requestFrame(()=>this.tick());
+    if(!this.current.size && this.frame!==null){this.cancelFrame(this.frame);this.frame=null;}
   }
 }
