@@ -6,6 +6,11 @@ const windows = new Map();
 const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const button = (action, label, extra = "") => `<button type="button" data-action="${action}" ${extra}>${label}</button>`;
 const notify = (text, error = false) => (error ? ui.notifications.error(text) : ui.notifications.info(text));
+/** Match item names regardless of case; surrounding spaces in the query are ignored. */
+export function matchesItemSearch(name, query) {
+  const needle = String(query ?? "").trim().toLocaleLowerCase();
+  return !needle || String(name ?? "").toLocaleLowerCase().includes(needle);
+}
 /** Clear this merchant's ledger only, leaving stock, prices and chat messages untouched. */
 export async function clearMerchantHistory(actor, confirmAction = globalThis.confirm) {
   if (!globalThis.game?.user?.isGM) throw new Error('Only a GM can clear transaction history');
@@ -37,6 +42,7 @@ export class ShopWindow {
     this.buyerId = null;
     this.remoteShop = null;
     this.categoryState = new Map();
+    this.searchQueries = {buy: "", sell: "", manage: ""};
   }
   get actor() { return game.actors.get(this.actorId); }
   get shop() { return this.gm ? shopData(this.actor) : (this.remoteShop ?? emptyShop()); }
@@ -112,9 +118,37 @@ export class ShopWindow {
       ${shop.enabled ? `
         <div class="ns-wallet"><label>Shopping as <select data-field="buyer"><option value="">Select character</option>${buyers.map(a => `<option value="${esc(a.id)}" ${buyer?.id === a.id ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></label><div>${buyer ? `${esc(buyer.name)} · ${(moneyTotal(buyer.system.currency) / 100).toFixed(2)} GP` : 'No owned characters'}</div></div>
         <nav class="ns-tabs">${button('tab-buy', 'Buy', `class="${this.mode === 'buy' ? 'active' : ''}"`)}${button('tab-sell', 'Sell', `class="${this.mode === 'sell' ? 'active' : ''}"`)}${this.gm ? button('tab-manage', 'Manage', `class="${this.mode === 'manage' ? 'active' : ''}"`) : ''}</nav>
+        ${this.renderSearchInput()}
         ${this.mode === 'buy' ? this.renderBuy(shop, buyer) : this.mode === 'sell' ? this.renderSell(shop, buyer) : this.renderManage(shop)}
+        <div class="ns-empty ns-no-results" hidden>No items match your search.</div>
       ` : `<div class="ns-empty">${this.loading ? 'Loading shop items…' : this.gm && !isNpcActor(actor) ? 'Only NPC actors can be converted into shops.' : this.gm ? 'Click Make Merchant to enable this NPC as a shop.' : 'Merchant information not available. A GM must be online.'}</div>`}
-      </main><footer>Foundry v${esc(game.version || game.release?.generation)} · NPC Shops v0.1.17 alpha</footer>`;
+      </main><footer>Foundry v${esc(game.version || game.release?.generation)} · NPC Shops v0.1.19 alpha</footer>`;
+    this.applySearchFilter();
+  }
+  /** Search stays mounted while filtering so unsaved Manage edits and quantities are preserved. */
+  renderSearchInput() {
+    return `<label class="ns-search"><i class="fas fa-search" aria-hidden="true"></i><input type="search" data-field="item-search" aria-label="Search items" placeholder="Search items..." autocomplete="off" spellcheck="false" value="${esc(this.searchQueries[this.mode] ?? "")}"/></label>`;
+  }
+  applySearchFilter() {
+    if (!this.element?.querySelectorAll) return;
+    const query = this.searchQueries[this.mode] ?? "";
+    const categories = this.element.querySelectorAll(".ns-items .ns-category");
+    let found = false;
+    for (const category of categories) {
+      let visibleCount = 0;
+      for (const row of category.querySelectorAll(".ns-item")) {
+        const name = row.querySelector(".ns-itemtext strong")?.textContent ?? "";
+        const visible = matchesItemSearch(name, query);
+        row.hidden = !visible;
+        if (visible) visibleCount++;
+      }
+      category.hidden = visibleCount === 0;
+      if (visibleCount) found = true;
+      const count = category.querySelector(".ns-category-count");
+      if (count) count.textContent = `${visibleCount} item${visibleCount === 1 ? "" : "s"}`;
+    }
+    const noResults = this.element.querySelector?.(".ns-no-results");
+    if (noResults) noResults.hidden = !String(query).trim() || !categories.length || found;
   }
   /** Collapsible, alphabetically sorted categories. No item data is changed. */
   renderCategories(entries, itemFor, renderRow) {
@@ -149,6 +183,11 @@ export class ShopWindow {
       <details class="ns-ledger"><summary>Transaction History (${shop.ledger.length})</summary><div class="ns-ledger-toolbar">${button("clear-history", "Clear History", !shop.ledger.length ? "disabled" : "")}</div>${shop.ledger.slice().reverse().map(l => `<div>${esc(l.at?.slice(0,16))}: ${esc(l.actorName)} ${esc(l.kind)} ${esc(l.quantity)} × ${esc(l.itemName)} (${cpToGp(l.totalCp)} GP)</div>`).join('') || 'No transactions yet'}</details>`;
   }
   bindEvents(el) {
+    el.addEventListener("input", e => {
+      if (!e.target.matches?.('[data-field="item-search"]')) return;
+      this.searchQueries[this.mode] = e.target.value;
+      this.applySearchFilter();
+    });
     el.addEventListener("change", e => {
       if (e.target.matches('[data-field="buyer"]')) { this.buyerId = e.target.value; this.render(); }
     });

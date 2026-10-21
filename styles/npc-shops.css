@@ -43,3 +43,11 @@
 .npc-shops-window .ns-category-items>.ns-item{margin:0}
 
 /* v0.1.16: The merchant badge is rendered as a PIXI token child, not HTML. */
+
+
+/* v0.1.19 — live item search on Buy, Sell and Manage, without re-rendering inputs. */
+.npc-shops-window .ns-search{display:flex;align-items:center;gap:8px;margin:8px 0 12px;padding:6px 10px;border:1px solid #536178;background:#101722;border-radius:7px;color:#dcb874}
+.npc-shops-window .ns-search:focus-within{border-color:#dcb874}
+.npc-shops-window .ns-search input{flex:1;min-width:0;margin:0;padding:2px 0;min-height:24px;border:0;outline:none;background:transparent;color:#f4f6fa;box-shadow:none}
+.npc-shops-window .ns-category[hidden],.npc-shops-window .ns-item[hidden],.npc-shops-window .ns-no-results[hidden]{display:none!important}
+.npc-shops-window .ns-no-results{padding:12px}
