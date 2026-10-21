@@ -34,17 +34,20 @@ test('GM has a search field in Buy, Sell, Manage with independent tab values', (
 });
 
 test('live filtering hides unmatched rows and empty categories, then restores them', () => {
-  const count={textContent:''};
   const makeRow=name=>({
     hidden:false,
     querySelector:selector=>selector==='.ns-itemtext strong'?{textContent:name}:null
   });
   const sword=makeRow('Longsword'), dagger=makeRow('Dagger'), potion=makeRow('Healing Potion');
-  const makeCategory=rows=>({
-    hidden:false,
-    querySelectorAll:selector=>selector==='.ns-item'?rows:[],
-    querySelector:selector=>selector==='.ns-category-count'?count:null
-  });
+  const makeCategory=rows=>{
+    const count={textContent:''};
+    return {
+      count,
+      hidden:false,
+      querySelectorAll:selector=>selector==='.ns-item'?rows:[],
+      querySelector:selector=>selector==='.ns-category-count'?count:null
+    };
+  };
   const weapons=makeCategory([sword,dagger]), consumables=makeCategory([potion]);
   const noResults={hidden:true};
   const fakeElement={
@@ -60,7 +63,8 @@ test('live filtering hides unmatched rows and empty categories, then restores th
   assert.equal(potion.hidden,true);
   assert.equal(weapons.hidden,false);
   assert.equal(consumables.hidden,true);
-  assert.equal(count.textContent,'1 item');
+  assert.equal(weapons.count.textContent,'1 item');
+  assert.equal(consumables.count.textContent,'0 items');
   assert.equal(noResults.hidden,true);
 
   win.searchQueries.buy='no such item';
