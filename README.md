@@ -1,5 +1,15 @@
 # NPC Shops
 
+## v0.5.0 — Compact minimization and stability review
+
+- **True compact minimize:** Double-clicking the merchant title bar now collapses the entire window to a narrow 300 × 32 px title bar, instead of leaving a large empty window-sized strip. Double-click again to restore the original dimensions and position. Moving the minimized title bar also moves the position where the full shop is restored.
+- **Window resizing:** Previous v0.4.9 right/left/bottom resize handles remain available when expanded; minimum dimensions and responsive inventory columns remain in place.
+- **GM Buy price editor:** Each Buy stock row has a GM-only Price (GP) field and a Save action. Updated prices persist in the merchant stock record and are applied to later GM-authorized checkout totals. Players see prices but no editor.
+- **Cashbox integrity:** The GM edits the NPC's total cashbox balance directly. Changes preserve existing denominations rather than automatically converting the merchant's gold to platinum.
+- **Reviewed code paths:** GM-authorized purchasing, buyer ownership, inventory decrement and rollback, sale pricing, token merchant indicators, player-safe public shop records, Item preview, paid drag/drop, in-window GM Give, Cashbox, Stock Save All and Clear All, and RollTable UI source and existing automated tests.
+- **Automated verification:** Node unit tests and syntax checks run through the GitHub Actions release workflow, including new minimize/restore geometry tests and cashbox denomination regression tests.
+- **Remaining live validation:** Foundry v11 and v14 clients are not available in this automated environment. Test GM and player login, Item Sheet focus/permissions, cross-client synchronization, double-click/minimize/resize, Buy/Sell/Give, and cashbox after installing. Automated tests do **not** establish that every third-party D&D sheet/theme combination works.
+
 ## v0.4.2 — Give and Item Sheet fixes, resizing
 
 - Replaces the incompatible GM Give dialog with a shop-local recipient picker (player-owned character sheets only); keeps multi-item gifting and stock adjustment.
