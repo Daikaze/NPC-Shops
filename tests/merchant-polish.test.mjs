@@ -165,7 +165,7 @@ test('Clear All merchant stock uses Foundry confirmation and preserves trade con
  let prompt;
  shop.confirm=async(message,opts)=>{prompt={message,opts};return true};
  // Verify click routes to Clear All, rather than deleting through a hidden side effect.
- const button={dataset:{action:'clear-all-stock'}};
+ const button={dataset:{action:'clear-all-stock'},closest:()=>null};
  const event={target:{closest:selector=>selector==='button[data-action]'?button:null}};
  for(const listener of events.click)await listener(event);
  assert.equal(writes,1);
