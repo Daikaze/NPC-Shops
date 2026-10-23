@@ -93,16 +93,13 @@ export function itemPriceCp(item) {
   return Number.isSafeInteger(cp) && cp >= 0 ? cp : 0;
 }
 export function emptyShop() {
-  return {enabled: false, open: true, allowSelling: true, sellRate: 0.5, stock: [], ledger: [], tables: [], autoTextLoot: true, textLootPriceCp: 0};
+  return {enabled: false, open: true, allowSelling: true, sellRate: 0.5, stock: [], ledger: []};
 }
 export function shopData(actor) {
   const saved = actor?.getFlag?.(MODULE_ID, "shop") ?? {};
   const clean = {...emptyShop(), ...saved};
   clean.stock = Array.isArray(clean.stock) ? clean.stock : [];
   clean.ledger = Array.isArray(clean.ledger) ? clean.ledger : [];
-  clean.tables = Array.isArray(clean.tables) ? clean.tables : [];
-  clean.autoTextLoot = clean.autoTextLoot !== false;
-  clean.textLootPriceCp = Number.isSafeInteger(clean.textLootPriceCp) && clean.textLootPriceCp >= 0 ? clean.textLootPriceCp : 0;
   return clean;
 }
 /** Only public-safe stock fields go to players, never transaction ledger. */

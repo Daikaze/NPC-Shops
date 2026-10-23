@@ -52,87 +52,32 @@
 .npc-shops-window .ns-category[hidden],.npc-shops-window .ns-item[hidden],.npc-shops-window .ns-no-results[hidden]{display:none!important}
 .npc-shops-window .ns-no-results{padding:12px}
 
-/* v0.2.0 Compendium and Rollable Tables: scoped to the shop window */
-.npc-shops-window .ns-compendium,.npc-shops-window .ns-table-panel{border:1px solid #53617b;border-radius:8px;margin:12px 0;padding:10px;background:#1e2737;color:#e0e6f0}
-.npc-shops-window .ns-compendium>summary{cursor:pointer;color:#ebd1a0;font-weight:700;padding:6px}
-.npc-shops-window .ns-extras-controls{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0}
-.npc-shops-window .ns-extras-controls select,.npc-shops-window .ns-extras-controls input{min-width:150px;flex:1}
-.npc-shops-window .ns-extra-content{padding:5px}
-.npc-shops-window .ns-compendium-items,.npc-shops-window .ns-rolled-items{max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:7px}
-.npc-shops-window .ns-extras-note{font-size:12px;color:#c2d0e1;margin:6px 0}
-.npc-shops-window .ns-table-entry{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:9px 6px;border-bottom:1px solid #4a556b}
-.npc-shops-window .ns-table-entry .ns-itemtext{flex:2;min-width:130px}
-.npc-shops-window .ns-table-entry label{display:flex;gap:5px;align-items:center}
-.npc-shops-window .ns-table-entry input[type=number]{width:50px!important}
-.npc-shops-window .ns-table-settings{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:12px 0;padding:10px 0;border-top:1px solid #56647e;border-bottom:1px solid #56647e}
-.npc-shops-window .ns-table-settings label{display:flex;gap:6px;align-items:center}
-.npc-shops-window .ns-table-settings input[type=number]{max-width:85px}
-.npc-shops-window .ns-preview-item label{font-size:11px;display:flex;flex-direction:column;gap:4px}
-.npc-shops-window .ns-preview-item input[type=number]{width:72px!important}
-.npc-shops-window .ns-unresolved{margin-top:12px;border:1px solid #a57a4d;padding:8px;border-radius:6px}
-.npc-shops-window .ns-unresolved summary{cursor:pointer;color:#d6b080}
-
-/* v0.2.1 — Legible controls and non-clipping layout in Foundry v11 and v14.
-   Scoped to NPC Shops: never restyle native Foundry sheets or token HUD. */
+/* v0.2.3: Preserve readability improvements without Compendium/RollTable panels. */
 .npc-shops-window{
- width:min(820px,96vw);max-height:85vh;
- font-size:14px;line-height:1.5;color:#f1f4fa;
+  width:min(820px,96vw);max-height:85vh;font-size:14px;line-height:1.5;color:#f1f4fa;
 }
 .npc-shops-window .ns-content{min-height:220px;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable}
-.npc-shops-window .ns-header{flex-shrink:0}
-.npc-shops-window footer{flex-shrink:0;color:#c2cde0}
+.npc-shops-window .ns-header,.npc-shops-window footer{flex-shrink:0}
+.npc-shops-window footer{color:#c2cde0}
 .npc-shops-window .ns-tabs{flex-wrap:wrap;gap:5px}
 .npc-shops-window .ns-tabs button{font-size:13px;min-height:36px;padding:7px 12px}
-.npc-shops-window button{white-space:normal;overflow-wrap:normal;line-height:1.35;min-height:34px}
+.npc-shops-window button{white-space:normal;line-height:1.35;min-height:34px}
 .npc-shops-window select,.npc-shops-window input:not([type=checkbox]){
- color:#f7f9ff!important;background:#111a2b!important;border-color:#7486a1!important;
- min-height:34px;font-size:13px!important;line-height:1.25!important;
+  color:#f7f9ff!important;background:#111a2b!important;border-color:#7486a1!important;
+  min-height:34px;font-size:13px!important;line-height:1.25!important;
 }
 .npc-shops-window input::placeholder{color:#c2cfe1!important;opacity:1}
 .npc-shops-window label{color:#e2eaf7;font-size:13px}
-.npc-shops-window small,.npc-shops-window .ns-extras-note,.npc-shops-window .ns-extras-summary{
- color:#d7e1ef!important;font-size:12.5px;line-height:1.5;
-}
+.npc-shops-window small{color:#d7e1ef!important;font-size:12.5px;line-height:1.5}
 .npc-shops-window .ns-itemtext strong{color:#fff;font-size:14px;line-height:1.45;overflow-wrap:anywhere}
-.npc-shops-window .ns-itemtext small{color:#d7e1ef!important}
-.npc-shops-window .ns-config{flex-wrap:wrap;align-items:center}
-.npc-shops-window .ns-compendium,.npc-shops-window .ns-table-panel{
- background:#1f2a3b;color:#e9eff9;border-color:#64748e;padding:12px;
-}
-.npc-shops-window .ns-compendium>summary,.npc-shops-window .ns-unresolved>summary{
- color:#ffdfa4;font-size:14px;line-height:1.5;
-}
-.npc-shops-window .ns-extras-controls{display:flex;flex-wrap:wrap;align-items:stretch;gap:10px}
-.npc-shops-window .ns-extras-controls select,
-.npc-shops-window .ns-extras-controls input{
- flex:1 1 230px;min-width:min(180px,100%);max-width:none;margin:0;
-}
-.npc-shops-window .ns-extras-controls button{flex:0 0 auto;min-width:108px}
-.npc-shops-window .ns-compendium-items,.npc-shops-window .ns-rolled-items{
- max-height:min(340px,42vh);scrollbar-gutter:stable;overflow-y:auto;overflow-x:hidden;
-}
-.npc-shops-window .ns-compendium-items .ns-item,.npc-shops-window .ns-rolled-items .ns-item{min-width:0;flex-wrap:wrap}
-.npc-shops-window .ns-table-entry{gap:10px;align-items:center;overflow-wrap:anywhere}
-.npc-shops-window .ns-table-entry .ns-itemtext{flex:1 1 220px}
-.npc-shops-window .ns-table-entry label{white-space:nowrap;flex:0 0 auto;line-height:1.4}
-.npc-shops-window .ns-table-entry label input[type=number]{
- width:72px!important;min-width:72px!important;margin:0!important;
-}
-.npc-shops-window .ns-table-entry button{flex:0 0 auto;min-width:56px;padding:6px 10px}
-.npc-shops-window .ns-table-settings{gap:12px}
-.npc-shops-window .ns-table-settings label{white-space:normal;flex-wrap:wrap}
-.npc-shops-window .ns-table-settings input[type=number]{width:100px!important;max-width:120px!important}
-.npc-shops-window .ns-preview-item label{white-space:nowrap}
-.npc-shops-window .ns-preview-item input[type=number]{width:85px!important;min-width:70px!important}
+.npc-shops-window .ns-config{flex-wrap:wrap}
 .npc-shops-window .ns-manage-item{flex-wrap:wrap}
 .npc-shops-window .ns-manage-item .ns-itemtext{flex:1 1 180px}
 .npc-shops-window .ns-manage-item .ns-itemtext input[type=number]{width:78px;min-width:68px}
-.npc-shops-window .ns-ledger{font-size:13px}
 @media(max-width:650px){
  .npc-shops-window{width:96vw;left:2vw;max-height:88vh}
  .npc-shops-window .ns-header{padding:10px}
  .npc-shops-window .ns-content{padding:10px}
- .npc-shops-window .ns-extras-controls button{flex:1 1 120px}
  .npc-shops-window .ns-item{flex-wrap:wrap}
  .npc-shops-window .ns-tabs button{flex:1 1 auto}
 }

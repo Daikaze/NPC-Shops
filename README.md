@@ -1,12 +1,6 @@
 # NPC Shops
 
-**Experimental alpha v0.2.2** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
-
-## v0.2.2 — Remove Import All Items
-
-- Removed the mass-import **Import All Items** button and its bulk import implementation.
-- **Manage → Import from Item Compendium** remains available for choosing a pack, searching, and adding individual Items with **Add to Shop**.
-- Existing merchant stock (including items previously imported in bulk) is retained. Rollable Tables, preserved scroll positions, readable controls, Buy/Sell, chat trade receipts, and Clear Transaction History are unchanged.
+**Experimental alpha v0.2.3** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
 
 ## v0.1.19 — Search merchandise by name
 
@@ -87,21 +81,12 @@
 - Trading commits are not rolled back just because a chat notification fails; duplicate trade requests still do not create duplicate chat messages.
 - No changes to merchant stock, Shop UI, NPC-only controls, player permissions, token icons or Transaction History.
 
-## v0.2.0 — Compendium Items and Rollable Tables
+## v0.2.3 — Restore the simple NPC Shops interface
 
-- **Manage → Import from Item Compendium:** choose any available Item Compendium (including Plutonium/5etools), search its index, and add individual real Item documents to the merchant's stock. Existing drag/drop Item imports continue to work.
-- **Rollable Tables (GM only):** choose from World RollTables or RollTable Compendiums, or drag a RollTable into the tab. Set per-table rolls, select which participate in Roll All, and preview rolled Items before committing via **Add All Items**.
-- Resolve v11 `text/documentCollection/documentId` and v14 `name/description/documentUuid` results. Prefer direct Item links, then exact Item names in world Items and the selected/Plutonium Item Compendium. Gather resources such as `Gathering: Coast: Gillyweed` match `Gillyweed`.
-- If a result is **text only** and no matching Item exists, the GM sees a clearly labeled **basic Loot** fallback (price configurable, default 0 GP). This doesn't fabricate Plutonium-specific stats. Disable the fallback to see Unresolved results.
-- Tables are GM-only. Player Buy/Sell, NPC badge, character-sheet behavior, categories, transaction logging, currency handling and NPC-only creation remain unchanged.
-
-## v0.2.1 — Better readability, persistent scroll, Import All Compendium Items
-
-- Improved contrast, font sizes, field widths and responsive layout in Buy, Sell, Manage and Rollable Tables. Long RollTable labels no longer wrap into narrow illegible fragments.
-- Re-rendering after actions preserves per-tab scroll positions, nested Compendium/Rolled Items list positions and expanded Compendium, Transaction History and Unresolved panels.
-- **Manage → Import from Item Compendium → Import All Items**: choose an Item Compendium then confirm mass import of *all physical Items* (not just the first 100 or current search matches). It skips items already imported from the same Compendium by source UUID, leaves existing stock and prices intact and reports added/skipped/failed items.
-- Imports are committed in groups of 25 to reduce payload spikes and avoid a single large partial operation. For very large packs, make a backup of the World first. No changes to players' inventories.
-- All player shopping, merchant token icons, chat notifications, Buy/Sell, Rollable Tables and transaction history are preserved.
+- Returned the merchant UI to **Buy / Sell / Manage**, removing the extra Rollable Tables tab and Compendium browsing/import screens added in v0.2.0.
+- Old RollTable configuration flags may remain in saved shop data but are not displayed or used; **merchant stock, prices, and transaction history are preserved**.
+- Importing an individual Item via **drag and drop** from the Foundry Item sidebar, Compendiums, or Actor sheets remains available in Manage, just like v0.1.19.
+- Retained the independent item search in Buy/Sell/Manage, improved readability, per-tab scroll restoration, NPC-only GM merchant creation, and public trade chat messages.
 
 ## Features
 
