@@ -56,17 +56,20 @@ export function openShopItemSheet(data,{
  if(!data||typeof data!=="object"||typeof data.name!=="string")
    throw new Error("Merchant Item data is invalid");
  const doc=new itemClass(data,{parent:null});
- if(typeof doc.sheet?.render!=='function')throw new Error("Foundry Item sheet is unavailable");
- doc.sheet.render(true);
- // The shop is a custom DOM window; Foundry sheets must layer above it.
- const bringForward=()=>{
-   const el=doc.sheet?.element;
-   const node=el?.[0]??el;
-   if(node?.style)node.style.zIndex=String(Math.max(20000,Number(node.style.zIndex)||0));
-   if(typeof doc.sheet?.bringToTop==='function')doc.sheet.bringToTop();
-   if(node?.style)node.style.zIndex=String(Math.max(20000,Number(node.style.zIndex)||0));
+ const sheet=doc.sheet;
+ if(!sheet || typeof sheet.render!=='function')throw new Error("Foundry Item sheet is unavailable");
+ // Some dnd5e v11/v14 sheets render asynchronously. Never let a layering
+ // method failure cancel the underlying Item preview.
+ const lift=()=>{
+   try {
+     sheet.bringToTop?.();
+     const el=sheet.element;
+     const node=el?.[0]??el;
+     if(node?.style)node.style.zIndex='20010';
+   }catch(err){console.warn('NPC Shops: preview layering failed',err);}
  };
- bringForward();
- requestAnimationFrame(bringForward);
+ const rendered=sheet.render(true);
+ Promise.resolve(rendered).then(lift).catch(err=>console.error('NPC Shops: Item sheet render failed',err));
+ if(typeof requestAnimationFrame==='function')requestAnimationFrame(lift);
  return doc;
 }
