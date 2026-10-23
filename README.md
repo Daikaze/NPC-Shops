@@ -1,6 +1,6 @@
 # NPC Shops
 
-**Experimental alpha v0.3.1** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+**Experimental alpha v0.3.2** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
 
 ## v0.3.1 — Slate theme + Save All Stock
 
@@ -8,6 +8,14 @@
 - Adds **Save All** above and below **GM Settings → Stock**. It validates and saves every item row—including those hidden by a search—with a single merchant stock update (quantity, price and unlimited toggle), and includes the buyback percentage shown in the Stock editor.
 - Rejects invalid prices, empty fields, fractional/negative stock and stale/deleted stock rows before making any changes. Saves remain atomic at the shop settings level.
 - Keeps each item's individual **Save** button and the live Buy-tab/player inventory sync from v0.3.0. Existing merchant items and transaction history are retained.
+
+## v0.3.2 — Recreate the Merchant Presets window design
+
+- Replaces the v0.3.1 gray-only look with a **much closer recreation of the Merchant Presets Buy window**: maroon gradient shop header, merchant portrait and status chips, buyer/purse panel, charcoal category sidebar, slate product rows with gold coin emblems, and a parchment-colored Bill of Sale with a wax-style Seal button.
+- The same visual system applies to Buy, Sell and Settings. Original NPC Shops behavior is retained, including item search, basket review, GM Save All, transaction history, live stock updates, NPC-only controls and v11/v14 compatibility.
+- Theme is independently authored in `styles/merchant-presets-look.css`, loaded after existing styles so legacy theme rules do not override it. No Merchant Presets templates, fonts, images, scripts, or compendiums are copied.
+- The aesthetic references [Merchant Presets by Miki](https://github.com/mikiross87/merchant-presets). It is not the Merchant Presets runtime, and v11 remains supported by the NPC Shops backend.
+- No shop data migration or restocking is performed. Existing merchant inventories and prices are preserved.
 
 ## v0.1.19 — Search merchandise by name
 

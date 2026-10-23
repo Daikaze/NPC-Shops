@@ -10,3 +10,43 @@ test('storefront has responsive three-panel layout and no third-party asset depe
  assert.match(css,/grid-template-columns:180px minmax/);
  assert.ok(!ui.includes('raw.githubusercontent.com/mikiross87'));
 });
+
+test('Merchant Presets-inspired appearance is loaded last and uses source screenshot palette',()=>{
+ const manifest=JSON.parse(readFileSync(new URL('../module.json',import.meta.url),'utf8'));
+ assert.equal(manifest.styles.at(-1),'styles/merchant-presets-look.css');
+ const css=readFileSync(new URL('../styles/merchant-presets-look.css',import.meta.url),'utf8');
+ assert.match(css,/#311b1f/);
+ assert.match(css,/#491d25/);
+ assert.match(css,/#252830/);
+ assert.match(css,/#2b2721/);
+ assert.match(css,/grid-template-columns:178px minmax\(0,1fr\) 278px/);
+ assert.match(css,/\.ns-mp-seal/);
+ assert.match(css,/\.ns-mp-item>img/);
+ assert.match(css,/\.ns-save-all-bar/);
+ assert.match(css,/\.npc-shops-window/);
+ assert.doesNotMatch(css,/@import|https?:\\/\\//);
+});
+test('new hero, copper coin accents, bill wax stamp, and original actions coexist',async()=>{
+ const {renderMerchantView}=await import('../src/merchant-view.js');
+ const w={
+  mode:'buy',gm:true,eligibleBuyers:[],cart:{buy:new Map(),sell:new Map()},
+  categoryFilter:{buy:'all',sell:'all'},searchQueries:{buy:'',sell:'',manage:''},
+  busy:false,name:'Kiro',settingsPage:'stock',renderManage:()=>'<section>Manage stock</section>'
+ };
+ globalThis.game={version:'14'};
+ const shop={enabled:true,open:true,allowSelling:true,sellRate:.5,stock:[{
+   id:'stock',item:{name:'Wand',type:'weapon',system:{rarity:'Uncommon',weight:1}},priceCp:400,quantity:3
+ }],ledger:[]};
+ const html=renderMerchantView(w,shop,null,'Kiro','npc.png');
+ assert.match(html,/ns-mp-hero/);
+ assert.match(html,/ns-mp-picker/);
+ assert.match(html,/ns-mp-money/);
+ assert.match(html,/ns-mp-seal/);
+ assert.match(html,/BILL OF SALE/);
+ assert.match(html,/ns-mp-stock-label/);
+ assert.match(html,/3 left/);
+ assert.match(html,/data-action="cart-add"/);
+ assert.match(html,/data-action="cart-checkout"/);
+ assert.match(html,/data-action="tab-manage"/);
+ assert.match(html,/data-field="item-search"/);
+});
