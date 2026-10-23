@@ -93,7 +93,7 @@ export function itemPriceCp(item) {
   return Number.isSafeInteger(cp) && cp >= 0 ? cp : 0;
 }
 export function emptyShop() {
-  return {enabled: false, open: true, allowSelling: true, sellRate: 0.5, stock: [], ledger: [], tables: []};
+  return {enabled: false, open: true, allowSelling: true, sellRate: 0.5, hideTradeTerms: true, stock: [], ledger: [], tables: []};
 }
 export function shopData(actor) {
   const saved = actor?.getFlag?.(MODULE_ID, "shop") ?? {};
@@ -108,6 +108,7 @@ export function publicShop(shop) {
   return {
     enabled: !!shop.enabled, open: !!shop.open, allowSelling: !!shop.allowSelling,
     sellRate: Number(shop.sellRate) || 0,
+    hideTradeTerms: shop.hideTradeTerms !== false,
     stock: (shop.stock ?? []).map(s => ({id: s.id, item: {name: String(s.item?.name ?? "Item"), img: String(s.item?.img ?? "icons/svg/item-bag.svg"), category: itemCategory(s.item)}, priceCp: s.priceCp, quantity: s.quantity, unlimited: !!s.unlimited})),
     ledger: []
   };

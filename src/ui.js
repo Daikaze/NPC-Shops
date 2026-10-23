@@ -6,6 +6,7 @@ import {renderMerchantView} from "./merchant-view.js";
 import {cartEntries,cartLines,adjustCart,canCheckout} from "./merchant-cart.js";
 import {collectStockEdits,applyStockEdits} from "./manage-stock.js";
 import {initMerchantTables,tableFieldChange,tableAction} from "./merchant-tables-ui.js";
+import {confirmShopDialog} from "./shop-dialog.js";
 
 const windows = new Map();
 const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -54,6 +55,7 @@ export class ShopWindow {
     this.categoryFilter = {buy:'all',sell:'all'};
     this.settingsPage = 'stock';
     this.buybackDraft = null;
+    this.minimized = false;
     initMerchantTables(this);
     this.searchQueries = {buy: "", sell: "", manage: ""};
   }
@@ -77,6 +79,7 @@ export class ShopWindow {
     }
     this.element.style.display = "flex";
     this.element.style.zIndex = String(10000 + Math.floor(Math.random() * 500));
+    this.element.classList?.toggle?.('ns-is-minimized',this.minimized);
     this.render();
     if (!this.gm) this.load();
   }
@@ -94,6 +97,14 @@ export class ShopWindow {
     finally { this.loading = false; this.render(); }
   }
   close() { this.element?.remove(); this.element = null; windows.delete(this.actorId); }
+  confirm(message,{title="Confirm action",confirmLabel="Confirm",danger=false}={}) {
+    return confirmShopDialog(this.element,{title,message,confirmLabel,danger});
+  }
+  toggleMinimize(){
+    this.minimized=!this.minimized;
+    if(this.element?.classList?.toggle)this.element.classList.toggle('ns-is-minimized',this.minimized);
+    this.render();
+  }
   refresh() { if (this.element) this.render(); }
   makeDraggable(el) {
     let origin;
@@ -127,12 +138,13 @@ export class ShopWindow {
     }
     this.element.innerHTML = shop.enabled
       ? renderMerchantView(this,shop,buyer,label,avatar)
-      : `<header class="ns-mp-top"><span>${esc(label)}</span>${button('close','×','class="ns-close"')}</header>
+      : `<header class="ns-mp-top"><span>${esc(label)}</span><div class="ns-mp-window-actions">${button('minimize',this.minimized?'+':'−','class="ns-minimize" aria-label="Minimize or restore"')}${button('close','×','class="ns-close"')}</div></header>
         <div class="ns-mp-hero"><img src="${esc(avatar)}" class="ns-mp-avatar" alt=""/>
           <div class="ns-mp-intro"><h2>${esc(label)}</h2><p>No merchant shop has been configured.</p></div></div>
         <div class="ns-mp-init">${this.gm && isNpcActor(actor)
           ? button('enable','Make Merchant')
           : 'Only NPC actors may be made merchants.'}</div>`;
+    this.element.classList?.toggle?.('ns-is-minimized',this.minimized);
     this.renderedMode = this.mode;
     restoreWindowState(this.element, this.renderedMode, this.windowState);
     this.applySearchFilter();
@@ -200,7 +212,18 @@ export class ShopWindow {
         ${button('save-all-stock', '<i class="fas fa-save"></i> Save All', !shop.stock.length ? 'disabled class="ns-save-all"' : 'class="ns-save-all"')}
       </div>
       <div class="ns-drop" data-drop="items">Drag & drop items here from Items, Compendiums or Actor sheets</div>
-      <div class="ns-items">${this.renderCategories(shop.stock, s => s.item, s => `<div class="ns-item ns-manage-item" data-sku="${esc(s.id)}"><img src="${esc(s.item.img || 'icons/svg/item-bag.svg')}" alt=""/><div class="ns-itemtext"><strong>${esc(s.item.name)}</strong><small>Price GP <input data-field="price" type="number" min="0" step="0.01" value="${cpToGp(s.priceCp)}"/> Stock <input data-field="stock" type="number" min="0" step="1" value="${esc(s.quantity)}"/> <label><input type="checkbox" data-field="unlimited" ${s.unlimited ? 'checked' : ''}/> ∞</label></small></div>${button('save-item', 'Save')}${button('remove', '×')}</div>`)}</div>
+      <div class="ns-items ns-manage-categories">${this.renderCategories(shop.stock, s => s.item, s => `<div class="ns-item ns-manage-item ns-stock-row" data-sku="${esc(s.id)}">
+        <img src="${esc(s.item.img || 'icons/svg/item-bag.svg')}" alt=""/>
+        <div class="ns-itemtext ns-stock-detail"><strong>${esc(s.item.name)}</strong>
+          <div class="ns-stock-fields">
+            <label>Price (GP)<input aria-label="${esc(s.item.name)} price in GP" data-field="price" type="number" min="0" step="0.01" value="${cpToGp(s.priceCp)}"/></label>
+            <label>Stock<input aria-label="${esc(s.item.name)} stock quantity" data-field="stock" type="number" min="0" step="1" value="${esc(s.quantity)}"/></label>
+            <label class="ns-stock-unlimited"><input aria-label="${esc(s.item.name)} unlimited stock" type="checkbox" data-field="unlimited" ${s.unlimited ? 'checked' : ''}/> Unlimited</label>
+          </div>
+        </div>
+        <div class="ns-stock-actions">${button('save-item','<i class="fas fa-save"></i> Save','class="ns-stock-save"')}
+        ${button('remove','×','class="ns-stock-remove" aria-label="Remove item"')}</div>
+      </div>`)}</div>
       <div class="ns-save-all-bar ns-save-all-bottom">
         <span>Save quantities, prices and unlimited stock for all items.</span>
         ${button('save-all-stock', '<i class="fas fa-save"></i> Save All', !shop.stock.length ? 'disabled class="ns-save-all"' : 'class="ns-save-all"')}
@@ -241,6 +264,11 @@ export class ShopWindow {
       const itemId = target.closest("[data-item]")?.dataset.item;
       try {
         if (action === 'close') return this.close();
+        if (action === 'minimize')return this.toggleMinimize();
+        if (action === 'toggle-terms-visibility') {
+          if(!this.gm)throw new Error('GM only');
+          return await this.saveShop({...this.shop,hideTradeTerms:this.shop.hideTradeTerms===false});
+        }
         if (await tableAction(this,action,target)) return;
         if (action === 'deactivate-merchant') return await this.deactivateMerchant();
         if (action === 'filter-category') {
@@ -269,7 +297,8 @@ export class ShopWindow {
         if (action.startsWith('tab-')) {this.mode = action.slice(4); return this.render();}
         if (action === 'clear-history') {
           if (!this.gm) throw new Error('GM only');
-          const result = await clearMerchantHistory(this.actor);
+          const result = await clearMerchantHistory(this.actor,
+            msg=>this.confirm(msg,{title:'Clear Transaction History',confirmLabel:'Clear History',danger:true}));
           if (result.cleared) notify(`NPC Shops: Cleared ${result.cleared} transaction(s) for ${this.actor.name}.`);
           return;
         }
@@ -365,7 +394,9 @@ export class ShopWindow {
       if(!this.gm)await this.load();
     } finally {this.busy=false;this.render();}
   }
-  async deactivateMerchant(confirmAction=globalThis.confirm) {
+  async deactivateMerchant(confirmAction=message=>this.confirm(message,{
+    title:'Remove Merchant',confirmLabel:'Remove Merchant',danger:true
+  })) {
     if (!this.gm || !isNpcActor(this.actor))throw new Error('Only GM NPC merchants can be removed');
     if (typeof confirmAction!=='function')throw new Error('Confirmation dialog is unavailable');
     const approved=await confirmAction('NPC Shops — Remove Merchant\n\n'+this.actor.name+

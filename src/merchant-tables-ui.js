@@ -11,8 +11,8 @@ export function renderMerchantTables(win,shop){
  const state=win.tableUI, links=shop.tables??[];
  return `<section class="ns-populate">
  <header class="ns-populate-header"><h3><i class="fas fa-dice-d20"></i> Rollable Tables</h3>
-  ${btn('roll-all-tables','<i class="fas fa-boxes"></i> Roll All Tables',!links.length?'disabled':'title="Import every result from all linked tables into merchant stock"')}</header>
- <p class="ns-populate-note">Roll All Tables imports every result from all linked tables directly into Stock. Individual Roll previews random results before you add them.</p>
+  ${btn('roll-all-tables','<i class="fas fa-boxes"></i> Roll All Tables',!links.length?'disabled':'title="Preview every result from all linked RollTables before adding to Stock"')}</header>
+ <p class="ns-populate-note">Roll All Tables previews every result from all linked tables. Check quantities and prices, then press Add All Items to save. Individual Roll previews random results.</p>
  <div class="ns-populate-select">
   <select data-field="table-select" aria-label="Choose RollTable">
    <option value="">Choose a RollTable</option>
@@ -131,7 +131,9 @@ export async function tableAction(win,action,target){
  }
  if(action==='unlink-table'){
   if(!link)throw new Error('Linked table not found');
-  if(!await globalThis.confirm?.('Remove '+link.name+' from this shop’s Rollable Tables? Existing merchant stock will not be deleted.'))return true;
+  if(typeof win.confirm!=='function')throw new Error('In-shop confirmation is unavailable');
+  if(!await win.confirm('Remove '+link.name+' from this shop’s Rollable Tables? Existing merchant stock will not be deleted.',
+    {title:'Remove Rollable Table',confirmLabel:'Remove Table',danger:true}))return true;
   const next=structuredClone(win.shop);next.tables=next.tables.filter(x=>x.uuid!==id);
   await win.saveShop(next);return true;
  }
@@ -140,18 +142,15 @@ export async function tableAction(win,action,target){
   if(!links.length)throw new Error('Add a RollTable first');
   state.working=true;
   try{
-   // Enumerate the full results collection; never use random table.roll() here.
-   // Commit once, so the existing inventory is retained if resolution fails.
+   // Preview every row of the linked tables; never write Stock here.
+   // Only Add All Items / Add Item may persist the generated stock.
+   capturePreview(win);
    const all=await allMerchantTableItems(links);
    if(!all.rows.length)throw new Error('No physical Items found in linked RollTables');
-   const grouped=combineRolled([],all.rows,false);
-   const next=commitRolledStock(win.shop,grouped);
-   await win.saveShop(next);
-   state.preview=[];
-   state.status='Imported '+all.rows.length+' entries ('+grouped.length+
-     ' distinct Items) from '+links.length+' linked table(s) into Stock.'+
-     (all.unresolved.length?' '+all.unresolved.length+' unresolvable results skipped.':'');
-   state.unresolved=all.unresolved;
+   state.preview=combineRolled(state.preview,all.rows,state.keepRolled);
+   state.status='Preview ready: '+all.rows.length+' entries ('+state.preview.length+
+     ' distinct Items) from '+links.length+' linked table(s). Review below and click Add All Items to save.';
+   state.unresolved=state.keepRolled?[...state.unresolved,...all.unresolved]:all.unresolved;
    win.render();
   }finally{state.working=false;}
   return true;

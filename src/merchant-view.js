@@ -17,13 +17,15 @@ const describeItem=item=>{
 const itemOf=(w,e)=>w.mode==='buy'?e.item:e;
 function hero(w,shop,buyer,label,avatar){
  const bal=buyer?.system?.currency?moneyTotal(buyer.system.currency):0;
- return `<header class="ns-mp-top"><span>${esc(label)}</span>${button('close','×','class="ns-close" aria-label="Close"')}</header>
+ return `<header class="ns-mp-top"><span>${esc(label)}</span><div class="ns-mp-window-actions">
+ ${button('minimize',w.minimized?'+':'−',`class="ns-minimize" aria-label="${w.minimized?'Restore':'Minimize'}" title="${w.minimized?'Restore':'Minimize'} NPC Shops"`)}
+ ${button('close','×','class="ns-close" aria-label="Close"')}</div></header>
  <div class="ns-mp-hero"><img src="${esc(avatar)}" alt="" class="ns-mp-avatar"/>
  <div class="ns-mp-intro"><h2>${esc(label)}</h2>
  <p class="ns-mp-description">Step inside and browse the wares. Every item has a story; perhaps one of them will become part of yours.</p>
  <div class="ns-mp-meta"><span class="${shop.open?'open':'closed'}"><i class="ns-mp-dot"></i>${shop.open?'Open':'Closed for trade'}</span>
  <span><i class="fas fa-store" aria-hidden="true"></i> Merchant</span>
- <span><i class="fas fa-balance-scale" aria-hidden="true"></i> Sells at list · Buys at ${Math.round(Number(shop.sellRate)*100)}%</span></div></div>
+ ${w.gm || shop.hideTradeTerms===false ? `<span class="ns-mp-trade-terms"><i class="fas fa-balance-scale" aria-hidden="true"></i> Sells at list · Buys at ${Math.round(Number(shop.sellRate)*100)}%</span>` : ''}</div></div>
  <div class="ns-mp-purse"><small>BUYING AS</small>
  <div class="ns-mp-picker"><span class="ns-mp-player-initial">${esc((buyer?.name??'?').charAt(0).toUpperCase())}</span>
  <select data-field="buyer" aria-label="Choose trading character"><option value="">Choose character</option>${w.eligibleBuyers.map(a=>`<option value="${esc(a.id)}" ${buyer?.id===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}</select></div>
@@ -78,6 +80,9 @@ function settings(w,shop){
  ${button('save-rate','Save Buyback Percentage')}</div>
  <div class="ns-mp-terms"><span>Shop: ${shop.open?'Open':'Closed'}</span>${button('toggle-open',shop.open?'Close Shop':'Open Shop')}</div>
  <div class="ns-mp-terms"><span>Buy from players: ${shop.allowSelling?'Yes':'No'}</span>${button('toggle-sell',shop.allowSelling?'Disable Selling':'Enable Selling')}</div>
+ <div class="ns-mp-terms ns-trade-visibility"><div><strong>Trade terms visibility</strong>
+ <small>${shop.hideTradeTerms!==false?'Only the GM sees the buyback percentage.':'Players can see the buyback percentage.'}</small></div>
+ ${button('toggle-terms-visibility',shop.hideTradeTerms!==false?'Show to Players':'Hide from Players','class="ns-visibility-toggle"')}</div>
  <div class="ns-mp-danger"><h4>Remove Merchant</h4><p>Deactivate this NPC's shop and hide the merchant icon. Inventory and history are kept for later reactivation.</p>
  ${button('deactivate-merchant','<i class="fas fa-store-slash"></i> Remove Merchant','class="ns-remove-merchant"')}</div></div>`;
  return `<div class="ns-mp-settings"><h3>Merchant Stock</h3><p>Edit quantities and prices below. Saving updates the Buy tab.</p>

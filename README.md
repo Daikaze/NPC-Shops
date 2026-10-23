@@ -1,6 +1,15 @@
 # NPC Shops
 
-**Experimental alpha v0.3.6** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+**Experimental alpha v0.3.7** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+
+## v0.3.7 — Trade visibility, minimize, in-window confirmations, Roll All preview and unified Stock
+
+- **GM-only trade term visibility:** The merchant header's "Sells at list / Buys at XX%" information is hidden from players by default. GM Settings → Terms has an explicit **Show to Players / Hide from Players** switch. The GM always sees the terms; player buying/selling calculations remain unchanged.
+- **Minimize / Restore:** New minus/plus action in NPC Shops' title bar collapses the entire storefront to a draggable title bar, and restores the existing tab, inventory, and cart.
+- **Foundry-contained dialogs:** Merchant removal, Rollable Table unlinking and clearing transaction history now use a styled confirmation overlay inside NPC Shops, not the browser's native confirm window. Cancel and Escape dismiss safely.
+- **Buyback v11:** Percentage input/Save Buyback works independently of v14 ApplicationV2, retains the typed value through renders, and updates the NPC flag. The empty-inventory case works too.
+- **Roll All Tables previews first:** Enumerates every result from all linked tables into a review list; allows per-item quantities/prices and individual discard, then **Add All Items** explicitly commits the selected results. Merely clicking Roll All never modifies merchant stock.
+- **Unified Stock editor:** Category headers, rows, field labels and save/remove buttons now match Buy's charcoal/bronze layout instead of the older blue accordion. Keeps Save All, stock tracking and merchant inventory unchanged.
 
 ## v0.3.6 — Native-style HUD, Buyback editing, All Table Items, spacious Settings
 

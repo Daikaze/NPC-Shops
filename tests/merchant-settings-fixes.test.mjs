@@ -30,7 +30,7 @@ test('Buyback Percentage saves independently with empty stock and keeps draft on
  assert.ok(notices.some(x=>x.includes('75%')));
  win.render();assert.match(win.element.innerHTML,/value="75"/);
 });
-test('Roll All Tables saves EVERY linked result to merchant stock in a single write',async()=>{
+test('Roll All Tables previews EVERY linked result; Add All saves with a single write',async()=>{
  const sword={documentName:'Item',type:'weapon',name:'Sword',uuid:'Item.sword',img:'a.png',
    system:{price:{value:3,denomination:'gp'}},
    toObject(){return {type:this.type,name:this.name,img:this.img,system:structuredClone(this.system)}}};
@@ -55,10 +55,15 @@ test('Roll All Tables saves EVERY linked result to merchant stock in a single wr
  win.element={innerHTML:'',querySelector:()=>null,querySelectorAll:()=>[]};
  win.mode='manage';win.settingsPage='tables';win.render();
  assert.equal(await tableAction(win,'roll-all-tables',{closest:()=>null}),true);
+ assert.equal(writes,0); // Clicking Roll All never saves anything.
+ assert.deepEqual(saved.stock.map(s=>s.item.name),['Rope']);
+ assert.match(win.tableUI.status,/Preview ready: 3 entries/);
+ assert.equal(win.tableUI.preview.length,2);
+ assert.match(win.element.innerHTML,/Add All Items/);
+ assert.equal(await tableAction(win,'add-all-rolled',{closest:()=>null}),true);
  assert.equal(writes,1);
  assert.deepEqual(saved.stock.map(s=>s.item.name),['Rope','Sword','Herb']);
  assert.equal(saved.stock.find(s=>s.item.name==='Sword').quantity,2);
- assert.match(win.tableUI.status,/Imported 3 entries/);
  assert.equal(win.tableUI.preview.length,0);
 });
 test('Keep rolled checkbox uses a single custom styled square, and HUD tiles match native gray',()=>{
@@ -69,5 +74,5 @@ test('Keep rolled checkbox uses a single custom styled square, and HUD tiles mat
  assert.match(css,/width:38px!important/);
  const ui=readFileSync(new URL('../src/merchant-tables-ui.js',import.meta.url),'utf8');
  assert.match(ui,/class="ns-populate-keep"/);
- assert.match(ui,/directly into Stock/);
+ assert.match(ui,/press Add All Items to save/);
 });
