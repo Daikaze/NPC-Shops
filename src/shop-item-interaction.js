@@ -55,21 +55,24 @@ export function openShopItemSheet(data,{
  if(typeof itemClass!=='function')throw new Error("Foundry Item document class is unavailable");
  if(!data||typeof data!=="object"||typeof data.name!=="string")
    throw new Error("Merchant Item data is invalid");
- const doc=new itemClass(data,{parent:null});
+ // An inspection copy is not a merchant-owned embedded Item. Grant the
+ // temporary document observer access so the ordinary dnd5e sheet is readable.
+ const source=structuredClone(data);
+ delete source._id;
+ source.ownership={...(source.ownership??{}),default:2,[globalThis.game?.user?.id]:3};
+ const doc=new itemClass(source,{parent:null});
  const sheet=doc.sheet;
  if(!sheet || typeof sheet.render!=='function')throw new Error("Foundry Item sheet is unavailable");
- // Some dnd5e v11/v14 sheets render asynchronously. Never let a layering
- // method failure cancel the underlying Item preview.
  const lift=()=>{
-   try {
+   try{
      sheet.bringToTop?.();
      const el=sheet.element;
      const node=el?.[0]??el;
-     if(node?.style)node.style.zIndex='20010';
-   }catch(err){console.warn('NPC Shops: preview layering failed',err);}
+     if(node?.style)node.style.zIndex='300';
+   }catch(error){console.warn('NPC Shops: sheet focus',error);}
  };
- const rendered=sheet.render(true);
- Promise.resolve(rendered).then(lift).catch(err=>console.error('NPC Shops: Item sheet render failed',err));
+ const result=sheet.render(true);
+ Promise.resolve(result).then(lift).catch(error=>console.error('NPC Shops: item preview error',error));
  if(typeof requestAnimationFrame==='function')requestAnimationFrame(lift);
  return doc;
 }
