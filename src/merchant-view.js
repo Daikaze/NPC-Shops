@@ -34,14 +34,14 @@ function sidebar(w,entries){
  </aside>`;
 }
 function catalog(w,shop,buyer,entries){
- if(!shop.open)return '<div class="ns-mp-empty">Shop is closed.</div>';
- if(w.mode==='sell'&&!shop.allowSelling)return '<div class="ns-mp-empty">Merchant is not buying items.</div>';
- if(w.mode==='sell'&&!buyer)return '<div class="ns-mp-empty">Choose a character to sell items.</div>';
+ const blocked=!shop.open?'Shop is closed.':
+   w.mode==='sell'&&!shop.allowSelling?'Merchant is not buying items.':
+   w.mode==='sell'&&!buyer?'Choose a character to sell items.':'';
  const groups=groupItems(entries,e=>itemOf(w,e));
  const visible=(w.categoryFilter[w.mode]??'all')==='all'?groups:groups.filter(g=>g.id===w.categoryFilter[w.mode]);
  return `<div class="ns-mp-catalog-head"><strong>${w.mode==='buy'?'Browse the shelves':'Offer your items'}</strong>
  <label class="ns-mp-search"><i class="fas fa-search"></i><input type="search" data-field="item-search" placeholder="Search items..." value="${esc(w.searchQueries[w.mode]??'')}"/></label></div>
- <div class="ns-items ns-mp-stock">${visible.map(g=>`<section class="ns-category" data-view="${w.mode}" data-category="${g.id}">
+ <div class="ns-items ns-mp-stock">${blocked?`<div class="ns-mp-empty">${esc(blocked)}</div>`:visible.map(g=>`<section class="ns-category" data-view="${w.mode}" data-category="${g.id}">
   <h3>${esc(g.label)}</h3>${g.entries.map(entry=>{
   const item=itemOf(w,entry),price=w.mode==='buy'?entry.priceCp:Math.floor(itemPriceCp(entry)*shop.sellRate);
   const stock=w.mode==='buy'?(entry.unlimited?'∞':entry.quantity):(entry.system?.quantity??1);
