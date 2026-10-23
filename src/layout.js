@@ -34,3 +34,35 @@ export function shopSizeLayout(width) {
   if (width < 850) return "medium";
   return "wide";
 }
+
+/**
+ * Calculate a real user drag on the merchant's horizontal or vertical border.
+ * In particular, dragging the RIGHT border changes width without relocating the
+ * LEFT side. This avoids the old bottom-corner/native-CSS resize ambiguity.
+ */
+export function resizeShopFrame(start, dx, dy, edge, viewportWidth, viewportHeight) {
+  const margin = 8;
+  const vw = Math.max(1, Number(viewportWidth) || 1);
+  const vh = Math.max(1, Number(viewportHeight) || 1);
+  const safe = clampShopFrame(start, vw, vh);
+  const minW = Math.min(350, Math.max(1, vw - margin * 2));
+  const minH = Math.min(300, Math.max(1, vh - margin * 2));
+  const nX = Number.isFinite(dx) ? dx : 0;
+  const nY = Number.isFinite(dy) ? dy : 0;
+  let {left, top, width, height} = safe;
+  if (edge.includes('left')) {
+    const right = left + width;
+    left = Math.max(margin, Math.min(right - minW, left + nX));
+    width = right - left;
+  } else if (edge.includes('right')) {
+    width = Math.min(vw - margin - left, Math.max(minW, width + nX));
+  }
+  if (edge.includes('top')) {
+    const bottom = top + height;
+    top = Math.max(margin, Math.min(bottom - minH, top + nY));
+    height = bottom - top;
+  } else if (edge.includes('bottom')) {
+    height = Math.min(vh - margin - top, Math.max(minH, height + nY));
+  }
+  return clampShopFrame({left,top,width,height},vw,vh);
+}
