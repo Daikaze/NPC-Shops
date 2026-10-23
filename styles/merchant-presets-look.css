@@ -620,13 +620,13 @@
 .npc-shops-window:not(.ns-directory) .ns-mp-body{min-height:0!important;min-width:0!important;overflow:auto!important}
 .npc-shops-window:not(.ns-directory) .ns-mp-grid{width:100%!important;min-width:0!important;grid-template-columns:minmax(95px,18%) minmax(0,1fr) minmax(145px,27%)!important}
 @container (max-width:760px){
-  .npc-shops-window:not(.ns-directory) .ns-mp-grid{grid-template-columns:minmax(105px,30%) minmax(0,1fr)!important}
-  .npc-shops-window:not(.ns-directory) .ns-mp-bill{grid-column:1 / -1;max-height:280px;overflow:auto}
+  .ns-mp-grid{grid-template-columns:minmax(105px,30%) minmax(0,1fr)!important}
+  .ns-mp-bill{grid-column:1 / -1;max-height:280px;overflow:auto}
 }
 @container (max-width:490px){
-  .npc-shops-window:not(.ns-directory) .ns-mp-grid{grid-template-columns:minmax(0,1fr)!important}
-  .npc-shops-window:not(.ns-directory) .ns-mp-sidebar{display:block!important;max-height:110px;overflow:auto}
-  .npc-shops-window:not(.ns-directory) .ns-mp-bill{grid-column:auto;max-height:250px}
-  .npc-shops-window:not(.ns-directory) .ns-mp-hero{flex-wrap:wrap!important}
+  .ns-mp-grid{grid-template-columns:minmax(0,1fr)!important}
+  .ns-mp-sidebar{display:block!important;max-height:110px;overflow:auto}
+  .ns-mp-bill{grid-column:auto;max-height:250px}
+  .ns-mp-hero{flex-wrap:wrap!important}
 }
 .npc-shops-window .ns-cashbox-manage input{width:160px;max-width:100%}
