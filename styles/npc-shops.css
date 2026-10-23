@@ -51,3 +51,23 @@
 .npc-shops-window .ns-search input{flex:1;min-width:0;margin:0;padding:2px 0;min-height:24px;border:0;outline:none;background:transparent;color:#f4f6fa;box-shadow:none}
 .npc-shops-window .ns-category[hidden],.npc-shops-window .ns-item[hidden],.npc-shops-window .ns-no-results[hidden]{display:none!important}
 .npc-shops-window .ns-no-results{padding:12px}
+
+/* v0.2.0 Compendium and Rollable Tables: scoped to the shop window */
+.npc-shops-window .ns-compendium,.npc-shops-window .ns-table-panel{border:1px solid #53617b;border-radius:8px;margin:12px 0;padding:10px;background:#1e2737;color:#e0e6f0}
+.npc-shops-window .ns-compendium>summary{cursor:pointer;color:#ebd1a0;font-weight:700;padding:6px}
+.npc-shops-window .ns-extras-controls{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0}
+.npc-shops-window .ns-extras-controls select,.npc-shops-window .ns-extras-controls input{min-width:150px;flex:1}
+.npc-shops-window .ns-extra-content{padding:5px}
+.npc-shops-window .ns-compendium-items,.npc-shops-window .ns-rolled-items{max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:7px}
+.npc-shops-window .ns-extras-note{font-size:12px;color:#c2d0e1;margin:6px 0}
+.npc-shops-window .ns-table-entry{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:9px 6px;border-bottom:1px solid #4a556b}
+.npc-shops-window .ns-table-entry .ns-itemtext{flex:2;min-width:130px}
+.npc-shops-window .ns-table-entry label{display:flex;gap:5px;align-items:center}
+.npc-shops-window .ns-table-entry input[type=number]{width:50px!important}
+.npc-shops-window .ns-table-settings{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:12px 0;padding:10px 0;border-top:1px solid #56647e;border-bottom:1px solid #56647e}
+.npc-shops-window .ns-table-settings label{display:flex;gap:6px;align-items:center}
+.npc-shops-window .ns-table-settings input[type=number]{max-width:85px}
+.npc-shops-window .ns-preview-item label{font-size:11px;display:flex;flex-direction:column;gap:4px}
+.npc-shops-window .ns-preview-item input[type=number]{width:72px!important}
+.npc-shops-window .ns-unresolved{margin-top:12px;border:1px solid #a57a4d;padding:8px;border-radius:6px}
+.npc-shops-window .ns-unresolved summary{cursor:pointer;color:#d6b080}

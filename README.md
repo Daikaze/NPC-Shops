@@ -1,6 +1,6 @@
 # NPC Shops
 
-**Experimental alpha v0.1.19** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+**Experimental alpha v0.2.0** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
 
 ## v0.1.19 — Search merchandise by name
 
@@ -80,6 +80,14 @@
 - Added a safe fallback for errors creating enriched legacy v11 messages, and GM console/notification diagnostics if both attempts fail or message creation is blocked.
 - Trading commits are not rolled back just because a chat notification fails; duplicate trade requests still do not create duplicate chat messages.
 - No changes to merchant stock, Shop UI, NPC-only controls, player permissions, token icons or Transaction History.
+
+## v0.2.0 — Compendium Items and Rollable Tables
+
+- **Manage → Import from Item Compendium:** choose any available Item Compendium (including Plutonium/5etools), search its index, and add individual real Item documents to the merchant's stock. Existing drag/drop Item imports continue to work.
+- **Rollable Tables (GM only):** choose from World RollTables or RollTable Compendiums, or drag a RollTable into the tab. Set per-table rolls, select which participate in Roll All, and preview rolled Items before committing via **Add All Items**.
+- Resolve v11 `text/documentCollection/documentId` and v14 `name/description/documentUuid` results. Prefer direct Item links, then exact Item names in world Items and the selected/Plutonium Item Compendium. Gather resources such as `Gathering: Coast: Gillyweed` match `Gillyweed`.
+- If a result is **text only** and no matching Item exists, the GM sees a clearly labeled **basic Loot** fallback (price configurable, default 0 GP). This doesn't fabricate Plutonium-specific stats. Disable the fallback to see Unresolved results.
+- Tables are GM-only. Player Buy/Sell, NPC badge, character-sheet behavior, categories, transaction logging, currency handling and NPC-only creation remain unchanged.
 
 ## Features
 

@@ -1,6 +1,7 @@
 import {MODULE_ID, cpToGp, emptyShop, gpToCp, hasOwnership, itemPriceCp, moneyTotal, shopData, stockCopy, SALEABLE_TYPES} from "./core.js";
 import {groupItems} from "./categories.js";
 import {isNpcActor} from "./merchant-types.js";
+import {initExtras,renderCompendiumBrowser,renderTables,extraInput,extraChange,extraDrop,extraClick} from "./shop-extras-ui.js";
 
 const windows = new Map();
 const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -43,6 +44,7 @@ export class ShopWindow {
     this.remoteShop = null;
     this.categoryState = new Map();
     this.searchQueries = {buy: "", sell: "", manage: ""};
+    initExtras(this);
   }
   get actor() { return game.actors.get(this.actorId); }
   get shop() { return this.gm ? shopData(this.actor) : (this.remoteShop ?? emptyShop()); }
@@ -117,12 +119,12 @@ export class ShopWindow {
       ${this.gm && isNpcActor(actor) ? `<div class="ns-gmbar">${!shop.enabled ? button('enable', 'Make Merchant') : `${button('toggle-open', shop.open ? 'Close Shop' : 'Open Shop')}${button('toggle-sell', shop.allowSelling ? 'Disable Selling' : 'Enable Selling')}`}</div>` : ''}
       ${shop.enabled ? `
         <div class="ns-wallet"><label>Shopping as <select data-field="buyer"><option value="">Select character</option>${buyers.map(a => `<option value="${esc(a.id)}" ${buyer?.id === a.id ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></label><div>${buyer ? `${esc(buyer.name)} · ${(moneyTotal(buyer.system.currency) / 100).toFixed(2)} GP` : 'No owned characters'}</div></div>
-        <nav class="ns-tabs">${button('tab-buy', 'Buy', `class="${this.mode === 'buy' ? 'active' : ''}"`)}${button('tab-sell', 'Sell', `class="${this.mode === 'sell' ? 'active' : ''}"`)}${this.gm ? button('tab-manage', 'Manage', `class="${this.mode === 'manage' ? 'active' : ''}"`) : ''}</nav>
-        ${this.renderSearchInput()}
-        ${this.mode === 'buy' ? this.renderBuy(shop, buyer) : this.mode === 'sell' ? this.renderSell(shop, buyer) : this.renderManage(shop)}
+        <nav class="ns-tabs">${button('tab-buy', 'Buy', `class="${this.mode === 'buy' ? 'active' : ''}"`)}${button('tab-sell', 'Sell', `class="${this.mode === 'sell' ? 'active' : ''}"`)}${this.gm ? button('tab-manage', 'Manage', `class="${this.mode === 'manage' ? 'active' : ''}"`) + button('tab-tables', 'Rollable Tables', `class="${this.mode === 'tables' ? 'active' : ''}"`) : ''}</nav>
+        ${this.mode === 'tables' ? '' : this.renderSearchInput()}
+        ${this.mode === 'buy' ? this.renderBuy(shop, buyer) : this.mode === 'sell' ? this.renderSell(shop, buyer) : this.mode === 'tables' && this.gm ? renderTables(this, shop) : this.renderManage(shop)}
         <div class="ns-empty ns-no-results" hidden>No items match your search.</div>
       ` : `<div class="ns-empty">${this.loading ? 'Loading shop items…' : this.gm && !isNpcActor(actor) ? 'Only NPC actors can be converted into shops.' : this.gm ? 'Click Make Merchant to enable this NPC as a shop.' : 'Merchant information not available. A GM must be online.'}</div>`}
-      </main><footer>Foundry v${esc(game.version || game.release?.generation)} · NPC Shops v0.1.19 alpha</footer>`;
+      </main><footer>Foundry v${esc(game.version || game.release?.generation)} · NPC Shops v0.2.0 alpha</footer>`;
     this.applySearchFilter();
   }
   /** Search stays mounted while filtering so unsaved Manage edits and quantities are preserved. */
@@ -178,29 +180,35 @@ export class ShopWindow {
   renderManage(shop) {
     if (!this.gm) return '';
     return `<div class="ns-config"><label>Buyback percentage <input data-field="rate" type="number" min="0" max="100" step="1" value="${Math.round(shop.sellRate * 100)}"/></label>${button('save-rate', 'Save Rate')}</div>
+      ${renderCompendiumBrowser(this)}
       <div class="ns-drop" data-drop="items">Drag & drop items here from Items, Compendiums or Actor sheets</div>
       <div class="ns-items">${this.renderCategories(shop.stock, s => s.item, s => `<div class="ns-item ns-manage-item" data-sku="${esc(s.id)}"><img src="${esc(s.item.img || 'icons/svg/item-bag.svg')}" alt=""/><div class="ns-itemtext"><strong>${esc(s.item.name)}</strong><small>Price GP <input data-field="price" type="number" min="0" step="0.01" value="${cpToGp(s.priceCp)}"/> Stock <input data-field="stock" type="number" min="0" step="1" value="${esc(s.quantity)}"/> <label><input type="checkbox" data-field="unlimited" ${s.unlimited ? 'checked' : ''}/> ∞</label></small></div>${button('save-item', 'Save')}${button('remove', '×')}</div>`)}</div>
       <details class="ns-ledger"><summary>Transaction History (${shop.ledger.length})</summary><div class="ns-ledger-toolbar">${button("clear-history", "Clear History", !shop.ledger.length ? "disabled" : "")}</div>${shop.ledger.slice().reverse().map(l => `<div>${esc(l.at?.slice(0,16))}: ${esc(l.actorName)} ${esc(l.kind)} ${esc(l.quantity)} × ${esc(l.itemName)} (${cpToGp(l.totalCp)} GP)</div>`).join('') || 'No transactions yet'}</details>`;
   }
   bindEvents(el) {
     el.addEventListener("input", e => {
+      if (extraInput(this,e)) return;
       if (!e.target.matches?.('[data-field="item-search"]')) return;
       this.searchQueries[this.mode] = e.target.value;
       this.applySearchFilter();
     });
     el.addEventListener("change", e => {
+      if (extraChange(this,e)) return;
       if (e.target.matches('[data-field="buyer"]')) { this.buyerId = e.target.value; this.render(); }
     });
     el.addEventListener("dragover", e => {
-      if (this.gm && e.target.closest('[data-drop="items"]')) {
+      if (this.gm && e.target.closest('[data-drop="items"],[data-drop="table"]')) {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'copy';
       }
     });
     el.addEventListener("drop", async e => {
-      if (!this.gm || !e.target.closest('[data-drop="items"]')) return;
+      if (!this.gm) return;
+      const itemDrop=e.target.closest('[data-drop="items"]');
+      const tableDrop=e.target.closest('[data-drop="table"]');
+      if(!itemDrop && !tableDrop) return;
       e.preventDefault();
-      try { await this.handleDrop(e); }
+      try { if(tableDrop) await extraDrop(this,e);else await this.handleDrop(e); }
       catch (err) { notify(err.message, true); }
     });
     el.addEventListener("click", async e => {
@@ -211,7 +219,11 @@ export class ShopWindow {
       const itemId = target.closest("[data-item]")?.dataset.item;
       try {
         if (action === 'close') return this.close();
-        if (action.startsWith('tab-')) {this.mode = action.slice(4); return this.render();}
+        if (await extraClick(this,action,target)) return;
+        if (action.startsWith('tab-')) {
+          if(action==='tab-tables' && !this.gm) throw new Error('GM only');
+          this.mode = action.slice(4); return this.render();
+        }
         if (action === 'clear-history') {
           if (!this.gm) throw new Error('GM only');
           const result = await clearMerchantHistory(this.actor);
