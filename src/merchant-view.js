@@ -18,6 +18,7 @@ const itemOf=(w,e)=>w.mode==='buy'?e.item:e;
 function hero(w,shop,buyer,label,avatar){
  const bal=buyer?.system?.currency?moneyTotal(buyer.system.currency):0;
  return `<header class="ns-mp-top" title="Double-click to minimize or restore"><span>${esc(label)}</span><div class="ns-mp-window-actions">
+ ${button('toggle-shop-size','<i class="fas fa-expand-alt"></i>','class="ns-size-btn" title="Toggle shop size" aria-label="Toggle shop size"')}
  ${button('close','×','class="ns-close" aria-label="Close"')}</div></header>
  <div class="ns-mp-hero"><img src="${esc(avatar)}" alt="" class="ns-mp-avatar"/>
  <div class="ns-mp-intro"><h2>${esc(label)}</h2>
