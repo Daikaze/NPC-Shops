@@ -600,11 +600,8 @@
 @media(max-width:650px){.npc-shops-window:not(.ns-directory) .ns-mp-grid{grid-template-columns:minmax(0,1fr)!important;overflow:auto!important}.npc-shops-window:not(.ns-directory) .ns-mp-sidebar{display:none!important}}
 .npc-shops-window:not(.ns-directory).ns-is-minimized{resize:none!important;min-height:30px!important}
 
-/* v0.4.5: explicit sheet-style expand/restore button in title bar. */
-.npc-shops-window:not(.ns-directory).ns-expanded {
-  width: min(1320px,98vw)!important;
-  height: min(960px,96vh)!important;
-  left:1vw!important;top:2vh!important;
-}
-.npc-shops-window .ns-size-btn {padding:2px 7px!important;min-height:24px!important;height:24px!important;background:transparent!important;color:#e7dbbd!important;border:0!important}
-.npc-shops-window .ns-size-btn:hover {background:#554635!important}
+
+/* The resize grip behaves like Foundry's draggable character-sheet corner. */
+.npc-shops-window:not(.ns-directory){resize:both!important;overflow:auto!important;min-width:350px!important;min-height:260px!important}
+.npc-shops-window .ns-cashbox-manage{display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin:14px 0}
+.npc-shops-window .ns-cashbox-manage input{max-width:120px;display:block}
