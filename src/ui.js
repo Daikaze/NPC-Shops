@@ -84,7 +84,9 @@ export class ShopWindow {
       this.makeResizable(el);
     }
     this.element.style.display = "flex";
-    // Keep the shop within Foundry's ordinary window stack. The former 10000+\n    // layer trapped every Actor and Item sheet behind the storefront.\n    this.element.style.zIndex = '60';
+    // Keep the shop within Foundry's ordinary window stack. The former 10000+
+    // layer trapped every Actor and Item sheet behind the storefront.
+    this.element.style.zIndex = '60';
     this.element.classList?.toggle?.('ns-is-minimized',this.minimized);
     this.render();
     if (firstOpen && this.element?.getBoundingClientRect) {
