@@ -221,6 +221,10 @@ Hooks.once('ready', () => {
     openSelected();
   });
   game.socket.on(SOCKET, async data => {
+    if(data?.type === 'shop-changed' && typeof data.merchantId === 'string') {
+      if(!game.user.isGM)refreshWindows(data.merchantId,true);
+      return;
+    }
     if (data?.type === 'response') {
       if (data.to !== game.user.id) return;
       const callback = pending.get(data.requestId);
@@ -248,8 +252,9 @@ Hooks.once('ready', () => {
   Hooks.on('deleteToken', refreshBadges);
   Hooks.on('updateToken', refreshBadges);
   Hooks.on('updateActor', (actor, changes) => {
-    refreshWindows(actor.id);
-    if (game.user.isGM && Object.hasOwn(changes.flags?.[MODULE_ID] ?? {},'shop')) {
+    const shopChanged=Object.hasOwn(changes.flags?.[MODULE_ID] ?? {},'shop');
+    refreshWindows(actor.id,shopChanged);
+    if (game.user.isGM && shopChanged) {
       // Merchant settings are also reflected on placed TokenDocuments, visible to players.
       for (const scene of game.scenes) syncTokenFlags(scene);
     }
@@ -259,5 +264,5 @@ Hooks.once('ready', () => {
     if (item.parent?.documentName === 'Actor') refreshWindows(item.parent.id);
   });
   game.modules.get(MODULE_ID).api = game.user.isGM ? {open, openSelected, openDirectory} : {open};
-  console.info('NPC Shops v0.1.9 alpha ready. GM: Alt+S. Players: click the token shop badge.');
+  console.info('NPC Shops v0.3.0 alpha ready. GM: Alt+S. Players: click the token shop badge.');
 });

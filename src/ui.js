@@ -2,6 +2,8 @@ import {MODULE_ID, cpToGp, emptyShop, gpToCp, hasOwnership, itemPriceCp, moneyTo
 import {groupItems} from "./categories.js";
 import {isNpcActor} from "./merchant-types.js";
 import {captureWindowState,restoreWindowState} from "./window-state.js";
+import {renderMerchantView} from "./merchant-view.js";
+import {cartEntries,cartLines,adjustCart,canCheckout} from "./merchant-cart.js";
 
 const windows = new Map();
 const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -45,10 +47,14 @@ export class ShopWindow {
     this.categoryState = new Map();
     this.windowState = new Map();
     this.renderedMode = null;
+    this.localShop = null;
+    this.cart = {buy:new Map(),sell:new Map()};
+    this.categoryFilter = {buy:'all',sell:'all'};
+    this.settingsPage = 'stock';
     this.searchQueries = {buy: "", sell: "", manage: ""};
   }
   get actor() { return game.actors.get(this.actorId); }
-  get shop() { return this.gm ? shopData(this.actor) : (this.remoteShop ?? emptyShop()); }
+  get shop() { return this.gm ? (this.localShop ?? shopData(this.actor)) : (this.remoteShop ?? emptyShop()); }
   get gm() { return game.user.isGM; }
   get eligibleBuyers() {
     return game.actors.contents.filter(a => hasOwnership(a, game.user) && a.id !== this.actorId && a.system?.currency && ["character", "npc"].includes(a.type));
@@ -88,7 +94,7 @@ export class ShopWindow {
   makeDraggable(el) {
     let origin;
     el.addEventListener("pointerdown", e => {
-      if (!e.target.closest(".ns-header") || e.target.closest("button")) return;
+      if (!e.target.closest(".ns-header,.ns-mp-top") || e.target.closest("button")) return;
       origin = {x: e.clientX, y: e.clientY, left: el.offsetLeft, top: el.offsetTop};
       el.setPointerCapture(e.pointerId);
     });
@@ -115,18 +121,14 @@ export class ShopWindow {
     for (const section of this.element.querySelectorAll?.(".ns-category[data-category]") ?? []) {
       this.categoryState.set(`${section.dataset.view}:${section.dataset.category}`, section.open);
     }
-    this.element.innerHTML = `
-      <header class="ns-header"><div class="ns-identity"><img src="${esc(avatar)}" alt="" /><div><b>${esc(label)}</b><small>NPC Shops · ${this.loading ? 'Loading' : (shop.enabled ? (shop.open ? 'Open' : 'Closed') : 'Not a shop')}</small></div></div>${button('close', '×', 'class="ns-close" aria-label="Close"')}</header>
-      <main class="ns-content">
-      ${this.gm && isNpcActor(actor) ? `<div class="ns-gmbar">${!shop.enabled ? button('enable', 'Make Merchant') : `${button('toggle-open', shop.open ? 'Close Shop' : 'Open Shop')}${button('toggle-sell', shop.allowSelling ? 'Disable Selling' : 'Enable Selling')}`}</div>` : ''}
-      ${shop.enabled ? `
-        <div class="ns-wallet"><label>Shopping as <select data-field="buyer"><option value="">Select character</option>${buyers.map(a => `<option value="${esc(a.id)}" ${buyer?.id === a.id ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></label><div>${buyer ? `${esc(buyer.name)} · ${(moneyTotal(buyer.system.currency) / 100).toFixed(2)} GP` : 'No owned characters'}</div></div>
-        <nav class="ns-tabs">${button('tab-buy', 'Buy', `class="${this.mode === 'buy' ? 'active' : ''}"`)}${button('tab-sell', 'Sell', `class="${this.mode === 'sell' ? 'active' : ''}"`)}${this.gm ? button('tab-manage', 'Manage', `class="${this.mode === 'manage' ? 'active' : ''}"`) : ''}</nav>
-        ${this.renderSearchInput()}
-        ${this.mode === 'buy' ? this.renderBuy(shop, buyer) : this.mode === 'sell' ? this.renderSell(shop, buyer) : this.renderManage(shop)}
-        <div class="ns-empty ns-no-results" hidden>No items match your search.</div>
-      ` : `<div class="ns-empty">${this.loading ? 'Loading shop items…' : this.gm && !isNpcActor(actor) ? 'Only NPC actors can be converted into shops.' : this.gm ? 'Click Make Merchant to enable this NPC as a shop.' : 'Merchant information not available. A GM must be online.'}</div>`}
-      </main><footer>Foundry v${esc(game.version || game.release?.generation)} · NPC Shops v0.2.3 alpha</footer>`;
+    this.element.innerHTML = shop.enabled
+      ? renderMerchantView(this,shop,buyer,label,avatar)
+      : `<header class="ns-mp-top"><span>${esc(label)}</span>${button('close','×','class="ns-close"')}</header>
+        <div class="ns-mp-hero"><img src="${esc(avatar)}" class="ns-mp-avatar" alt=""/>
+          <div class="ns-mp-intro"><h2>${esc(label)}</h2><p>No merchant shop has been configured.</p></div></div>
+        <div class="ns-mp-init">${this.gm && isNpcActor(actor)
+          ? button('enable','Make Merchant')
+          : 'Only NPC actors may be made merchants.'}</div>`;
     this.renderedMode = this.mode;
     restoreWindowState(this.element, this.renderedMode, this.windowState);
     this.applySearchFilter();
@@ -217,6 +219,24 @@ export class ShopWindow {
       const itemId = target.closest("[data-item]")?.dataset.item;
       try {
         if (action === 'close') return this.close();
+        if (action === 'filter-category') {
+          this.categoryFilter[this.mode]=target.dataset.category||'all'; return this.render();
+        }
+        if (action === 'settings-page') {
+          if(!this.gm)throw new Error('GM only');
+          this.settingsPage=target.dataset.page||'stock';return this.render();
+        }
+        if (['cart-add','cart-plus','cart-minus','cart-clear','cart-checkout'].includes(action)) {
+          if (action==='cart-checkout')return await this.checkoutCart();
+          if (action==='cart-clear'){this.cart[this.mode]?.clear();return this.render();}
+          if (this.busy || !['buy','sell'].includes(this.mode))return;
+          const id=target.dataset.entryId;
+          const entry=cartEntries(this.shop,this.buyer,this.mode).find(x=>x.id===id);
+          if(!entry)return;
+          const cap=this.mode==='buy'?(entry.unlimited?9999:Number(entry.quantity??0)):Number(entry.system?.quantity??1);
+          adjustCart(this.cart[this.mode],id,action==='cart-minus'?-1:1,Math.max(0,Math.min(9999,cap)));
+          return this.render();
+        }
         if (action.startsWith('tab-')) {this.mode = action.slice(4); return this.render();}
         if (action === 'clear-history') {
           if (!this.gm) throw new Error('GM only');
@@ -264,12 +284,38 @@ export class ShopWindow {
       finally { this.busy = false; this.refresh(); }
     });
   }
+  async checkoutCart() {
+    if(!['buy','sell'].includes(this.mode) || !canCheckout(this.cart[this.mode],this.shop,this.buyer,this.mode))
+      throw new Error('Bill cannot be completed. Check stock, opening status and character funds.');
+    if(this.busy)return;
+    this.busy=true;
+    const mode=this.mode, buyerId=this.buyer.id;
+    const lines=cartLines(this.cart[mode],this.shop,this.buyer,mode);
+    try {
+      for(const entry of lines) {
+        const details={kind:mode,merchantId:this.actorId,buyerId,quantity:entry.quantity};
+        if(mode==='buy')details.skuId=entry.id;else details.itemId=entry.id;
+        const res=await this.submit(details);
+        if(!res?.ok)throw new Error(res?.message||'Trade failed');
+        this.cart[mode].delete(entry.id);
+        notify(res.message);
+      }
+      if(!this.gm)await this.load();
+    } finally {this.busy=false;this.render();}
+  }
   async saveShop(data) {
     if (!this.gm) throw new Error('GM only');
-    if (!this.actor) throw new Error('Could not locate world Actor for merchant');
-    if (!isNpcActor(this.actor)) throw new Error('Only NPC actors can be managed as merchants');
-    await this.actor.setFlag(MODULE_ID, 'shop', data);
+    const actor=this.actor;
+    if (!actor) throw new Error('Could not locate world Actor for merchant');
+    if (!isNpcActor(actor)) throw new Error('Only NPC actors can be managed as merchants');
+    const snapshot=structuredClone(data);
+    await actor.setFlag(MODULE_ID,'shop',snapshot);
+    // Maintain the saved stock as an immediate local snapshot while Foundry
+    // propagates Actor updates and while the Buy tab is being opened.
+    this.localShop=snapshot;
     this.render();
+    try {game.socket?.emit?.(`module.${MODULE_ID}`,{type:'shop-changed',merchantId:this.actorId});}
+    catch(err){console.warn('NPC Shops: player refresh notification failed',err);}
   }
   async itemFromDrop(event) {
     const raw=event.dataTransfer.getData('text/plain') || event.dataTransfer.getData('application/json');
@@ -300,7 +346,15 @@ export function openShop(merchant, submit, info) {
   win.open();
   return win;
 }
-export function refreshWindows(actorId) { windows.forEach(win => {if (win.actorId === actorId || win.buyer?.id === actorId) win.refresh();}); }
+export function refreshWindows(actorId, reloadRemote = false) {
+  windows.forEach(win => {
+    if (win.actorId === actorId) {
+      if(win.gm)win.localShop=null;
+      if(!win.gm && reloadRemote)void win.load();
+      else win.refresh();
+    } else if(win.buyer?.id === actorId)win.refresh();
+  });
+}
 
 /** Opened by the persistent Shop button; available even for players who cannot control NPC tokens. */
 export async function showDirectory(getDirectory, openMerchant, manageSelected = null) {

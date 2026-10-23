@@ -1,6 +1,6 @@
 # NPC Shops
 
-**Experimental alpha v0.2.3** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+**Experimental alpha v0.3.0** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
 
 ## v0.1.19 — Search merchandise by name
 
@@ -87,6 +87,15 @@
 - Old RollTable configuration flags may remain in saved shop data but are not displayed or used; **merchant stock, prices, and transaction history are preserved**.
 - Importing an individual Item via **drag and drop** from the Foundry Item sidebar, Compendiums, or Actor sheets remains available in Manage, just like v0.1.19.
 - Retained the independent item search in Buy/Sell/Manage, improved readability, per-tab scroll restoration, NPC-only GM merchant creation, and public trade chat messages.
+
+## v0.3.0 — Three-panel storefront redesign + live stock updates
+
+- Redesigns NPC Shops after the **Merchant Presets** visual pattern (burgundy shop header, three-column category/catalog/receipt layout and GM Settings), with an independent implementation and no extra dependencies or copied compendium assets. Original design inspiration: https://github.com/mikiross87/merchant-presets.
+- **Stock Save now updates Buy instantly** on the GM's screen and broadcasts shop changes to open player windows, which reload the server's safe public inventory.
+- A Bill of Sale lets buyers/sellers add quantities, review item prices and wallet balance, and confirm the bill using the existing GM-side authorized trade pipeline. Each row is a separate validated trade; a later failure stops the bill and retains any unfulfilled items.
+- GM Settings keeps Stock, Terms and History, including original inventory management, selling percentage and Clear History.
+- Existing shops, saved flags, stock, prices, transaction history, merchant token badges, NPC-only creation and v11/v14 API support are preserved.
+- Inspired visual styling is an independent implementation using system fonts and existing NPC item images; this is not the full Merchant Presets module and does not import its content packs or time-based restocking.
 
 ## Features
 
