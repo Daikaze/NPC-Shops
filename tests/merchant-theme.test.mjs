@@ -63,3 +63,17 @@ test('every native shop select and expanded option uses contrasting dark colors'
  assert.match(css,/background-color:\s*#252830\s*!important/);
  assert.match(css,/color:\s*#f4f5f8\s*!important/);
 });
+
+test('floating Shops launcher stays behind regular Foundry sheets',()=>{
+ const css=readFileSync(new URL('../styles/npc-shops.css',import.meta.url),'utf8');
+ const launcher=css.match(/\.npc-shops-access\s*\{([^}]+)\}/)?.[1];
+ const shop=css.match(/\.npc-shops-window\s*\{([^}]+)\}/)?.[1];
+ assert.ok(launcher,'Shops launcher style must exist');
+ assert.ok(shop,'Shop window style must exist');
+ const launcherZ=Number(launcher.match(/z-index:\s*(-?\d+)/)?.[1]);
+ const shopZ=Number(shop.match(/z-index:\s*(-?\d+)/)?.[1]);
+ assert.equal(launcherZ,20);
+ assert.ok(launcherZ<shopZ,'floating launcher must not cover its own shop');
+ assert.ok(launcherZ<100,'floating launcher must not cover normal Foundry window layers');
+ assert.doesNotMatch(launcher,/z-index:\s*510/);
+});
