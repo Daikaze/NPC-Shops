@@ -1,5 +1,11 @@
 # NPC Shops
 
+## v0.5.1 — Shops launcher window stacking fix
+
+- Lowered the draggable GM-only floating **Shops** launcher from `z-index: 510` to `z-index: 20`, so Foundry v11/v14 Character Sheets, Item Sheets, and merchant windows can appear above it.
+- The launcher remains independently draggable on the canvas; shop windows, cashier, prices, and trade behavior are unchanged.
+- Added a regression test for the launcher layer relative to the shop and standard Foundry window layer; real-client visual validation is still recommended.
+
 ## v0.5.0 — Compact minimization and stability review
 
 - **True compact minimize:** Double-clicking the merchant title bar now collapses the entire window to a narrow 300 × 32 px title bar, instead of leaving a large empty window-sized strip. Double-click again to restore the original dimensions and position. Moving the minimized title bar also moves the position where the full shop is restored.
