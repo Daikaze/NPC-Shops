@@ -105,22 +105,56 @@ export class ShopWindow {
     if(this.element?.classList?.toggle)this.element.classList.toggle('ns-is-minimized',this.minimized);
     this.render();
   }
+  /** Remove only sale stock, preserving merchant settings, RollTables and ledger. */
+  async clearAllStock(){
+    if(!this.gm || !isNpcActor(this.actor) || this.mode!=='manage' || this.settingsPage!=='stock')
+      throw new Error('Only a GM can clear NPC shop stock');
+    const count=this.shop.stock?.length??0;
+    if(!count)return false;
+    const approved=await this.confirm(
+      `Remove all ${count} item types from "${this.actor.name}"?\n\nOnly the shop inventory will be cleared. The merchant, Rollable Tables, buyback percentage, and transaction history will remain. This cannot be undone.`,
+      {title:'Clear All Merchant Stock',confirmLabel:'Clear All',danger:true}
+    );
+    if(!approved)return false;
+    this.busy=true;
+    try {
+      await this.saveShop({...this.shop,stock:[]});
+      notify(`NPC Shops: Cleared ${count} item types from ${this.actor.name}.`);
+      return true;
+    } finally {this.busy=false;}
+  }
   refresh() { if (this.element) this.render(); }
   makeDraggable(el) {
     let origin;
     el.addEventListener("pointerdown", e => {
-      if (!e.target.closest(".ns-header,.ns-mp-top") || e.target.closest("button")) return;
-      origin = {x: e.clientX, y: e.clientY, left: el.offsetLeft, top: el.offsetTop};
-      el.setPointerCapture(e.pointerId);
+      if (!e.target.closest?.(".ns-header,.ns-mp-top") ||
+          e.target.closest?.("button,a,input,select,textarea")) return;
+      origin={id:e.pointerId,x:e.clientX,y:e.clientY,left:el.offsetLeft,top:el.offsetTop,dragging:false};
+      // Do not capture an ordinary click: in v11 and v14 pointer capture
+      // retargeted subsequent clicks to the window, hiding the dblclick header.
     });
     el.addEventListener("pointermove", e => {
-      if (!origin) return;
-      el.style.left = `${Math.max(0, Math.min(window.innerWidth - 120, origin.left + e.clientX - origin.x))}px`;
-      el.style.top = `${Math.max(0, Math.min(window.innerHeight - 80, origin.top + e.clientY - origin.y))}px`;
-      el.style.transform = "none";
+      if (!origin || (e.pointerId!==undefined && e.pointerId!==origin.id))return;
+      const dx=e.clientX-origin.x,dy=e.clientY-origin.y;
+      if(!origin.dragging && Math.hypot(dx,dy)<5)return;
+      if(!origin.dragging){
+        origin.dragging=true;
+        try{el.setPointerCapture?.(origin.id);}catch(_){}
+      }
+      const viewport=globalThis.window;
+      el.style.left=`${Math.max(0,Math.min((viewport?.innerWidth??1200)-120,origin.left+dx))}px`;
+      el.style.top=`${Math.max(0,Math.min((viewport?.innerHeight??800)-80,origin.top+dy))}px`;
+      el.style.transform="none";
     });
-    const stop = () => { origin = null; };
-    el.addEventListener("pointerup", stop); el.addEventListener("pointercancel", stop);
+    const stop=e=>{
+      if(!origin)return;
+      if(origin.dragging){
+        try{el.releasePointerCapture?.(origin.id);}catch(_){}
+      }
+      origin=null;
+    };
+    el.addEventListener("pointerup",stop);
+    el.addEventListener("pointercancel",stop);
   }
   render() {
     if (!this.element) return;
@@ -209,7 +243,10 @@ export class ShopWindow {
       </div>
       <div class="ns-save-all-bar">
         <span><i class="fas fa-layer-group"></i> Edit any number of items, then save them together.</span>
-        ${button('save-all-stock', '<i class="fas fa-save"></i> Save All', !shop.stock.length ? 'disabled class="ns-save-all"' : 'class="ns-save-all"')}
+        <div class="ns-stock-batch-actions">
+          ${button('save-all-stock','<i class="fas fa-save"></i> Save All',!shop.stock.length?'disabled class="ns-save-all"':'class="ns-save-all"')}
+          ${button('clear-all-stock','<i class="fas fa-trash-alt"></i> Clear All',!shop.stock.length?'disabled class="ns-clear-all"':'class="ns-clear-all"')}
+        </div>
       </div>
       <div class="ns-drop" data-drop="items">Drag & drop items here from Items, Compendiums or Actor sheets</div>
       <div class="ns-items ns-manage-categories">${this.renderCategories(shop.stock, s => s.item, s => `<div class="ns-item ns-manage-item ns-stock-row" data-sku="${esc(s.id)}">
@@ -259,12 +296,35 @@ export class ShopWindow {
     // Both Foundry v11 and v14 use a native-feeling double-click on the
     // draggable NPC Shops titlebar to minimize/restore the same window.
     // Delegate to the outer window so replacing innerHTML does not lose it.
-    el.addEventListener("dblclick", e => {
-      if (!e.target.closest?.(".ns-mp-top,.ns-header") ||
+    let lastTitleToggleAt=0, lastTitleToggleSource=null, lastTouchTap=null;
+    const toggleFromHeader=(e,source)=>{
+      if (!e.target?.closest?.(".ns-mp-top,.ns-header") ||
           e.target.closest?.("button,a,input,select,textarea")) return;
+      const now=Date.now();
+      // A single double-click may emit click(detail=2) AND dblclick.
+      // Do not swallow a SECOND, independent double-click.
+      if(source==='dblclick' && ['click','touch'].includes(lastTitleToggleSource) &&
+         now-lastTitleToggleAt<350)return;
+      lastTitleToggleAt=now;
+      lastTitleToggleSource=source;
       e.preventDefault?.();
       e.stopPropagation?.();
       this.toggleMinimize();
+    };
+    // Native mouse double-click, plus click-detail fallback for v11/v14 HUDs.
+    el.addEventListener("dblclick",e=>toggleFromHeader(e,'dblclick'));
+    el.addEventListener("click",e=>{if(e.detail===2)toggleFromHeader(e,'click');});
+    // Touchscreen double-tap is not guaranteed to generate dblclick.
+    el.addEventListener("pointerup",e=>{
+      if(e.pointerType!=="touch"&&e.pointerType!=="pen")return;
+      if(!e.target?.closest?.(".ns-mp-top,.ns-header") ||
+          e.target.closest?.("button,a,input,select,textarea")){lastTouchTap=null;return;}
+      const now=Date.now();
+      if(lastTouchTap && now-lastTouchTap.at<380 &&
+         Math.hypot((e.clientX??0)-lastTouchTap.x,(e.clientY??0)-lastTouchTap.y)<24){
+        lastTouchTap=null;
+        toggleFromHeader(e,'touch');
+      } else lastTouchTap={at:now,x:e.clientX??0,y:e.clientY??0};
     });
     el.addEventListener("click", async e => {
       const target = e.target.closest("button[data-action]");
@@ -274,6 +334,7 @@ export class ShopWindow {
       const itemId = target.closest("[data-item]")?.dataset.item;
       try {
         if (action === 'close') return this.close();
+        if (action === 'clear-all-stock') return await this.clearAllStock();
         if (action === 'toggle-terms-visibility') {
           if(!this.gm)throw new Error('GM only');
           return await this.saveShop({...this.shop,hideTradeTerms:this.shop.hideTradeTerms===false});

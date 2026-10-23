@@ -1,6 +1,12 @@
 # NPC Shops
 
-**Experimental alpha v0.3.8** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+**Experimental alpha v0.3.9** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+
+## v0.3.9 — Reliable titlebar double-click / double-tap + GM Clear All Stock
+
+- **Fix v11/v14 minimization:** The NPC Shops title bar supports double-click to minimize and double-click again to restore. Foundry's outer-window pointer capture had been taking ownership on *every* pointerdown, redirecting native double-clicks away from the title bar. Capture now begins only after 5px of real drag movement; normal titlebar clicks remain native. Additional click(detail=2) and touch/pen double-tap fallbacks work if Foundry suppresses the dblclick event.
+- **GM Settings → Stock → Clear All:** A new red **Clear All** button beside **Save All** clears every merchant inventory entry in one save, *only after confirmation inside NPC Shops*. It leaves the merchant enabled, and preserves RollTable links, shop prices/configuration, buyback percentage, and transaction history. The button disables for empty stock and is never shown to players.
+- Save All and individual item removal work as before, with no change to the established Buy/Sell checkout backend or v11/v14 support.
 
 ## v0.3.8 — Centered v11 icon, native double-click minimization, Buy checkout
 

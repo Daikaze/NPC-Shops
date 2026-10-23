@@ -404,3 +404,26 @@
    Only Close remains; no separate +/- minimize button in either version. */
 .npc-shops-window .ns-mp-top { cursor:move!important; user-select:none!important; }
 .npc-shops-window .ns-mp-top .ns-close { cursor:pointer!important; }
+
+/* v0.3.9 — GM bulk inventory clearing and reliable titlebar tapping. */
+.npc-shops-window .ns-stock-batch-actions {
+  display:flex!important;align-items:center!important;justify-content:flex-end!important;
+  gap:9px!important;flex-wrap:wrap!important;
+}
+.npc-shops-window .ns-stock-batch-actions .ns-save-all,
+.npc-shops-window .ns-stock-batch-actions .ns-clear-all{
+  min-height:37px!important;padding:8px 14px!important;
+  border-radius:5px!important;white-space:nowrap!important;
+}
+.npc-shops-window .ns-stock-batch-actions .ns-clear-all{
+  color:#fff0f0!important;
+  background:#69333b!important;border:1px solid #aa626b!important;
+}
+.npc-shops-window .ns-stock-batch-actions .ns-clear-all:hover:not(:disabled){
+  background:#83414b!important;
+}
+.npc-shops-window .ns-stock-batch-actions .ns-clear-all:disabled{opacity:.45!important}
+.npc-shops-window .ns-mp-top{
+  touch-action:manipulation!important;
+  user-select:none!important;
+}

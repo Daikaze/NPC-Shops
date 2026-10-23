@@ -135,3 +135,113 @@ test('Checkout says Buy (not Seal it); Sell uses Sell and both preserve actions'
   assert.match(markup,/data-action="cart-checkout"/);
  }
 });
+
+test('Clear All merchant stock uses Foundry confirmation and preserves trade configuration',async()=>{
+ const npcItems=[
+  {id:'first',item:{name:'Sword',type:'weapon',img:'sword.png',system:{}},priceCp:1500,quantity:4,unlimited:false},
+  {id:'second',item:{name:'Potion',type:'consumable',img:'potion.png',system:{}},priceCp:300,quantity:12,unlimited:false}
+ ];
+ let saved={...emptyShop(),enabled:true,stock:npcItems,ledger:[{kind:'buy',itemName:'Potion'}],
+   tables:[{uuid:'RollTable.village',name:'Village'}],sellRate:.65,open:true};
+ let writes=0;
+ const npc={id:'npc',name:'Mura',type:'npc',img:'npc.png',getFlag:()=>saved,
+   async setFlag(_id,_key,value){writes++;saved=structuredClone(value)}};
+ globalThis.game={version:'14',user:{isGM:true,id:'gm'},
+   actors:{get:()=>npc,contents:[npc]},socket:{emit:()=>{}}};
+ const notifications=[];
+ globalThis.ui={notifications:{info:x=>notifications.push(x),error:x=>notifications.push('ERR '+x)}};
+ const shop=new ShopWindow({actorId:'npc'},()=>{},()=>{});
+ shop.mode='manage';shop.settingsPage='stock';
+ const events={};
+ shop.element={innerHTML:'',classList:{toggle(){}},querySelectorAll:()=>[],
+  addEventListener:(name,fn)=>(events[name]??=[]).push(fn)};
+ shop.bindEvents(shop.element);
+ shop.render();
+ assert.match(shop.element.innerHTML,/data-action="clear-all-stock"/);
+ shop.confirm=async()=>false;
+ assert.equal(await shop.clearAllStock(),false);
+ assert.equal(writes,0);
+ assert.equal(saved.stock.length,2);
+ let prompt;
+ shop.confirm=async(message,opts)=>{prompt={message,opts};return true};
+ // Verify click routes to Clear All, rather than deleting through a hidden side effect.
+ const button={dataset:{action:'clear-all-stock'}};
+ const event={target:{closest:selector=>selector==='button[data-action]'?button:null}};
+ for(const listener of events.click)await listener(event);
+ assert.equal(writes,1);
+ assert.equal(saved.stock.length,0);
+ assert.equal(saved.enabled,true);
+ assert.equal(saved.open,true);
+ assert.equal(saved.sellRate,.65);
+ assert.equal(saved.ledger.length,1);
+ assert.equal(saved.tables.length,1);
+ assert.equal(prompt.opts.danger,true);
+ assert.match(prompt.message,/Remove all 2 item types/);
+ assert.match(shop.element.innerHTML,/data-action="clear-all-stock"/);
+ assert.match(shop.element.innerHTML,/disabled class="ns-clear-all"/);
+ assert.ok(notifications.some(x=>x.includes('Cleared 2 item types')));
+});
+test('Clear All is GM-only and cannot clear other NPC data when no items exist',async()=>{
+ const npc={id:'npc',name:'NPC',type:'npc',getFlag:()=>({...emptyShop(),enabled:true})};
+ globalThis.game={version:'11',user:{isGM:false},actors:{get:()=>npc,contents:[npc]}};
+ const win=new ShopWindow({actorId:'npc'},()=>{},()=>{});
+ win.mode='manage';win.settingsPage='stock';
+ await assert.rejects(()=>win.clearAllStock(),/Only a GM/);
+});
+test('v11 and v14 titlebar tap preserves native double-click (no pointer capture)',async()=>{
+ for(const version of ['11','14']){
+  const actor={id:'npc',name:'Merchant',type:'npc',getFlag:()=>({...emptyShop(),enabled:true})};
+  globalThis.game={version,user:{isGM:true},actors:{get:()=>actor,contents:[actor]}};
+  const w=new ShopWindow({actorId:'npc'},()=>{},()=>{});
+  let captured=0,released=0;
+  const events={},classes=new Set();
+  w.element={innerHTML:'',offsetLeft:20,offsetTop:15,style:{},
+   setPointerCapture:()=>{captured++},releasePointerCapture:()=>{released++},
+   classList:{toggle:(key,on)=>on?classes.add(key):classes.delete(key)},
+   querySelectorAll:()=>[],
+   addEventListener:(name,fn)=>(events[name]??=[]).push(fn)};
+  w.bindEvents(w.element);
+  w.makeDraggable(w.element);
+  w.render();
+  const header={closest:selector=>
+   selector.includes('button,a')?null:selector.includes('.ns-mp-top')?header:null};
+  const ev=(type,extra={})=>({type,target:header,pointerId:7,clientX:100,clientY:120,
+   preventDefault(){},stopPropagation(){},...extra});
+  const emit=async(name,event)=>{for(const fn of events[name]??[])await fn(event)};
+  await emit('pointerdown',ev('pointerdown'));
+  await emit('pointerup',ev('pointerup'));
+  assert.equal(captured,0,'single titlebar click must not start pointer capture');
+  await emit('dblclick',ev('dblclick'));
+  assert.equal(w.minimized,true);
+  assert.ok(classes.has('ns-is-minimized'));
+  await emit('dblclick',ev('dblclick'));
+  assert.equal(w.minimized,false,'next independent double-click restores');
+  assert.ok(!classes.has('ns-is-minimized'));
+  await emit('click',ev('click',{detail:2}));
+  assert.equal(w.minimized,true,'click detail=2 works if Foundry suppresses dblclick');
+  await emit('dblclick',ev('dblclick'));
+  assert.equal(w.minimized,true,'second event from same double-click must not toggle back');
+  await emit('pointerdown',ev('pointerdown'));
+  await emit('pointermove',ev('pointermove',{clientX:112,clientY:120}));
+  assert.equal(captured,1,'dragging 12px must start capture');
+  await emit('pointerup',ev('pointerup',{clientX:112,clientY:120}));
+  assert.equal(released,1,'drag releases capture after movement');
+ }
+});
+test('touch double-tap also minimizes the NPC Shops titlebar',async()=>{
+ const actor={id:'npc',name:'Merchant',type:'npc',getFlag:()=>({...emptyShop(),enabled:true})};
+ globalThis.game={version:'14',user:{isGM:true},actors:{get:()=>actor,contents:[actor]}};
+ const w=new ShopWindow({actorId:'npc'},()=>{},()=>{});
+ const events={};
+ w.element={innerHTML:'',classList:{toggle(){}},querySelectorAll:()=>[],
+  addEventListener:(name,fn)=>(events[name]??=[]).push(fn)};
+ w.bindEvents(w.element);w.render();
+ const header={closest:selector=>
+  selector.includes('button,a')?null:selector.includes('.ns-mp-top')?header:null};
+ const tap={target:header,pointerType:'touch',clientX:25,clientY:30,
+  preventDefault(){},stopPropagation(){}};
+ for(const fn of events.pointerup)await fn(tap);
+ assert.equal(w.minimized,false);
+ for(const fn of events.pointerup)await fn(tap);
+ assert.equal(w.minimized,true);
+});
