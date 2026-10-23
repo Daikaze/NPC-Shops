@@ -24,7 +24,8 @@ test('Merchant Presets-inspired appearance is loaded last and uses source screen
  assert.match(css,/\.ns-mp-item>img/);
  assert.match(css,/\.ns-save-all-bar/);
  assert.match(css,/\.npc-shops-window/);
- assert.doesNotMatch(css,/@import|https?:\\/\\//);
+ assert.ok(!css.includes('@import')); assert.ok(!css.includes('https://'));
+
 });
 test('new hero, copper coin accents, bill wax stamp, and original actions coexist',async()=>{
  const {renderMerchantView}=await import('../src/merchant-view.js');
