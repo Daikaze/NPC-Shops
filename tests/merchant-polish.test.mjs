@@ -36,7 +36,7 @@ test('Minimization toggles an actual window class and allows restoration',()=>{
  win.element={innerHTML:'',classList:{toggle:(key,on)=>{if(on)active.add(key);else active.delete(key)}},querySelectorAll:()=>[]};
  win.toggleMinimize();
  assert.equal(win.minimized,true);assert.ok(active.has('ns-is-minimized'));
- assert.match(win.element.innerHTML,/data-action="minimize"/);
+ assert.doesNotMatch(win.element.innerHTML,/data-action="minimize"/);
  win.toggleMinimize();
  assert.equal(win.minimized,false);assert.ok(!active.has('ns-is-minimized'));
 });
@@ -96,4 +96,42 @@ test('Stock editor visually matches Buy and the external browser confirm is not 
  assert.match(css,/\.ns-stock-fields/);
  assert.match(css,/\.ns-is-minimized/);
  assert.match(css,/\.ns-confirm-overlay/);
+});
+
+test('double-click title bar minimizes/restores in v11 and v14, without a button',()=>{
+ for(const version of ['11','14']){
+  const npc={id:'npc',name:'Shopkeeper',type:'npc',getFlag:()=>({...emptyShop(),enabled:true})};
+  globalThis.game={version,user:{isGM:true},actors:{get:()=>npc,contents:[npc]}};
+  const win=new ShopWindow({actorId:'npc'},()=>{},()=>{});
+  const events={};let flips=0;
+  const classes=new Set();
+  win.element={innerHTML:'',classList:{toggle:(c,b)=>b?classes.add(c):classes.delete(c)},
+   querySelectorAll:()=>[],addEventListener:(name,fn)=>events[name]=fn};
+  win.bindEvents(win.element);
+  win.render();
+  assert.match(win.element.innerHTML,/Double-click to minimize or restore/);
+  assert.doesNotMatch(win.element.innerHTML,/data-action="minimize"/);
+  const header={closest:s=>s.includes('.ns-mp-top')?header:null};
+  const button={closest:s=>s.includes('button,')?button:header};
+  events.dblclick({target:header,preventDefault(){flips++},stopPropagation(){}});
+  assert.equal(win.minimized,true);
+  assert.ok(classes.has('ns-is-minimized'));
+  events.dblclick({target:button,preventDefault(){flips++},stopPropagation(){}});
+  assert.equal(win.minimized,true,'double-click on Close should not minimize');
+  events.dblclick({target:header,preventDefault(){flips++},stopPropagation(){}});
+  assert.equal(win.minimized,false);
+  assert.equal(flips,2);
+  assert.ok(!classes.has('ns-is-minimized'));
+ }
+});
+test('Checkout says Buy (not Seal it); Sell uses Sell and both preserve actions',()=>{
+ globalThis.game={version:'14'};
+ const shop={...emptyShop(),enabled:true,open:true};
+ for(const [mode,word] of [['buy','Buy'],['sell','Sell']]){
+  const w=mockWindow(true,mode);
+  const markup=renderMerchantView(w,shop,null,'Merchant','img');
+  assert.match(markup,new RegExp('>'+word+' · 0.00 gp</span>'));
+  assert.doesNotMatch(markup,/Seal it|Sell it/);
+  assert.match(markup,/data-action="cart-checkout"/);
+ }
 });

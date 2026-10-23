@@ -17,8 +17,7 @@ const describeItem=item=>{
 const itemOf=(w,e)=>w.mode==='buy'?e.item:e;
 function hero(w,shop,buyer,label,avatar){
  const bal=buyer?.system?.currency?moneyTotal(buyer.system.currency):0;
- return `<header class="ns-mp-top"><span>${esc(label)}</span><div class="ns-mp-window-actions">
- ${button('minimize',w.minimized?'+':'−',`class="ns-minimize" aria-label="${w.minimized?'Restore':'Minimize'}" title="${w.minimized?'Restore':'Minimize'} NPC Shops"`)}
+ return `<header class="ns-mp-top" title="Double-click to minimize or restore"><span>${esc(label)}</span><div class="ns-mp-window-actions">
  ${button('close','×','class="ns-close" aria-label="Close"')}</div></header>
  <div class="ns-mp-hero"><img src="${esc(avatar)}" alt="" class="ns-mp-avatar"/>
  <div class="ns-mp-intro"><h2>${esc(label)}</h2>
@@ -107,7 +106,7 @@ function bill(w,shop,buyer){
  ${button('cart-plus','+',`data-entry-id="${esc(l.id)}"`)}</div></div>`).join(''):'<p class="ns-mp-bill-empty">Choose goods from the shelves to build your bill.</p>'}</div>
  <hr class="ns-mp-double-rule"/><div class="ns-mp-bill-total"><span>${w.mode==='buy'?'SUM OWED':'YOU RECEIVE'}</span><strong>${coin(total)}</strong></div>
  <p class="ns-mp-after">${buyer?esc(buyer.name)+`’s purse after trade: ${coin(w.mode==='buy'?Math.max(0,funds-total):funds+total)}`:'Select a character.'}</p>
- ${button('cart-checkout',`<span class="ns-mp-seal"><i class="fas fa-stamp"></i></span><span>${w.mode==='buy'?'Seal it':'Sell it'} · ${cpToGp(total)} gp</span>`,
+ ${button('cart-checkout',`<span class="ns-mp-seal"><i class="fas fa-stamp"></i></span><span>${w.mode==='buy'?'Buy':'Sell'} · ${cpToGp(total)} gp</span>`,
  `class="ns-mp-checkout" ${!canCheckout(w.cart[w.mode],shop,buyer,w.mode)||w.busy?'disabled':''}`)}
  ${lines.length?button('cart-clear','Clear bill','class="ns-mp-clear"'):''}
  </div></aside>`;

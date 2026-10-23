@@ -38,7 +38,9 @@ export function injectMerchantHudControl({app, html, isGM, fallbackToken, onOpen
   button.className = 'control-icon npc-shop-hud';
   button.title = 'NPC Shops — Make Merchant / Open Shop';
   button.setAttribute('aria-label', 'Make Merchant or Open Shop');
-  button.innerHTML = '<i class="fas fa-store"></i>';
+  // An explicit centered wrapper prevents v11's native .control-icon icon
+  // metrics/line-height from displacing the glyph. v14 uses the same layout.
+  button.innerHTML = '<span class="ns-hud-icon-center" aria-hidden="true"><i class="fas fa-store"></i></span>';
   // Both v11 and v14: put the shop immediately UNDER the Elevation control.
   // The respective HUD DOM differs, so find the semantic control first.
   const elevation = findElevationControl(root);

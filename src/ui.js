@@ -138,7 +138,7 @@ export class ShopWindow {
     }
     this.element.innerHTML = shop.enabled
       ? renderMerchantView(this,shop,buyer,label,avatar)
-      : `<header class="ns-mp-top"><span>${esc(label)}</span><div class="ns-mp-window-actions">${button('minimize',this.minimized?'+':'−','class="ns-minimize" aria-label="Minimize or restore"')}${button('close','×','class="ns-close"')}</div></header>
+      : `<header class="ns-mp-top" title="Double-click to minimize or restore"><span>${esc(label)}</span><div class="ns-mp-window-actions">${button('close','×','class="ns-close" aria-label="Close"')}</div></header>
         <div class="ns-mp-hero"><img src="${esc(avatar)}" class="ns-mp-avatar" alt=""/>
           <div class="ns-mp-intro"><h2>${esc(label)}</h2><p>No merchant shop has been configured.</p></div></div>
         <div class="ns-mp-init">${this.gm && isNpcActor(actor)
@@ -256,6 +256,16 @@ export class ShopWindow {
       try { await this.handleDrop(e); }
       catch (err) { notify(err.message, true); }
     });
+    // Both Foundry v11 and v14 use a native-feeling double-click on the
+    // draggable NPC Shops titlebar to minimize/restore the same window.
+    // Delegate to the outer window so replacing innerHTML does not lose it.
+    el.addEventListener("dblclick", e => {
+      if (!e.target.closest?.(".ns-mp-top,.ns-header") ||
+          e.target.closest?.("button,a,input,select,textarea")) return;
+      e.preventDefault?.();
+      e.stopPropagation?.();
+      this.toggleMinimize();
+    });
     el.addEventListener("click", async e => {
       const target = e.target.closest("button[data-action]");
       if (!target || this.busy) return;
@@ -264,7 +274,6 @@ export class ShopWindow {
       const itemId = target.closest("[data-item]")?.dataset.item;
       try {
         if (action === 'close') return this.close();
-        if (action === 'minimize')return this.toggleMinimize();
         if (action === 'toggle-terms-visibility') {
           if(!this.gm)throw new Error('GM only');
           return await this.saveShop({...this.shop,hideTradeTerms:this.shop.hideTradeTerms===false});

@@ -359,3 +359,48 @@
  .npc-shops-window .ns-stock-actions{margin-left:auto!important}
  .npc-shops-window .ns-trade-visibility{flex-wrap:wrap!important}
 }
+
+/* v0.3.8: pixel-centered token shop icon (v11 + v14).
+   v11's native control-icon rules can shift icon baseline and margins; an
+   absolute centering layer decouples the glyph from those inherited rules.
+   Keep the tile's existing 38 × 38 dimensions and under-Elevation placement. */
+.npc-shop-hud.ns-hud-under-elevation:not(.ns-hud-elevation-fallback),
+.npc-shop-hud.control-icon:not(.ns-hud-floating) {
+  position:relative!important;
+  display:grid!important;place-items:center!important;
+  text-align:center!important;
+  line-height:1!important;
+  padding:0!important;
+  overflow:hidden!important;
+}
+.npc-shop-hud .ns-hud-icon-center {
+  position:absolute!important;
+  display:flex!important;
+  inset:0!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:100%!important;height:100%!important;
+  min-width:0!important;min-height:0!important;
+  margin:0!important;padding:0!important;
+  line-height:1!important;
+  text-align:center!important;
+  pointer-events:none!important;
+  transform:none!important;
+}
+.npc-shop-hud .ns-hud-icon-center > i {
+  position:static!important;
+  display:block!important;
+  float:none!important;
+  margin:0!important;padding:0!important;
+  width:auto!important;height:auto!important;
+  flex:0 0 auto!important;
+  font-size:16px!important;
+  line-height:1!important;
+  vertical-align:middle!important;
+  text-align:center!important;
+  transform:none!important;
+}
+/* The window title bar itself is the double-click minimize control.
+   Only Close remains; no separate +/- minimize button in either version. */
+.npc-shops-window .ns-mp-top { cursor:move!important; user-select:none!important; }
+.npc-shops-window .ns-mp-top .ns-close { cursor:pointer!important; }

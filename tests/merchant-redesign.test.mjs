@@ -63,7 +63,7 @@ test('checkout submits one GM-validated trade per bill line',async()=>{
  win.submit=async details=>{submitted.push(details);return {ok:true,message:'Trade complete'}};
  win.cart.buy.set('s1',2);
  win.render();
- assert.match(win.element.innerHTML,/Seal it/);
+ assert.match(win.element.innerHTML,/Buy/);
  await win.checkoutCart();
  assert.equal(submitted.length,1);
  assert.equal(submitted[0].quantity,2);

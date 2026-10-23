@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {hudElement, currentHudToken, isTokenHudApplication, injectMerchantHudControl} from '../src/hud-controls.js';
+import {readFileSync} from 'node:fs';
 
 function mockUi(classic = false) {
   const listeners = {};
@@ -136,4 +137,18 @@ test('both HUD versions use a 27px control, never old oversized right-side place
  const css=readFileSync(new URL('../styles/npc-shops.css',import.meta.url),'utf8');
  assert.match(css,/\.npc-shop-hud\.ns-hud-under-elevation\s*\{[^}]*width:27px!important/);
  assert.match(css,/\.npc-shop-hud\.ns-hud-elevation-fallback\s*\{[^}]*left:-38px!important/);
+});
+
+test('Both v11 and v14 shop HUD icons render the same centered glyph wrapper',()=>{
+ for(const classic of [true,false]){
+  const {root,button}=mockUi(classic);
+  assert.equal(injectMerchantHudControl({app:{object:token},html:classic?[root]:root,isGM:true,onOpen:()=>{}}),true);
+  assert.match(button.innerHTML,/ns-hud-icon-center/);
+  assert.match(button.innerHTML,/fas fa-store/);
+ }
+ const css=readFileSync(new URL('../styles/merchant-tables.css',import.meta.url),'utf8');
+ assert.match(css,/\.npc-shop-hud \.ns-hud-icon-center\s*\{/);
+ assert.match(css,/inset:0!important/);
+ assert.match(css,/align-items:center!important/);
+ assert.match(css,/justify-content:center!important/);
 });
