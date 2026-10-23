@@ -2,7 +2,7 @@
   "id": "npc-shops",
   "title": "NPC Shops",
   "description": "Drag-and-drop NPC merchants with player buying and selling for dnd5e.",
-  "version": "0.3.9",
+  "version": "0.4.0",
   "authors": [
     {
       "name": "Daikaze"

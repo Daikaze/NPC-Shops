@@ -1,6 +1,14 @@
 # NPC Shops
 
-**Experimental alpha v0.3.9** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+**Experimental alpha v0.4.0** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+
+## v0.4.0 — Merchant NPC receives coins, GM-only Cashbox, Item sheets and paid Drag & Drop
+
+- **Merchant funds:** Every completed purchase credits the actual NPC Actor's `system.currency` wallet (where the NPC has currency) as well as recording lifetime purchase proceeds in `flags.npc-shops.shop.cashboxCp`. This happens inside the server-side GM-controlled trade pipeline, with attempted buyer refund, item rollback and merchant-wallet rollback if a later step fails. Duplicate trade request IDs are not charged twice. Existing sales remain unchanged.
+- **GM-only cashbox:** Under `Settings → Cashbox`, see lifetime proceeds from purchases and the NPC's current balance. Players cannot access Cashbox and `publicShop` does not reveal it. Old shops default to zero proceeds with no migration.
+- **Clickable Foundry sheets:** Click a shop Item's icon/name in Buy (and GM Stock) to view the native v11/v14 D&D Item sheet via a temporary document; inspecting has no purchase effect. In Sell, clicking an owned Item opens its existing sheet.
+- **Paid drag and drop:** Drag a stock Item into the **Bill of Sale** to add one unit to the basket, without charging or delivering it. Drag from the Buy list onto an **open character sheet** to purchase one item through the same GM-validated currency/ownership/stock pipeline as the Buy button. The drag payload deliberately uses an NPC Shops-specific type, not Foundry's `Item` payload, to avoid free inventory copies. Unrecognized sheet drops produce a warning, never a free Item.
+- Existing prices, ledger, Shop icons, roll tables, Save All, Clear All, v11/v14 compatibility and public chat receipts remain intact.
 
 ## v0.3.9 — Reliable titlebar double-click / double-tap + GM Clear All Stock
 

@@ -7,6 +7,7 @@ import {cartEntries,cartLines,adjustCart,canCheckout} from "./merchant-cart.js";
 import {collectStockEdits,applyStockEdits} from "./manage-stock.js";
 import {initMerchantTables,tableFieldChange,tableAction} from "./merchant-tables-ui.js";
 import {confirmShopDialog} from "./shop-dialog.js";
+import {shopDragPayload,dragPayloadFromEvent,openShopItemSheet} from "./shop-item-interaction.js";
 
 const windows = new Map();
 const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -250,8 +251,11 @@ export class ShopWindow {
       </div>
       <div class="ns-drop" data-drop="items">Drag & drop items here from Items, Compendiums or Actor sheets</div>
       <div class="ns-items ns-manage-categories">${this.renderCategories(shop.stock, s => s.item, s => `<div class="ns-item ns-manage-item ns-stock-row" data-sku="${esc(s.id)}">
-        <img src="${esc(s.item.img || 'icons/svg/item-bag.svg')}" alt=""/>
-        <div class="ns-itemtext ns-stock-detail"><strong>${esc(s.item.name)}</strong>
+        <button type="button" class="ns-stock-inspect" data-action="inspect-item" data-entry-id="${esc(s.id)}" title="Open ${esc(s.item.name)} Item sheet">
+          <img src="${esc(s.item.img || 'icons/svg/item-bag.svg')}" alt="" draggable="false"/>
+        </button>
+        <div class="ns-itemtext ns-stock-detail">
+          <button type="button" class="ns-stock-name" data-action="inspect-item" data-entry-id="${esc(s.id)}"><strong>${esc(s.item.name)}</strong></button>
           <div class="ns-stock-fields">
             <label>Price (GP)<input aria-label="${esc(s.item.name)} price in GP" data-field="price" type="number" min="0" step="0.01" value="${cpToGp(s.priceCp)}"/></label>
             <label>Stock<input aria-label="${esc(s.item.name)} stock quantity" data-field="stock" type="number" min="0" step="1" value="${esc(s.quantity)}"/></label>
@@ -281,13 +285,39 @@ export class ShopWindow {
       if (tableFieldChange(this,e)) return;
       if (e.target.matches('[data-field="buyer"]')) { this.buyerId = e.target.value; this.render(); }
     });
+    // A shop Item drag is a purchase reference, NEVER a free Foundry Item copy.
+    el.addEventListener("dragstart",e=>{
+      if(this.mode!=='buy')return;
+      const row=e.target?.closest?.('.ns-mp-item[draggable="true"]');
+      if(!row?.dataset?.entryId || !e.dataTransfer)return;
+      const payload=shopDragPayload(this.actorId,row.dataset.entryId);
+      e.dataTransfer.setData('application/x-npc-shops',payload);
+      e.dataTransfer.setData('text/plain',payload);
+      e.dataTransfer.effectAllowed='copy';
+    });
     el.addEventListener("dragover", e => {
+      if(this.mode==='buy' && e.target?.closest?.('.ns-mp-bill') &&
+          (e.dataTransfer?.types?.includes?.('application/x-npc-shops') ||
+           e.dataTransfer?.types?.includes?.('text/plain'))){
+        e.preventDefault();e.dataTransfer.dropEffect='copy';return;
+      }
       if (this.gm && e.target.closest('[data-drop="items"]')) {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'copy';
       }
     });
     el.addEventListener("drop", async e => {
+      if(this.mode==='buy'&&e.target?.closest?.('.ns-mp-bill')){
+        const payload=dragPayloadFromEvent(e);
+        if(!payload || payload.merchantId!==this.actorId)return;
+        e.preventDefault();e.stopPropagation();
+        const entry=cartEntries(this.shop,this.buyer,'buy').find(x=>x.id===payload.skuId);
+        if(!entry)return;
+        const cap=entry.unlimited?9999:Number(entry.quantity??0);
+        adjustCart(this.cart.buy,payload.skuId,1,Math.max(0,Math.min(9999,cap)));
+        this.render();
+        return;
+      }
       if (!this.gm || !e.target.closest('[data-drop="items"]')) return;
       e.preventDefault();
       try { await this.handleDrop(e); }
@@ -334,6 +364,13 @@ export class ShopWindow {
       const itemId = target.closest("[data-item]")?.dataset.item;
       try {
         if (action === 'close') return this.close();
+        if (action === 'inspect-item')return await this.inspectItem(target.dataset.entryId);
+        if (action === 'inspect-buyer-item'){
+          const item=this.buyer?.items?.get?.(target.dataset.entryId);
+          if(!item)throw new Error('Item is not in your inventory');
+          item.sheet?.render?.(true);
+          return;
+        }
         if (action === 'clear-all-stock') return await this.clearAllStock();
         if (action === 'toggle-terms-visibility') {
           if(!this.gm)throw new Error('GM only');
@@ -444,6 +481,13 @@ export class ShopWindow {
       } catch (err) { notify(err.message, true); }
       finally { this.busy = false; this.refresh(); }
     });
+  }
+  async inspectItem(skuId) {
+    if(!skuId)throw new Error('Choose a merchant Item');
+    const response=await this.info(this.actorId,skuId);
+    if(!response?.ok)throw new Error(response?.message??'Unable to inspect Item');
+    // Real Foundry Item5e document and its native item sheet, temporary only.
+    return openShopItemSheet(response.item);
   }
   async checkoutCart() {
     if(!['buy','sell'].includes(this.mode) || !canCheckout(this.cart[this.mode],this.shop,this.buyer,this.mode))

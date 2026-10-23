@@ -1,4 +1,5 @@
-import {MODULE_ID, publicShop, shopData} from './core.js';
+import {MODULE_ID, publicShop, shopData, itemCopy} from './core.js';
+import {dragPayloadFromEvent,dropActorFromEvent} from './shop-item-interaction.js';
 import {executeTrade} from './transactions.js';
 import {openShop, refreshWindows, showDirectory} from './ui.js';
 import {clampButtonPosition} from './layout.js';
@@ -29,16 +30,24 @@ function sceneMerchants(sceneId) {
   }
   return result;
 }
-function shopInfo(id) {
+function shopInfo(id,skuId=null) {
   const actor = worldActor(id);
   if (!actor) return {ok:false,message:'Merchant not found'};
   const shop = shopData(actor);
   if (!shop.enabled) return {ok:false,message:'This NPC is not a merchant'};
+  if(skuId!==null){
+    const stock=shop.stock.find(s=>s.id===skuId);
+    if(!stock?.item) return {ok:false,message:'Item no longer exists in this shop'};
+    // Return a temporary Item sheet document payload to the requesting player.
+    // The item is NOT delivered to their inventory by an inspection.
+    return {ok:true,item:itemCopy(stock.item,1)};
+  }
   return {ok:true, name:actor.name, img:actor.img, shop:publicShop(shop)};
 }
 async function dispatch(packet) {
   if (packet.action === 'trade') return await executeTrade(packet.details);
   if (packet.action === 'shop') return shopInfo(packet.merchantId);
+  if (packet.action === 'item') return shopInfo(packet.merchantId,packet.skuId);
   if (packet.action === 'directory') return {ok:true,shops:sceneMerchants(packet.sceneId)};
   return {ok:false,message:'Unknown NPC Shops request'};
 }
@@ -59,11 +68,37 @@ async function queryGM(action, fields) {
   });
 }
 function submitTrade(details) { return queryGM('trade', {details:{...details, userId:game.user.id, requestId:requestId()}}); }
-function info(merchantId) {return queryGM('shop', {merchantId});}
+function info(merchantId,skuId=null) {
+  return skuId===null?queryGM('shop',{merchantId}):queryGM('item',{merchantId,skuId});
+}
 function descriptorFromToken(token) {
   return {actorId:token.document.actorId,name:token.name || token.actor?.name || 'Merchant',img:token.document.texture?.src || token.actor?.img};
 }
-function open(merchant) {return openShop(merchant, submitTrade, info);}
+function open(merchant) {return openShop(merchant,submitTrade,info);}
+/** Paid drop into v11/v14 Actor sheets. No native Item copy is ever emitted. */
+function installPaidItemDrops(){
+  globalThis.document?.addEventListener?.('drop',async event=>{
+    const drag=dragPayloadFromEvent(event);
+    if(!drag)return;
+    if(event.target?.closest?.('.npc-shops-window'))return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation?.();
+    const actor=dropActorFromEvent(event);
+    if(!actor){
+      ui.notifications.warn('NPC Shops: Drop the shop Item onto an open character sheet to purchase it.');
+      return;
+    }
+    try{
+      const result=await submitTrade({kind:'buy',merchantId:drag.merchantId,buyerId:actor.id,
+        skuId:drag.skuId,quantity:1});
+      if(!result.ok)throw new Error(result.message??'Purchase failed');
+      ui.notifications.info('NPC Shops: '+result.message);
+      refreshWindows(drag.merchantId,true);
+      refreshWindows(actor.id);
+    }catch(error){ui.notifications.error('NPC Shops: '+error.message);}
+  },true);
+}
 function openSelected() {
   const token = canvas?.tokens?.controlled?.[0];
   if (!isNpcToken(token, worldActor)) return ui.notifications.warn('NPC Shops: Select an NPC token (not a player character) to create or edit a shop');
@@ -211,6 +246,7 @@ Hooks.once('ready', () => {
   if (![11,14].includes(gen)) console.warn('NPC Shops is currently targeted at v11 and v14; other versions are untested');
   registerTokenHud();
   installAccessButton();
+  installPaidItemDrops();
   refreshBadges();
   syncTokenFlags();
   window.addEventListener('keydown', e => {

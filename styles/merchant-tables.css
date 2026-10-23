@@ -427,3 +427,54 @@
   touch-action:manipulation!important;
   user-select:none!important;
 }
+
+/* v0.4.0 — inspectable and draggable shop items; GM-only merchant cashbox. */
+.npc-shops-window .ns-mp-item .ns-mp-item-preview{
+  display:flex!important;align-items:center!important;justify-content:flex-start!important;
+  flex:1 1 auto!important;min-width:95px!important;
+  gap:10px!important;margin:0!important;padding:0!important;
+  background:transparent!important;border:0!important;
+  border-radius:3px!important;color:inherit!important;text-align:left!important;
+  box-shadow:none!important;cursor:pointer!important;
+}
+.npc-shops-window .ns-mp-item .ns-mp-item-preview:hover strong,
+.npc-shops-window .ns-mp-item .ns-mp-item-preview:focus-visible strong{
+  color:#ecc98a!important;text-decoration:underline!important;
+}
+.npc-shops-window .ns-mp-item .ns-mp-item-preview>img{
+  width:42px!important;height:42px!important;min-width:42px!important;
+  object-fit:cover!important;border:1px solid #9d8e75!important;border-radius:4px!important;
+}
+.npc-shops-window .ns-mp-item[draggable="true"]{
+  cursor:grab!important;
+  user-select:none!important;
+}
+.npc-shops-window .ns-mp-item[draggable="true"]:active{cursor:grabbing!important}
+.npc-shops-window .ns-stock-inspect,
+.npc-shops-window .ns-stock-name{
+  border:0!important;background:transparent!important;
+  padding:0!important;margin:0!important;box-shadow:none!important;
+  cursor:pointer!important;text-align:left!important;color:#fff!important;
+}
+.npc-shops-window .ns-stock-inspect>img{
+  width:44px!important;height:44px!important;
+  min-width:44px!important;object-fit:cover!important;
+  border-radius:4px!important;border:1px solid #776b55!important;
+}
+.npc-shops-window .ns-stock-name:hover strong,
+.npc-shops-window .ns-stock-inspect:hover + .ns-itemtext strong{color:#eac896!important}
+.npc-shops-window .ns-merchant-cashbox{
+  padding:20px!important;background:#24272f!important;
+  border:1px solid #5c554a!important;border-radius:6px!important;
+  display:flex!important;flex-direction:column!important;gap:14px!important;
+}
+.npc-shops-window .ns-cashbox-stat{
+  display:flex!important;align-items:center!important;justify-content:space-between!important;
+  gap:12px!important;padding:17px!important;border:1px solid #494a4d!important;
+  background:#1c1e25!important;border-radius:5px!important;
+}
+.npc-shops-window .ns-cashbox-stat span{color:#cfc9bb!important}
+.npc-shops-window .ns-cashbox-stat strong{font-size:17px!important;color:#e5c88d!important}
+.npc-shops-window .ns-merchant-cashbox>small{
+  font-size:11px!important;color:#a9abb1!important;line-height:1.5!important;
+}

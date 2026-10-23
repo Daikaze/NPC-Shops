@@ -37,7 +37,7 @@ function tabs(w){
 }
 function sidebar(w,entries){
  if(w.mode==='manage')return `<aside class="ns-mp-sidebar" data-scroll-key="categories"><small>MERCHANT</small>
- ${[['stock','Stock'],['tables','Rollable Tables'],['terms','Terms'],['history','History']].map(([k,v])=>
+ ${[['stock','Stock'],['tables','Rollable Tables'],['cashbox','Cashbox'],['terms','Terms'],['history','History']].map(([k,v])=>
  button('settings-page',esc(v),`class="ns-mp-side-btn ${w.settingsPage===k?'active':''}" data-page="${k}"`)).join('')}</aside>`;
  const current=w.categoryFilter[w.mode]??'all';
  const groups=groupItems(entries,e=>itemOf(w,e));
@@ -61,15 +61,28 @@ function catalog(w,shop,buyer,entries){
   const stock=w.mode==='buy'?(entry.unlimited?'∞':entry.quantity):(entry.system?.quantity??1);
   const low=stock!== '∞'&&Number(stock)===1;
   const missing=stock!== '∞'&&Number(stock)<1;
-  return `<div class="ns-item ns-mp-item" data-entry-id="${esc(entry.id)}">
-    <img src="${esc(item.img??'icons/svg/item-bag.svg')}" alt=""/>
-    <div class="ns-itemtext"><strong>${esc(item.name)}</strong><small>${esc(describeItem(item))}</small></div>
+  return `<div class="ns-item ns-mp-item" data-entry-id="${esc(entry.id)}" ${w.mode==='buy'?'draggable="true" title="Drag to bill or character sheet to purchase"':''}>
+    <button type="button" class="ns-mp-item-preview" data-action="${w.mode==='buy'?'inspect-item':'inspect-buyer-item'}" data-entry-id="${esc(entry.id)}" title="Open ${esc(item.name)} Item sheet">
+      <img src="${esc(item.img??'icons/svg/item-bag.svg')}" alt="" draggable="false"/>
+      <span class="ns-itemtext"><strong>${esc(item.name)}</strong><small>${esc(describeItem(item))}</small></span>
+    </button>
     <span class="ns-mp-stock-label ${low?'low':''}">${esc(stock==='∞'?'Unlimited':low?'Last one':w.mode==='buy'?stock+' left':'×'+stock)}</span>
     <span class="ns-mp-price">${coin(price)}</span>
     ${button('cart-add','+',`class="ns-mp-add" data-entry-id="${esc(entry.id)}" aria-label="Add to bill" ${missing||!buyer||w.busy?'disabled':''}`)}
   </div>`}).join('')}</section>`).join('')||'<div class="ns-mp-empty">No items in this category.</div>'}</div>`;
 }
 function settings(w,shop){
+ if(w.settingsPage==='cashbox'){
+  const earned=Number(shop.cashboxCp??0);
+  const wallet=w.actor?.system?.currency;
+  return `<section class="ns-mp-settings ns-merchant-cashbox">
+    <h3><i class="fas fa-coins"></i> Merchant Cashbox</h3>
+    <p>GM-only. Money from player purchases is collected on this NPC Actor sheet when it supports currency.</p>
+    <div class="ns-cashbox-stat"><span>Gross purchase proceeds</span><strong>${coin(earned)}</strong></div>
+    <div class="ns-cashbox-stat"><span>Current NPC wallet</span><strong>${wallet?coin(moneyTotal(wallet)):'Not available on this NPC'}</strong></div>
+    <small>Both the Actor currency and purchase proceeds are GM-only in NPC Shops. Selling items to this merchant does not increase purchase proceeds.</small>
+   </section>`;
+ }
  if(w.settingsPage==='tables')return renderMerchantTables(w,shop);
  if(w.settingsPage==='history')return `<div class="ns-mp-settings"><h3>History</h3>
  ${button('clear-history','Clear History',shop.ledger?.length?'':'disabled')}
@@ -97,7 +110,7 @@ function bill(w,shop,buyer){
  const lines=cartLines(w.cart[w.mode],shop,buyer,w.mode);
  const total=cartTotal(lines);
  const funds=buyer?.system?.currency?moneyTotal(buyer.system.currency):0;
- return `<aside class="ns-mp-bill" data-scroll-key="bill"><div class="ns-mp-bill-card">
+ return `<aside class="ns-mp-bill" data-scroll-key="bill" title="Drop an item here to add it to your bill"><div class="ns-mp-bill-card">
  <small>BILL OF SALE</small><h3>${esc(w.name)}</h3>
  <div class="ns-mp-bill-date">${w.mode==='buy'?'Buying from the merchant':'Selling to the merchant'}</div><hr/>
  <div class="ns-mp-bill-lines">${lines.length?lines.map(l=>`<div class="ns-mp-bill-line"><div>${l.quantity} × ${esc(l.item.name)}<b>${coin(l.quantity*l.priceCp)}</b></div>
