@@ -1,6 +1,12 @@
 # NPC Shops
 
-**Experimental alpha v0.2.1** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+**Experimental alpha v0.2.2** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+
+## v0.2.2 — Remove Import All Items
+
+- Removed the mass-import **Import All Items** button and its bulk import implementation.
+- **Manage → Import from Item Compendium** remains available for choosing a pack, searching, and adding individual Items with **Add to Shop**.
+- Existing merchant stock (including items previously imported in bulk) is retained. Rollable Tables, preserved scroll positions, readable controls, Buy/Sell, chat trade receipts, and Clear Transaction History are unchanged.
 
 ## v0.1.19 — Search merchandise by name
 

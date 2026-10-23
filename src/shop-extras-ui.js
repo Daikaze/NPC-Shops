@@ -1,7 +1,7 @@
 /** GM-only Compendium Item picker and Rollable Tables workspace. */
-import {compendiumPacks,packTitle,browseItemPack,importCompendiumItem,importAllCompendiumItems,listRollTableChoices} from './compendium.js';
+import {compendiumPacks,packTitle,browseItemPack,importCompendiumItem,listRollTableChoices} from './compendium.js';
 import {normalizeTableLink,rollShopTable,makeRollPreview,stockFromRollPreview} from './tables.js';
-import {gpToCp,cpToGp,MODULE_ID} from './core.js';
+import {gpToCp,cpToGp} from './core.js';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const btn=(name,label,extra='')=>`<button type="button" data-action="${name}" ${extra}>${label}</button>`;
@@ -9,7 +9,7 @@ const notify=(message,bad=false)=>bad?globalThis.ui?.notifications?.error?.(mess
 const needsGM=w=>{if(!w.gm)throw new Error('GM only');};
 export function initExtras(w) {
   w.compendiumPackId='';w.compendiumQuery='';w.compendiumEntries=[];
-  w.compendiumTotal=0;w.compendiumLoadedPack='';w.bulkImportStatus='';
+  w.compendiumTotal=0;w.compendiumLoadedPack='';
   w.tableChoices=[];w.tableChoiceId='';
   w.rollPreview={items:[],unresolved:[]};w.tableStatus='';
 }
@@ -28,10 +28,8 @@ export function renderCompendiumBrowser(w){
         </select>
         <input data-field="compendium-query" type="search" placeholder="Search items..." value="${esc(w.compendiumQuery)}"/>
         ${btn('browse-compendium','Find Items')}
-        ${btn('import-all-compendium','Import All Items',!w.compendiumPackId?'disabled':'class="ns-import-all"')}
       </div>
-      <p class="ns-extras-note">Add a single Item, or import all physical Items from the selected Compendium (ignores search filter, skips previously imported copies).</p>
-      ${w.bulkImportStatus?`<p class="ns-import-status" role="status">${esc(w.bulkImportStatus)}</p>`:'' }
+      <p class="ns-extras-note">Search a Compendium and add individual Items to this merchant using Add to Shop.</p>
       ${w.compendiumEntries.length?`
         <p class="ns-extras-note">${w.compendiumTotal} matches, showing up to 100</p>
         <div class="ns-compendium-items" data-scroll-key="compendium-items">
@@ -101,7 +99,7 @@ export function extraInput(w,event){
 export function extraChange(w,event){
   if(event.target.matches?.('[data-field="compendium-pack"]')){
     w.compendiumPackId=event.target.value;
-    w.compendiumEntries=[];w.compendiumTotal=0;w.compendiumLoadedPack='';w.bulkImportStatus='';
+    w.compendiumEntries=[];w.compendiumTotal=0;w.compendiumLoadedPack='';
     w.render();return true;
   }
   if(event.target.matches?.('[data-field="table-choice"]')){
@@ -161,60 +159,9 @@ async function addAllPreview(w){
   w.render();
 }
 
-/** Explicit, confirmed whole-pack import, not limited to the first 100 matches. */
-export async function handleImportAll(w,{
-  confirmAction=globalThis.confirm,
-  batchSize=25
-}={}) {
-  needsGM(w);
-  const pack=selectedPack(w);
-  if(!pack)throw new Error('Select an Item Compendium first');
-  const count=await browseItemPack(pack,'',1);
-  if(!count.total){
-    w.bulkImportStatus='No physical Items found in this Compendium.';
-    w.render();
-    return {total:0,added:0,skippedExisting:0,skippedUnsupported:0,failed:0};
-  }
-  if(typeof confirmAction!=='function')throw new Error('Import confirmation is unavailable');
-  const ok=await confirmAction('NPC Shops — Import All Items\n\n'+
-    'Compendium: '+packTitle(pack)+'\n'+
-    'Physical items in index: '+count.total+'\n\n'+
-    'Import the entire pack, not just current search results?\n'+
-    'Already imported Items will be skipped. Existing stock and prices remain unchanged.\n'+
-    'Very large packs may take longer and increase world data size.');
-  if(!ok)return {cancelled:true};
-  w.busy=true;
-  w.bulkImportStatus='Importing from '+packTitle(pack)+'...';
-  w.render();
-  let latest={added:0,skippedExisting:0,skippedUnsupported:0,failed:0};
-  try {
-    const result=await importAllCompendiumItems(pack,{
-      existingStock:w.shop.stock,batchSize,
-      onBatch:async entries=>{
-        // GM-only, same shop storage as Manage; commit each group before continuing.
-        if(!w.gm || w.actor?.type!=='npc')throw new Error('Only an NPC merchant may be updated');
-        const shop=structuredClone(w.shop);
-        shop.stock.push(...entries);
-        await w.actor.setFlag(MODULE_ID,'shop',shop);
-      },
-      onProgress:progress=>{latest=progress;}
-    });
-    w.bulkImportStatus='Import finished: '+result.added+' added, '+
-      result.skippedExisting+' already imported, '+
-      result.skippedUnsupported+' unsupported, '+result.failed+' errors.';
-    notify('NPC Shops: '+w.bulkImportStatus,result.failed>0);
-    return result;
-  }catch(err){
-    w.bulkImportStatus='Import stopped after '+latest.added+' confirmed additions. '+
-      'Previously saved items are intact. '+err.message;
-    notify('NPC Shops: '+w.bulkImportStatus,true);
-    throw err;
-  }finally{w.busy=false;w.render();}
-}
-
 /** Returns true when handled (false lets core Buy/Sell/Manage handler continue). */
 export async function extraClick(w,action,target){
-  const ours=['browse-compendium','import-compendium','import-all-compendium','browse-tables','add-table',
+  const ours=['browse-compendium','import-compendium','browse-tables','add-table',
     'clear-table-preview','save-table-settings','roll-one-table','roll-all-tables',
     'save-table','remove-table','add-preview-items'];
   if(!ours.includes(action))return false;
@@ -234,7 +181,6 @@ export async function extraClick(w,action,target){
     notify('Added '+entry.item.name+' to shop.');
     return true;
   }
-  if(action==='import-all-compendium') {await handleImportAll(w);return true;}
   if(action==='browse-tables'){
     w.tableChoices=await listRollTableChoices({tables:game.tables,packs:game.packs});
     w.tableChoiceId=w.tableChoices[0]?.uuid??'';
