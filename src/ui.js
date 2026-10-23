@@ -4,6 +4,7 @@ import {isNpcActor} from "./merchant-types.js";
 import {captureWindowState,restoreWindowState} from "./window-state.js";
 import {renderMerchantView} from "./merchant-view.js";
 import {cartEntries,cartLines,adjustCart,canCheckout} from "./merchant-cart.js";
+import {collectStockEdits,applyStockEdits} from "./manage-stock.js";
 
 const windows = new Map();
 const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -186,8 +187,16 @@ export class ShopWindow {
   renderManage(shop) {
     if (!this.gm) return '';
     return `<div class="ns-config"><label>Buyback percentage <input data-field="rate" type="number" min="0" max="100" step="1" value="${Math.round(shop.sellRate * 100)}"/></label>${button('save-rate', 'Save Rate')}</div>
+      <div class="ns-save-all-bar">
+        <span><i class="fas fa-layer-group"></i> Edit any number of items, then save them together.</span>
+        ${button('save-all-stock', '<i class="fas fa-save"></i> Save All', !shop.stock.length ? 'disabled class="ns-save-all"' : 'class="ns-save-all"')}
+      </div>
       <div class="ns-drop" data-drop="items">Drag & drop items here from Items, Compendiums or Actor sheets</div>
       <div class="ns-items">${this.renderCategories(shop.stock, s => s.item, s => `<div class="ns-item ns-manage-item" data-sku="${esc(s.id)}"><img src="${esc(s.item.img || 'icons/svg/item-bag.svg')}" alt=""/><div class="ns-itemtext"><strong>${esc(s.item.name)}</strong><small>Price GP <input data-field="price" type="number" min="0" step="0.01" value="${cpToGp(s.priceCp)}"/> Stock <input data-field="stock" type="number" min="0" step="1" value="${esc(s.quantity)}"/> <label><input type="checkbox" data-field="unlimited" ${s.unlimited ? 'checked' : ''}/> ∞</label></small></div>${button('save-item', 'Save')}${button('remove', '×')}</div>`)}</div>
+      <div class="ns-save-all-bar ns-save-all-bottom">
+        <span>Save quantities, prices and unlimited stock for all items.</span>
+        ${button('save-all-stock', '<i class="fas fa-save"></i> Save All', !shop.stock.length ? 'disabled class="ns-save-all"' : 'class="ns-save-all"')}
+      </div>
       <details class="ns-ledger" data-persist="ledger"><summary>Transaction History (${shop.ledger.length})</summary><div class="ns-ledger-toolbar">${button("clear-history", "Clear History", !shop.ledger.length ? "disabled" : "")}</div>${shop.ledger.slice().reverse().map(l => `<div>${esc(l.at?.slice(0,16))}: ${esc(l.actorName)} ${esc(l.kind)} ${esc(l.quantity)} × ${esc(l.itemName)} (${cpToGp(l.totalCp)} GP)</div>`).join('') || 'No transactions yet'}</details>`;
   }
   bindEvents(el) {
@@ -250,6 +259,28 @@ export class ShopWindow {
         }
         if (action === 'toggle-open') return await this.saveShop({...this.shop, open: !this.shop.open});
         if (action === 'toggle-sell') return await this.saveShop({...this.shop, allowSelling: !this.shop.allowSelling});
+        if (action === 'save-all-stock') {
+          if (!this.gm || this.mode !== 'manage' || this.settingsPage !== 'stock')
+            throw new Error('Only GMs can edit merchant stock');
+          const rows = el.querySelectorAll('.ns-manage-item[data-sku]');
+          const edits = collectStockEdits(rows);
+          if (!edits.size) throw new Error('No items to save');
+          const result = applyStockEdits(this.shop, edits);
+          // The stock editor also exposes buyback percentage. Save All includes
+          // it, rather than leaving a nearby unsaved field behind.
+          const rateField=el.querySelector('[data-field="rate"]');
+          if (rateField) {
+            const n=Number(rateField.value);
+            if (!Number.isInteger(n)||n<0||n>100)throw new Error('Buyback must be 0–100%');
+            result.shop.sellRate=n/100;
+          }
+          this.busy=true;
+          try {
+            await this.saveShop(result.shop); // exactly one persistent shop update
+            notify(`NPC Shops: Saved ${result.rows} items (${result.changed} changed).`);
+          } finally {this.busy=false;}
+          return;
+        }
         if (action === 'save-rate') {
           const n = Number(el.querySelector('[data-field="rate"]')?.value);
           if (!Number.isInteger(n) || n < 0 || n > 100) throw new Error('Enter a whole number from 0 to 100');

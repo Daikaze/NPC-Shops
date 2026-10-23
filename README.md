@@ -1,6 +1,13 @@
 # NPC Shops
 
-**Experimental alpha v0.3.0** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+**Experimental alpha v0.3.1** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+
+## v0.3.1 — Slate theme + Save All Stock
+
+- Recolors the standalone NPC Shops storefront to the reference **charcoal/slate inventory palette**: dark gray row cards, gray separators, ivory item names and muted-gold prices/icons. Both the Bill of Sale and merchant settings use the same palette.
+- Adds **Save All** above and below **GM Settings → Stock**. It validates and saves every item row—including those hidden by a search—with a single merchant stock update (quantity, price and unlimited toggle), and includes the buyback percentage shown in the Stock editor.
+- Rejects invalid prices, empty fields, fractional/negative stock and stale/deleted stock rows before making any changes. Saves remain atomic at the shop settings level.
+- Keeps each item's individual **Save** button and the live Buy-tab/player inventory sync from v0.3.0. Existing merchant items and transaction history are retained.
 
 ## v0.1.19 — Search merchandise by name
 

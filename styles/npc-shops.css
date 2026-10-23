@@ -175,3 +175,113 @@
 .npc-shops-window .ns-mp-stock-label{display:none}
 .npc-shops-window .ns-mp-item{flex-wrap:wrap}
 }
+
+/* v0.3.1 — dark slate inventory palette based on user reference screenshot.
+   Scoped to NPC Shops and does not restyle Foundry character sheets. */
+.npc-shops-window:not(.ns-directory){
+ --ns-bg:#171a22;--ns-slate:#222630;--ns-slate-2:#2a2f3b;
+ --ns-divider:#414650;--ns-muted:#a6a8af;--ns-ink:#f0f1f4;
+ --ns-accent:#d7ac62;--ns-orange:#d68a29;
+ background:var(--ns-bg)!important;border-color:#4c515c!important;color:var(--ns-ink)!important;
+}
+.npc-shops-window .ns-mp-top{
+ background:#171a20!important;border-bottom:1px solid var(--ns-divider)!important;color:#eceef2!important;
+}
+.npc-shops-window .ns-mp-hero{
+ background:linear-gradient(100deg,#242833,#303542 58%,#232832)!important;
+ border-bottom:1px solid var(--ns-divider)!important;
+}
+.npc-shops-window .ns-mp-avatar{border-color:#9e8a66!important;box-shadow:0 0 0 3px #d7ac6217}
+.npc-shops-window .ns-mp-intro h2{color:#f2f2f3!important}
+.npc-shops-window .ns-mp-intro p{color:#bbbfc9!important}
+.npc-shops-window .ns-mp-meta span{
+ background:#181c25!important;border-color:#4d5562!important;color:#d4d5d9!important;
+}
+.npc-shops-window .ns-mp-meta .open{color:#9bc99a!important}
+.npc-shops-window .ns-mp-meta .closed{color:#ecaaa0!important}
+.npc-shops-window .ns-mp-purse{
+ background:#1d222c!important;border-color:#505968!important;
+}
+.npc-shops-window .ns-mp-purse select{background:#292e38!important;color:#f2f2f4!important;border-color:#576070!important}
+.npc-shops-window .ns-mp-purse strong{color:#e7c886!important}
+.npc-shops-window .ns-coin{color:#e7bd6f!important}
+.npc-shops-window .ns-mp-tabs{background:#20242d!important;border-bottom-color:var(--ns-divider)!important}
+.npc-shops-window .ns-mp-tabs button.active{
+ background:#2d3240!important;border-bottom-color:var(--ns-accent)!important;color:#f3f4f5!important;
+}
+.npc-shops-window .ns-mp-body.ns-content{background:var(--ns-bg)!important}
+.npc-shops-window .ns-mp-sidebar{
+ background:#1b1f29!important;border-right:1px solid var(--ns-divider)!important;
+}
+.npc-shops-window .ns-mp-sidebar>small{color:#d5c2a3!important}
+.npc-shops-window .ns-mp-sidebar .ns-mp-side-btn{color:#cfd2d9!important}
+.npc-shops-window .ns-mp-sidebar .ns-mp-side-btn.active{
+ background:#303542!important;border-left-color:var(--ns-accent)!important;color:#fff!important;
+}
+.npc-shops-window .ns-mp-main{background:#1b1e26!important;color:#ecedf0!important}
+.npc-shops-window .ns-mp-catalog-head strong,
+.npc-shops-window .ns-mp-stock .ns-category h3{color:#e1d5be!important}
+.npc-shops-window .ns-mp-search{
+ background:#2b303c!important;border-color:#505763!important;color:#d4c3a4!important;
+}
+.npc-shops-window .ns-mp-search input{color:#fff!important}
+.npc-shops-window .ns-mp-stock .ns-category{background:transparent!important;border:0!important}
+.npc-shops-window .ns-mp-stock .ns-category h3:after{background:var(--ns-divider)!important}
+.npc-shops-window .ns-item.ns-mp-item{
+ background:var(--ns-slate)!important;border:1px solid var(--ns-divider)!important;
+ border-radius:3px!important;box-shadow:none!important;
+}
+.npc-shops-window .ns-item.ns-mp-item:hover{background:var(--ns-slate-2)!important;border-color:#67707d!important}
+.npc-shops-window .ns-mp-item>img{border-color:#73746c!important;border-radius:5px!important}
+.npc-shops-window .ns-mp-item .ns-itemtext strong{color:#f5f5f7!important;font-weight:700}
+.npc-shops-window .ns-mp-item .ns-itemtext small{color:#a6a8af!important}
+.npc-shops-window .ns-mp-stock-label{color:#adb0b7!important}
+.npc-shops-window .ns-mp-stock-label.low{color:var(--ns-orange)!important}
+.npc-shops-window .ns-mp-price{color:#ede9e0!important}
+.npc-shops-window .ns-mp-add{
+ background:#2d323e!important;border-color:#8e7952!important;color:#e9ca88!important;
+}
+.npc-shops-window .ns-mp-bill{background:#1a1e27!important;border-left:1px solid var(--ns-divider)!important}
+.npc-shops-window .ns-mp-bill-card{
+ background:#242832!important;border:1px solid #565a63!important;color:#ececec!important;
+}
+.npc-shops-window .ns-mp-bill-card h3{color:#eeeae1!important}
+.npc-shops-window .ns-mp-bill-card>small{color:#d8b979!important}
+.npc-shops-window .ns-mp-bill-card hr{border-color:var(--ns-divider)!important}
+.npc-shops-window .ns-mp-bill-line{border-bottom-color:#434853!important}
+.npc-shops-window .ns-mp-bill-total{color:#f1efe7!important}
+.npc-shops-window .ns-mp-bill-total strong{color:#f5d58a!important}
+.npc-shops-window .ns-mp-after,.npc-shops-window .ns-mp-bill-empty{color:#bfc0c8!important}
+.npc-shops-window .ns-mp-qty button{
+ background:#343945!important;border-color:#636977!important;color:#f0e6d3!important;
+}
+.npc-shops-window button.ns-mp-checkout{
+ background:#80613a!important;border-color:#caab70!important;color:#fff!important;
+}
+.npc-shops-window button.ns-mp-checkout:hover:not(:disabled){background:#947348!important}
+.npc-shops-window button.ns-mp-checkout:disabled{background:#464b54!important;border-color:#555a63!important}
+.npc-shops-window .ns-mp-settings h3{color:#e5cfaa!important}
+.npc-shops-window .ns-mp-settings p{color:#c9cbd1!important}
+.npc-shops-window .ns-mp-terms{border-bottom-color:var(--ns-divider)!important}
+.npc-shops-window .ns-mp-settings .ns-item.ns-manage-item{
+ background:#252a35!important;border-color:#464c59!important;
+}
+.npc-shops-window .ns-mp-settings .ns-itemtext strong{color:#f4f5f6!important}
+.npc-shops-window .ns-mp-settings .ns-itemtext small{color:#c4c7ce!important}
+.npc-shops-window:not(.ns-directory) input:not([type=checkbox]),
+.npc-shops-window:not(.ns-directory) select{
+ background:#222732!important;border-color:#555c69!important;color:#f6f6f7!important;
+}
+.npc-shops-window .ns-save-all-bar{
+ display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+ padding:10px 12px;margin:12px 0;border:1px solid #525a67;border-radius:5px;
+ background:#2a303d;color:#e1e3e8;
+}
+.npc-shops-window .ns-save-all-bar span{font-size:12px;line-height:1.45;flex:1 1 220px}
+.npc-shops-window .ns-save-all-bar .ns-save-all{
+ flex:0 0 auto;background:#8a693a!important;border:1px solid #c9a974!important;
+ color:#fff8e9!important;font-weight:700;min-width:110px;padding:8px 13px;
+}
+.npc-shops-window .ns-save-all-bar .ns-save-all:disabled{opacity:.5}
+.npc-shops-window .ns-save-all-bottom{margin-top:15px}
+.npc-shops-window footer{background:#1a1d25!important;color:#b3b4ba!important}
