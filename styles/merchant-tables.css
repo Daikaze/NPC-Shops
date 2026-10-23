@@ -478,3 +478,44 @@
 .npc-shops-window .ns-merchant-cashbox>small{
   font-size:11px!important;color:#a9abb1!important;line-height:1.5!important;
 }
+
+
+/* v0.5.0: compact title-bar-only minimization.
+ * This file is loaded last; it must override the older storefront's forced
+ * large width and the custom-resize flex/grid rules when collapsed.
+ */
+.npc-shops-window:not(.ns-directory).ns-is-minimized {
+  display:flex!important;
+  flex-direction:column!important;
+  box-sizing:border-box!important;
+  min-width:0!important;
+  min-height:0!important;
+  max-width:none!important;
+  max-height:none!important;
+  resize:none!important;
+  overflow:hidden!important;
+  padding:0!important;
+  gap:0!important;
+  border-radius:6px!important;
+}
+.npc-shops-window:not(.ns-directory).ns-is-minimized > :not(.ns-mp-top):not(.ns-header) {
+  display:none!important;
+}
+.npc-shops-window:not(.ns-directory).ns-is-minimized > .ns-mp-top,
+.npc-shops-window:not(.ns-directory).ns-is-minimized > .ns-header {
+  display:flex!important;
+  flex:0 0 30px!important;
+  width:100%!important;
+  height:30px!important;
+  min-height:30px!important;
+  max-height:30px!important;
+  overflow:hidden!important;
+  margin:0!important;
+  border:0!important;
+  box-sizing:border-box!important;
+  cursor:move!important;
+  justify-content:space-between!important;
+}
+.npc-shops-window:not(.ns-directory).ns-is-minimized .ns-mp-window-actions {
+  flex:0 0 auto!important;
+}
