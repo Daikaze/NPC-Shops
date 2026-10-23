@@ -18,9 +18,9 @@
   --ns-mp-paper-ink: #ecdec3;
   --ns-mp-hero: linear-gradient(100deg,#311b1f 0%,#491d25 52%,#311b1f 100%);
   --ns-mp-seal: linear-gradient(140deg,#741b2b,#401f25);
-  width:min(1000px,98vw)!important;
-  height:min(820px,94vh)!important;
-  max-height:94vh!important;
+  width:min(1000px,98vw);
+  height:min(820px,94vh);
+  max-height:94vh;
   color:var(--ns-mp-ink)!important;
   background:#0d0b0b!important;
   border:1px solid #343036!important;
