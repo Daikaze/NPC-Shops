@@ -1,6 +1,12 @@
 # NPC Shops
 
-**Experimental alpha v0.3.4** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+**Experimental alpha v0.3.5** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+
+## v0.3.5 — Elevation placement verified for v11 and v14
+
+- Ensures the **27px Make Merchant** icon is inserted immediately **under Elevation** in both v11 classic and v14 ApplicationV2 Token HUDs, instead of appending at the bottom of the left column or on the right.
+- Expands semantic Elevation selectors (including Foundry inputs and wrappers). A left-side absolute fallback is used if a HUD build lacks discoverable Elevation markup.
+- Scope is limited to the HUD icon. **Remove Merchant**, Rollable Tables, stock, trading and Save All from v0.3.4 remain unchanged.
 
 ## v0.3.4 — Small HUD under Elevation (v11 & v14), Remove Merchant, Item Piles-style Rollable Tables
 

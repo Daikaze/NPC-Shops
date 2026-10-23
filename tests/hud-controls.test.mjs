@@ -102,3 +102,38 @@ test('shop control uses left HUD column as fallback in v11 without explicit Elev
  assert.equal(container.child,button);
  assert.ok(!button.className.includes('ns-hud-floating'));
 });
+
+test('v11 inserts shop immediately after Elevation before other left-side controls',()=>{
+ const token={actor:{type:'npc'},document:{actorId:'npc'}};
+ const {root,button}=mockUi(true);
+ const elev={};
+ const after={};
+ const calls=[];
+ const left={firstChild:elev,appendChild:()=>{throw Error('should use insertBefore')},
+   insertBefore:(child,before)=>calls.push({child,before})};
+ elev.nextSibling=after;
+ const query=root.querySelector.bind(root);
+ root.querySelector=s=>s==='.col.left'?left:query(s);
+ const injected=injectMerchantHudControl({app:{object:token},html:root,isGM:true,onOpen:()=>{}});
+ assert.equal(injected,true);
+ assert.equal(calls[0].before,after);
+ assert.ok(button.className.includes('ns-hud-under-elevation'));
+});
+test('v14 anchors merchant control after its explicit Elevation element',()=>{
+ const {root,button}=mockUi(false);
+ const next={};
+ const elevation={nextSibling:next,parentNode:{insertBefore(el,sibling){
+   assert.equal(el,button);assert.equal(sibling,next);
+ }}};
+ const query=root.querySelector.bind(root);
+ root.querySelector=s=>s==='[data-action="elevation"]'?elevation:query(s);
+ assert.equal(injectMerchantHudControl({app:{object:token},html:root,isGM:true,onOpen:()=>{}}),true);
+ assert.ok(button.className.includes('ns-hud-under-elevation'));
+ assert.ok(!button.className.includes('ns-hud-elevation-fallback'));
+});
+test('both HUD versions use a 27px control, never old oversized right-side placement',async()=>{
+ const {readFileSync}=await import('node:fs');
+ const css=readFileSync(new URL('../styles/npc-shops.css',import.meta.url),'utf8');
+ assert.match(css,/\.npc-shop-hud\.ns-hud-under-elevation\s*\{[^}]*width:27px!important/);
+ assert.match(css,/\.npc-shop-hud\.ns-hud-elevation-fallback\s*\{[^}]*left:-38px!important/);
+});

@@ -15,9 +15,10 @@ export function findElevationControl(root) {
   if(!root?.querySelector)return null;
   for(const selector of [
     '[data-action="elevation"]','[data-control="elevation"]',
-    '.control-icon.elevation','.elevation-control',
-    '[data-tooltip="Elevation"]','[aria-label="Elevation"]',
-    '[title="Elevation"]','.elevation'
+    '.control-icon.elevation','.elevation-control','.attribute.elevation',
+    '[data-tooltip="Elevation"]','[data-tooltip*="Elevation"]',
+    '[aria-label="Elevation"]','[title="Elevation"]',
+    '[name="elevation"]','.elevation'
   ]){
     const result=root.querySelector(selector);
     if(result)return result;
@@ -46,13 +47,21 @@ export function injectMerchantHudControl({app, html, isGM, fallbackToken, onOpen
     root.querySelector('[data-side="left"]') ||
     root.querySelector('.left-controls');
   if (elevation?.parentNode?.insertBefore) {
-    elevation.parentNode.insertBefore(button, elevation.nextSibling);
+    // If the selector resolves to a nested input or label, insert after its
+    // wrapping elevation control, not inside the native input's layout.
+    const anchor=elevation.closest?.('.attribute, .elevation-control, .hud-control, .control-icon') ?? elevation;
+    const target=anchor?.parentNode?.insertBefore ? anchor : elevation;
+    target.parentNode.insertBefore(button,target.nextSibling??null);
+    button.classList.add('ns-hud-under-elevation');
   } else if (left?.appendChild) {
-    left.appendChild(button);
+    // Classic v11: first item is Elevation. Place next, not after the bottom row.
+    if(left.insertBefore && left.firstChild)left.insertBefore(button,left.firstChild.nextSibling??null);
+    else left.appendChild(button);
+    button.classList.add('ns-hud-under-elevation');
   } else {
     // v14 fallback if no stable HUD columns/semantic Elevation control exist.
     // Stay to the LEFT below where the native Elevation control is rendered.
-    button.classList.add('ns-hud-floating');
+    button.classList.add('ns-hud-floating','ns-hud-under-elevation','ns-hud-elevation-fallback');
     if (!root.style) return false;
     if (!root.style.position) root.style.position = 'relative';
     root.appendChild(button);
