@@ -800,3 +800,22 @@
 .npc-shops-window.ns-shop-compact .ns-item.ns-mp-item:has(.ns-buy-price-editor) .ns-mp-item-preview {
   flex:1 1 100%!important;
 }
+
+/* Buy price selection is normal text editing, not merchandise drag-and-drop. */
+.npc-shops-window .ns-buy-price-editor,
+.npc-shops-window .ns-buy-price-editor label,
+.npc-shops-window .ns-buy-price-editor input{
+  cursor:text!important;
+  user-select:text!important;
+  -webkit-user-select:text!important;
+}
+.npc-shops-window .ns-buy-price-editor .ns-buy-price-save{
+  cursor:pointer!important;
+  user-select:none!important;
+}
+.npc-shops-window .ns-mp-item-preview[data-shop-drag-source="true"]{
+  cursor:grab!important;
+}
+.npc-shops-window .ns-mp-item-preview[data-shop-drag-source="true"]:active{
+  cursor:grabbing!important;
+}
