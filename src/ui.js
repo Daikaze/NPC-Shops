@@ -118,7 +118,12 @@ export class ShopWindow {
   toggleMinimize(){
     if (!this.element) return;
     const el=this.element;
-    const rect=el.getBoundingClientRect();
+    const rect=el.getBoundingClientRect?.() ?? {
+      left: Number(el.style?.left?.replace?.('px','') ?? el.offsetLeft ?? 8),
+      top: Number(el.style?.top?.replace?.('px','') ?? el.offsetTop ?? 8),
+      width: Number(el.style?.width?.replace?.('px','') ?? el.offsetWidth ?? 900),
+      height: Number(el.style?.height?.replace?.('px','') ?? el.offsetHeight ?? 700)
+    };
     if (!this.minimized) {
       // Save the full dimensions BEFORE collapsing: CSS is not a reliable
       // restoration source when other module themes force !important widths.
@@ -127,7 +132,7 @@ export class ShopWindow {
       el.classList?.toggle?.('ns-is-minimized',true);
       this.render();
       this.applyCompactShopFrame(this.restoredFrame);
-      this.miniFrameAnchor=el.getBoundingClientRect();
+      this.miniFrameAnchor=el.getBoundingClientRect?.() ?? compactShopFrame(this.restoredFrame,globalThis.window?.innerWidth??1280,globalThis.window?.innerHeight??800);
     } else {
       // Moving the title bar while minimized also moves the restored sheet.
       const original=this.restoredFrame??{left:rect.left,top:rect.top,width:900,height:700};
@@ -162,19 +167,23 @@ export class ShopWindow {
   refresh() { if (this.element) this.render(); }
   applyCompactShopFrame(frame) {
     if (!this.element) return;
-    const next=compactShopFrame(frame,window.innerWidth,window.innerHeight);
-    for(const name of ['left','top','width','height'])
-      this.element.style.setProperty(name,`${next[name]}px`,'important');
+    const next=compactShopFrame(frame,globalThis.window?.innerWidth??1280,globalThis.window?.innerHeight??800);
+    if (!this.element.style) this.element.style={};
+    for(const name of ['left','top','width','height']){
+      if (typeof this.element.style.setProperty==='function')this.element.style.setProperty(name,`${next[name]}px`,'important');
+      else this.element.style[name]=`${next[name]}px`;
+    }
     this.element.style.transform='none';
   }
   applyShopFrame(frame) {
     if (!this.element) return;
-    const next = clampShopFrame(frame, window.innerWidth, window.innerHeight);
+    const next = clampShopFrame(frame, globalThis.window?.innerWidth??1280, globalThis.window?.innerHeight??800);
     // Explicit important inline dimensions override all historical theme rules.
-    this.element.style.setProperty('width',`${next.width}px`,'important');
-    this.element.style.setProperty('height',`${next.height}px`,'important');
-    this.element.style.setProperty('left',`${next.left}px`,'important');
-    this.element.style.setProperty('top',`${next.top}px`,'important');
+    if (!this.element.style) this.element.style={};
+    for(const name of ['left','top','width','height']){
+      if (typeof this.element.style.setProperty==='function')this.element.style.setProperty(name,`${next[name]}px`,'important');
+      else this.element.style[name]=`${next[name]}px`;
+    }
     this.element.style.transform = 'none';
     const layout = shopSizeLayout(next.width);
     this.element.classList?.toggle?.('ns-shop-medium', layout === 'medium');
