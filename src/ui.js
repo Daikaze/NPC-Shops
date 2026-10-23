@@ -501,16 +501,21 @@ export class ShopWindow {
     // Choose a character, not a player account or NPC sheet.
     const choices=recipients.map(a=>({id:a.id,name:a.name}));
     const selected=await new Promise(resolve=>{
-      const select='<select id="npc-shops-give-recipient" style="width:100%">'+choices.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.name)+'</option>').join('')+'</select>';
-      const DialogClass=globalThis.Dialog ?? globalThis.foundry?.appv1?.api?.Dialog;
-      if(!DialogClass){resolve(null);return;}
-      new DialogClass({title:'Give shop items (GM only)',content:'<p>Give '+lines.map(l=>esc(l.quantity+' × '+l.item.name)).join(', ')+' without charging any coins.</p><label>Player character '+select+'</label>',
-        buttons:{give:{label:'Give Items',callback:html=>resolve(html.find('#npc-shops-give-recipient').val())},cancel:{label:'Cancel',callback:()=>resolve(null)}},
-        default:'give',close:()=>resolve(null)}).render(true);
+      const overlay=document.createElement('div');
+      overlay.className='ns-confirm-overlay';
+      overlay.innerHTML='<section class="ns-confirm-panel" role="dialog" aria-modal="true" aria-label="Give items"><h3>Give Items (GM)</h3><p>Choose a player character to receive '+lines.map(l=>esc(l.quantity+' × '+l.item.name)).join(', ')+' without paying.</p><label>Recipient <select class="ns-give-target">'+choices.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.name)+'</option>').join('')+'</select></label><div class="ns-confirm-buttons"><button type="button" data-give-cancel>Cancel</button><button type="button" data-give-accept>Give Items</button></div></section>';
+      let resolved=false;
+      const finish=id=>{if(resolved)return;resolved=true;document.removeEventListener('keydown',onKey);overlay.remove();resolve(id);};
+      const onKey=e=>{if(e.key==='Escape'){e.preventDefault();finish(null);}};
+      document.addEventListener('keydown',onKey);
+      overlay.addEventListener('click',e=>{if(e.target===overlay||e.target.closest('[data-give-cancel]'))finish(null);
+        if(e.target.closest('[data-give-accept]'))finish(overlay.querySelector('.ns-give-target')?.value??null);});
+      this.element.appendChild(overlay);
+      overlay.querySelector('.ns-give-target')?.focus();
     });
     if(!selected)return;
     const recipient=recipients.find(a=>a.id===selected);
-    if(!recipient || recipient.type!=='character')throw new Error('Invalid player character');
+    if(!recipient || recipient.type!=='character' || !this.giftRecipients.some(a=>a.id===recipient.id))throw new Error('Invalid player character');
     const snapshot=shopData(this.actor);
     for(const line of lines){
       const stock=snapshot.stock.find(s=>s.id===line.id);
