@@ -59,20 +59,37 @@ export function openShopItemSheet(data,{
  // temporary document observer access so the ordinary dnd5e sheet is readable.
  const source=structuredClone(data);
  delete source._id;
- source.ownership={...(source.ownership??{}),default:2,[globalThis.game?.user?.id]:3};
+ delete source.id;
+ delete source.folder;
+ delete source.ownership;
+ source.ownership={default:3};
  const doc=new itemClass(source,{parent:null});
+ // Preview is a *local ephemeral* Item. It is never persisted, purchased or
+ // put into inventory. Explicitly allow reading it on non-GM clients.
+ const originalPermission=doc.testUserPermission?.bind(doc);
+ if(typeof doc.testUserPermission==='function'){
+   try{Object.defineProperty(doc,'testUserPermission',{configurable:true,value:(user,level,options)=>{
+     if(user?.id===globalThis.game?.user?.id)return true;
+     return originalPermission?.(user,level,options)??false;
+   }});}catch(error){console.warn('NPC Shops: temporary preview permissions',error);}
+ }
  const sheet=doc.sheet;
- if(!sheet || typeof sheet.render!=='function')throw new Error("Foundry Item sheet is unavailable");
- const lift=()=>{
-   try{
+ if(!sheet || typeof sheet.render!=='function')throw new Error('Foundry Item sheet unavailable');
+ const bringToFront=()=>{
+   try {
      sheet.bringToTop?.();
-     const el=sheet.element;
-     const node=el?.[0]??el;
-     if(node?.style)node.style.zIndex='300';
-   }catch(error){console.warn('NPC Shops: sheet focus',error);}
+     const element=sheet.element;
+     const node=element?.[0]??element;
+     if(node?.style)node.style.setProperty('z-index','100001','important');
+   }catch(error){console.warn('NPC Shops: could not focus preview',error);}
  };
- const result=sheet.render(true);
- Promise.resolve(result).then(lift).catch(error=>console.error('NPC Shops: item preview error',error));
- if(typeof requestAnimationFrame==='function')requestAnimationFrame(lift);
+ try{
+   const rendered=sheet.render(true);
+   Promise.resolve(rendered).then(()=>{
+     bringToFront();
+     if(typeof setTimeout==='function')setTimeout(bringToFront,80);
+   }).catch(error=>globalThis.ui?.notifications?.error?.('NPC Shops: '+error.message));
+   if(typeof requestAnimationFrame==='function')requestAnimationFrame(bringToFront);
+ }catch(error){throw new Error('Could not open the Item sheet: '+error.message);}
  return doc;
 }
