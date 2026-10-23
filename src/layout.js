@@ -66,3 +66,19 @@ export function resizeShopFrame(start, dx, dy, edge, viewportWidth, viewportHeig
   }
   return clampShopFrame({left,top,width,height},vw,vh);
 }
+
+/**
+ * The collapsed merchant is a compact title bar, not a tall/wide resizable
+ * sheet. Deliberately bypass clampShopFrame's 350×300 unminimized minimum.
+ */
+export function compactShopFrame(frame, viewportWidth, viewportHeight) {
+  const margin=8;
+  const vw=Math.max(1,Number(viewportWidth)||1);
+  const vh=Math.max(1,Number(viewportHeight)||1);
+  const width=Math.min(300,Math.max(1,vw-2*margin));
+  const height=Math.min(32,Math.max(1,vh-2*margin));
+  const finite=(n,fallback)=>Number.isFinite(n)?n:fallback;
+  const left=Math.round(Math.max(margin,Math.min(vw-width-margin,finite(frame?.left,margin))));
+  const top=Math.round(Math.max(margin,Math.min(vh-height-margin,finite(frame?.top,margin))));
+  return {left,top,width,height};
+}
