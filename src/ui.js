@@ -66,6 +66,7 @@ export class ShopWindow {
   get eligibleBuyers() {
     return game.actors.contents.filter(a => hasOwnership(a, game.user) && a.id !== this.actorId && a.system?.currency && ["character", "npc"].includes(a.type));
   }
+  get giftRecipients() {return game.actors.contents.filter(a=>a.type==='character' && a.id!==this.actorId);}
   get buyer() { return this.eligibleBuyers.find(a => a.id === this.buyerId) ?? this.eligibleBuyers[0]; }
   open() {
     if (!this.element) {
@@ -371,6 +372,7 @@ export class ShopWindow {
           item.sheet?.render?.(true);
           return;
         }
+        if (action === 'cart-give') return await this.giveCart();
         if (action === 'clear-all-stock') return await this.clearAllStock();
         if (action === 'toggle-terms-visibility') {
           if(!this.gm)throw new Error('GM only');
@@ -401,6 +403,7 @@ export class ShopWindow {
           adjustCart(this.cart[this.mode],id,action==='cart-minus'?-1:1,Math.max(0,Math.min(9999,cap)));
           return this.render();
         }
+        if (action === 'tab-cashbox') {if(!this.gm)throw new Error('GM only');this.mode='manage';this.settingsPage='cashbox';return this.render();}
         if (action.startsWith('tab-')) {this.mode = action.slice(4); return this.render();}
         if (action === 'clear-history') {
           if (!this.gm) throw new Error('GM only');
@@ -488,6 +491,57 @@ export class ShopWindow {
     if(!response?.ok)throw new Error(response?.message??'Unable to inspect Item');
     // Real Foundry Item5e document and its native item sheet, temporary only.
     return openShopItemSheet(response.item);
+  }
+  async giveCart() {
+    if(!this.gm || this.mode!=='buy' || this.busy)throw new Error('GM only');
+    const lines=cartLines(this.cart.buy,this.shop,this.buyer,'buy');
+    if(!lines.length)throw new Error('Select items to give first');
+    const recipients=this.giftRecipients;
+    if(!recipients.length)throw new Error('No player character sheets found');
+    // Choose a character, not a player account or NPC sheet.
+    const choices=recipients.map(a=>({id:a.id,name:a.name}));
+    const selected=await new Promise(resolve=>{
+      const select='<select id="npc-shops-give-recipient" style="width:100%">'+choices.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.name)+'</option>').join('')+'</select>';
+      const DialogClass=globalThis.Dialog;
+      if(!DialogClass){resolve(null);return;}
+      new DialogClass({title:'Give shop items (GM only)',content:'<p>Give '+lines.map(l=>esc(l.quantity+' × '+l.item.name)).join(', ')+' without charging any coins.</p><label>Player character '+select+'</label>',
+        buttons:{give:{label:'Give Items',callback:html=>resolve(html.find('#npc-shops-give-recipient').val())},cancel:{label:'Cancel',callback:()=>resolve(null)}},
+        default:'give',close:()=>resolve(null)}).render(true);
+    });
+    if(!selected)return;
+    const recipient=recipients.find(a=>a.id===selected);
+    if(!recipient || recipient.type!=='character')throw new Error('Invalid player character');
+    const snapshot=shopData(this.actor);
+    for(const line of lines){
+      const stock=snapshot.stock.find(s=>s.id===line.id);
+      if(!stock?.item || (!stock.unlimited && stock.quantity<line.quantity))throw new Error('Stock changed; reopen the shop');
+    }
+    this.busy=true;
+    let created=[];
+    try{
+      const sources=lines.map(line=>{
+        const stock=snapshot.stock.find(s=>s.id===line.id);
+        return {...structuredClone(stock.item),system:{...structuredClone(stock.item.system??{}),quantity:line.quantity},_id:undefined};
+      });
+      for(const item of sources)delete item._id;
+      created=await recipient.createEmbeddedDocuments('Item',sources);
+      if(created.length!==sources.length)throw new Error('Could not deliver all items');
+      const next=structuredClone(snapshot);
+      for(const line of lines){
+        const stock=next.stock.find(s=>s.id===line.id);
+        if(!stock.unlimited)stock.quantity-=line.quantity;
+      }
+      next.ledger=[...(next.ledger??[]),...lines.map(line=>({
+        at:new Date().toISOString(),userId:game.user.id,actorId:recipient.id,actorName:recipient.name,
+        kind:'give',itemName:line.item.name,quantity:line.quantity,totalCp:0
+      }))].slice(-60);
+      await this.saveShop(next);
+      this.cart.buy.clear();
+      notify('NPC Shops: Gave '+lines.length+' item type(s) to '+recipient.name+' for free.');
+    }catch(error){
+      if(created.length)await recipient.deleteEmbeddedDocuments('Item',created.map(x=>x.id)).catch(console.error);
+      throw error;
+    }finally{this.busy=false;this.render();}
   }
   async checkoutCart() {
     if(!['buy','sell'].includes(this.mode) || !canCheckout(this.cart[this.mode],this.shop,this.buyer,this.mode))
