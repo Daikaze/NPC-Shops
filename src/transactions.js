@@ -41,15 +41,29 @@ async function buy({user, merchant, buyer, shop}, request, qty) {
   const before = currency(buyer);
   ensure(moneyTotal(before) >= priceCp, "Not enough coins");
   const nextWallet = changeWallet(before, -priceCp);
+  // Credit the merchant's actual NPC actor wallet, and record lifetime purchase
+  // proceeds in GM-only merchant flags. Never expose the cashbox to players.
+  const hasMerchantWallet=!!merchant.system?.currency;
+  const merchantBefore=hasMerchantWallet?currency(merchant):null;
+  const merchantAfter=hasMerchantWallet?changeWallet(merchantBefore,priceCp):null;
   let created = [];
   let moneyAttempted = false;
+  let merchantMoneyAttempted = false;
   try {
     // Debit first. Never deliver a free item if currency update fails or is ignored.
     moneyAttempted = true;
     await setCurrency(buyer, nextWallet);
     created = await buyer.createEmbeddedDocuments("Item", [itemCopy(sku.item, qty)]);
     ensure(created?.length === 1, "Item delivery failed");
+    if(hasMerchantWallet){
+      merchantMoneyAttempted=true;
+      await setCurrency(merchant,merchantAfter);
+    }
     const next = structuredClone(shop);
+    const gross=Number(next.cashboxCp??0);
+    ensure(Number.isSafeInteger(gross)&&gross>=0&&Number.isSafeInteger(gross+priceCp),
+      "Merchant cashbox exceeds safe currency limits");
+    next.cashboxCp=gross+priceCp;
     const target = next.stock.find(s => s.id === sku.id);
     if (!target.unlimited) target.quantity -= qty;
     await setShop(merchant, recordTransaction(next, logEntry(user, buyer, "buy", sku.item.name, qty, priceCp)));
@@ -57,6 +71,7 @@ async function buy({user, merchant, buyer, shop}, request, qty) {
       receipt:{kind:'buy',buyerName:buyer.name,userName:user.name,merchantName:merchant.name,itemName:sku.item.name,quantity:qty,totalCp:priceCp}};
   } catch (err) {
     if (created.length) await buyer.deleteEmbeddedDocuments("Item", created.map(i => i.id)).catch(e => console.error("NPC Shops rollback item error", e));
+    if (merchantMoneyAttempted) await setCurrency(merchant,merchantBefore).catch(e => console.error("NPC Shops rollback merchant currency error",e));
     if (moneyAttempted) await setCurrency(buyer, before).catch(e => console.error("NPC Shops refund error", e));
     throw err;
   }
