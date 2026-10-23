@@ -33,6 +33,7 @@ function hero(w,shop,buyer,label,avatar){
 function tabs(w){
  return `<nav class="ns-mp-tabs">${button('tab-buy','<i class="fas fa-shopping-bag"></i> Buy',`class="${w.mode==='buy'?'active':''}"`)}
  ${button('tab-sell','<i class="fas fa-hand-holding-usd"></i> Sell',`class="${w.mode==='sell'?'active':''}"`)}
+ ${w.gm?button('tab-cashbox','<i class="fas fa-coins"></i> Cashbox',`class="${w.mode==='manage'&&w.settingsPage==='cashbox'?'active':''}"`):''}
  ${w.gm?button('tab-manage','<i class="fas fa-sliders-h"></i> Settings <small>GM</small>',`class="${w.mode==='manage'?'active':''}"`):''}</nav>`;
 }
 function sidebar(w,entries){
@@ -121,6 +122,7 @@ function bill(w,shop,buyer){
  <p class="ns-mp-after">${buyer?esc(buyer.name)+`’s purse after trade: ${coin(w.mode==='buy'?Math.max(0,funds-total):funds+total)}`:'Select a character.'}</p>
  ${button('cart-checkout',`<span class="ns-mp-seal"><i class="fas fa-stamp"></i></span><span>${w.mode==='buy'?'Buy':'Sell'} · ${cpToGp(total)} gp</span>`,
  `class="ns-mp-checkout" ${!canCheckout(w.cart[w.mode],shop,buyer,w.mode)||w.busy?'disabled':''}`)}
+ ${w.gm&&w.mode==='buy'?button('cart-give','<i class="fas fa-gift"></i> Give (GM)',`class="ns-mp-give" ${!lines.length||w.busy?'disabled':''}`):''}
  ${lines.length?button('cart-clear','Clear bill','class="ns-mp-clear"'):''}
  </div></aside>`;
 }
