@@ -2,7 +2,7 @@ import {MODULE_ID, cpToGp, emptyShop, gpToCp, hasOwnership, itemPriceCp, moneyTo
 import {groupItems} from "./categories.js";
 import {isNpcActor} from "./merchant-types.js";
 import {captureWindowState,restoreWindowState} from "./window-state.js";
-import {clampShopFrame,shopSizeLayout,resizeShopFrame} from './layout.js';
+import {clampShopFrame,shopSizeLayout,resizeShopFrame,compactShopFrame} from './layout.js';
 import {renderMerchantView} from "./merchant-view.js";
 import {cartEntries,cartLines,adjustCart,canCheckout} from "./merchant-cart.js";
 import {collectStockEdits,applyStockEdits,setBuyPrice} from "./manage-stock.js";
@@ -58,6 +58,8 @@ export class ShopWindow {
     this.settingsPage = 'stock';
     this.buybackDraft = null;
     this.minimized = false;
+    this.restoredFrame = null;
+    this.miniFrameAnchor = null;
 
     initMerchantTables(this);
     this.searchQueries = {buy: "", sell: "", manage: ""};
@@ -114,9 +116,30 @@ export class ShopWindow {
     return confirmShopDialog(this.element,{title,message,confirmLabel,danger});
   }
   toggleMinimize(){
-    this.minimized=!this.minimized;
-    if(this.element?.classList?.toggle)this.element.classList.toggle('ns-is-minimized',this.minimized);
-    this.render();
+    if (!this.element) return;
+    const el=this.element;
+    const rect=el.getBoundingClientRect();
+    if (!this.minimized) {
+      // Save the full dimensions BEFORE collapsing: CSS is not a reliable
+      // restoration source when other module themes force !important widths.
+      this.restoredFrame={left:rect.left,top:rect.top,width:rect.width,height:rect.height};
+      this.minimized=true;
+      el.classList?.toggle?.('ns-is-minimized',true);
+      this.render();
+      this.applyCompactShopFrame(this.restoredFrame);
+      this.miniFrameAnchor=el.getBoundingClientRect();
+    } else {
+      // Moving the title bar while minimized also moves the restored sheet.
+      const original=this.restoredFrame??{left:rect.left,top:rect.top,width:900,height:700};
+      const dx=this.miniFrameAnchor ? rect.left-this.miniFrameAnchor.left : 0;
+      const dy=this.miniFrameAnchor ? rect.top-this.miniFrameAnchor.top : 0;
+      this.minimized=false;
+      el.classList?.toggle?.('ns-is-minimized',false);
+      this.render();
+      this.applyShopFrame({...original,left:original.left+dx,top:original.top+dy});
+      this.restoredFrame=null;
+      this.miniFrameAnchor=null;
+    }
   }
   /** Remove only sale stock, preserving merchant settings, RollTables and ledger. */
   async clearAllStock(){
@@ -137,6 +160,13 @@ export class ShopWindow {
     } finally {this.busy=false;}
   }
   refresh() { if (this.element) this.render(); }
+  applyCompactShopFrame(frame) {
+    if (!this.element) return;
+    const next=compactShopFrame(frame,window.innerWidth,window.innerHeight);
+    for(const name of ['left','top','width','height'])
+      this.element.style.setProperty(name,`${next[name]}px`,'important');
+    this.element.style.transform='none';
+  }
   applyShopFrame(frame) {
     if (!this.element) return;
     const next = clampShopFrame(frame, window.innerWidth, window.innerHeight);
