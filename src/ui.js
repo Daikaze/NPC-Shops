@@ -80,7 +80,7 @@ export class ShopWindow {
       this.makeDraggable(el);
     }
     this.element.style.display = "flex";
-    this.element.style.zIndex = String(10000 + Math.floor(Math.random() * 500));
+    // Keep the shop within Foundry's ordinary window stack. The former 10000+\n    // layer trapped every Actor and Item sheet behind the storefront.\n    this.element.style.zIndex = String(120 + Math.floor(Math.random() * 20));
     this.element.classList?.toggle?.('ns-is-minimized',this.minimized);
     this.render();
     if (!this.gm) this.load();
