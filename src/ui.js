@@ -66,7 +66,7 @@ export class ShopWindow {
   get eligibleBuyers() {
     return game.actors.contents.filter(a => hasOwnership(a, game.user) && a.id !== this.actorId && a.system?.currency && ["character", "npc"].includes(a.type));
   }
-  get giftRecipients() {return game.actors.contents.filter(a=>a.type==='character' && a.id!==this.actorId);}
+  get giftRecipients() {return game.actors.contents.filter(a=>a.type==='character' && a.id!==this.actorId && game.users.some(u=>!u.isGM && a.testUserPermission?.(u,'OWNER')));}
   get buyer() { return this.eligibleBuyers.find(a => a.id === this.buyerId) ?? this.eligibleBuyers[0]; }
   open() {
     if (!this.element) {
@@ -502,7 +502,7 @@ export class ShopWindow {
     const choices=recipients.map(a=>({id:a.id,name:a.name}));
     const selected=await new Promise(resolve=>{
       const select='<select id="npc-shops-give-recipient" style="width:100%">'+choices.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.name)+'</option>').join('')+'</select>';
-      const DialogClass=globalThis.Dialog;
+      const DialogClass=globalThis.Dialog ?? globalThis.foundry?.appv1?.api?.Dialog;
       if(!DialogClass){resolve(null);return;}
       new DialogClass({title:'Give shop items (GM only)',content:'<p>Give '+lines.map(l=>esc(l.quantity+' × '+l.item.name)).join(', ')+' without charging any coins.</p><label>Player character '+select+'</label>',
         buttons:{give:{label:'Give Items',callback:html=>resolve(html.find('#npc-shops-give-recipient').val())},cancel:{label:'Cancel',callback:()=>resolve(null)}},
