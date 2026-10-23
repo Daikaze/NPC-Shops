@@ -630,3 +630,86 @@
   .ns-mp-hero{flex-wrap:wrap!important}
 }
 .npc-shops-window .ns-cashbox-manage input{width:160px;max-width:100%}
+
+
+/* v0.4.8: explicit Foundry-style diagonal corner resize grip.
+ * Do not use the browser's native resize on a complex scrollable flex window:
+ * earlier fixed-width grids and native grip placement made width drag unreliable.
+ */
+.npc-shops-window:not(.ns-directory) {
+  resize:none!important;
+  overflow:hidden!important;
+  min-width:0!important;
+  min-height:0!important;
+  max-width:none!important;
+  max-height:none!important;
+}
+.npc-shops-window:not(.ns-directory) .ns-shop-resize-handle {
+  position:absolute!important;
+  bottom:0!important;
+  right:0!important;
+  width:25px!important;
+  height:25px!important;
+  z-index:12!important;
+  cursor:nwse-resize!important;
+  touch-action:none!important;
+  user-select:none!important;
+  background:linear-gradient(135deg, transparent 48%, #bea77d 49%,#bea77d 52%,transparent 53%),
+             linear-gradient(135deg, transparent 63%, #bea77d 64%,#bea77d 67%,transparent 68%),
+             linear-gradient(135deg, transparent 78%, #bea77d 79%,#bea77d 82%,transparent 83%);
+  background-size:18px 18px!important;
+  background-position:right 3px bottom 3px!important;
+  background-repeat:no-repeat!important;
+  opacity:.85;
+}
+.npc-shops-window:not(.ns-directory) .ns-shop-resize-handle:hover{opacity:1;background-color:#bd985c22}
+.npc-shops-window:not(.ns-directory).ns-is-minimized .ns-shop-resize-handle{display:none!important}
+.npc-shops-window:not(.ns-directory) .ns-mp-body{
+  min-width:0!important;min-height:0!important;flex:1 1 auto!important;overflow:auto!important;
+}
+.npc-shops-window:not(.ns-directory) .ns-mp-grid{
+  width:100%!important;
+  min-width:0!important;
+  grid-template-columns:minmax(130px,18%) minmax(0,1fr) minmax(175px,27%)!important;
+}
+.npc-shops-window:not(.ns-directory) .ns-mp-tabs {
+  flex-shrink:0!important;
+  overflow-x:auto!important;
+}
+.npc-shops-window:not(.ns-directory) .ns-mp-stock,
+.npc-shops-window:not(.ns-directory) .ns-mp-main {min-width:0!important}
+.npc-shops-window:not(.ns-directory).ns-shop-medium .ns-mp-grid {
+  grid-template-columns:minmax(125px,30%) minmax(0,1fr)!important;
+  height:auto!important;
+  min-height:100%;
+}
+.npc-shops-window:not(.ns-directory).ns-shop-medium .ns-mp-bill {
+  grid-column:1 / -1!important;
+  max-height:280px!important;
+  overflow:auto!important;
+}
+.npc-shops-window:not(.ns-directory).ns-shop-compact .ns-mp-grid {
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  height:auto!important;
+  min-height:100%;
+}
+.npc-shops-window:not(.ns-directory).ns-shop-compact .ns-mp-sidebar {
+  display:block!important;
+  grid-column:1!important;
+  max-height:110px!important;
+  overflow:auto!important;
+}
+.npc-shops-window:not(.ns-directory).ns-shop-compact .ns-mp-main {
+  grid-column:1!important;
+  min-height:160px!important;
+  overflow:visible!important;
+}
+.npc-shops-window:not(.ns-directory).ns-shop-compact .ns-mp-bill {
+  grid-column:1!important;
+  max-height:280px!important;
+  overflow:auto!important;
+}
+.npc-shops-window:not(.ns-directory).ns-shop-compact .ns-mp-hero{
+  flex-wrap:wrap!important;
+}
