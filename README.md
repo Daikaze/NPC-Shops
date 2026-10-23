@@ -1,5 +1,13 @@
 # NPC Shops
 
+## v0.5.2 — Buy price editing without unintended item dragging
+
+- The merchandise row is no longer draggable. Drag an item's **icon or name** in Buy to add it to the Bill of Sale or purchase it onto a character sheet.
+- Selecting, clicking, or editing the GM-only **Price (GP)** field no longer starts a native browser drag of the parent item row.
+- The save-price button still persists the item's new merchant price; player-visible prices and the GM-authorized transaction checks remain unchanged.
+- A regression test checks both behaviors: text input blocks dragging, and the preview still generates an NPC Shops purchase drag payload.
+- Existing v11/v14 support targets remain unchanged; manual in-game mouse interaction should still be validated.
+
 ## v0.5.1 — Shops launcher window stacking fix
 
 - Lowered the draggable GM-only floating **Shops** launcher from `z-index: 510` to `z-index: 20`, so Foundry v11/v14 Character Sheets, Item Sheets, and merchant windows can appear above it.
