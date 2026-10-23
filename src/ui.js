@@ -385,11 +385,13 @@ export class ShopWindow {
           const amount=gpToCp(field.value);
           const actor=this.actor;
           if(!actor?.system?.currency)throw new Error('Merchant wallet unavailable');
-          const {moneyBreakdown}=await import('./core.js');
+          const {moneyTotal,changeWallet}=await import('./core.js');
           const {setCurrency}=await import('./transactions.js');
           field.disabled=true;
-          // Replace the full balance; this does not alter lifetime proceeds.
-          await setCurrency(actor,moneyBreakdown(amount));
+          // Set the exact requested balance without converting existing GP
+          // into platinum; this does not alter lifetime proceeds.
+          const difference=amount-moneyTotal(actor.system.currency);
+          await setCurrency(actor,changeWallet(actor.system.currency,difference));
           notify('NPC Shops: Merchant balance updated.');
         }catch(error){notify('NPC Shops: '+error.message,true);}
         finally{this.render();}
