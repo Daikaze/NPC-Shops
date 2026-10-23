@@ -57,6 +57,7 @@ export class ShopWindow {
     this.settingsPage = 'stock';
     this.buybackDraft = null;
     this.minimized = false;
+    this.expanded = false;
     initMerchantTables(this);
     this.searchQueries = {buy: "", sell: "", manage: ""};
   }
@@ -84,6 +85,7 @@ export class ShopWindow {
     this.element.style.display = "flex";
     // Keep the shop within Foundry's ordinary window stack. The former 10000+\n    // layer trapped every Actor and Item sheet behind the storefront.\n    this.element.style.zIndex = '60';
     this.element.classList?.toggle?.('ns-is-minimized',this.minimized);
+    this.element.classList?.toggle?.('ns-expanded',this.expanded);
     this.render();
     if (!this.gm) this.load();
   }
@@ -183,6 +185,7 @@ export class ShopWindow {
           ? button('enable','Make Merchant')
           : 'Only NPC actors may be made merchants.'}</div>`;
     this.element.classList?.toggle?.('ns-is-minimized',this.minimized);
+    this.element.classList?.toggle?.('ns-expanded',this.expanded);
     this.renderedMode = this.mode;
     restoreWindowState(this.element, this.renderedMode, this.windowState);
     this.applySearchFilter();
@@ -367,6 +370,7 @@ export class ShopWindow {
       const itemId = target.closest("[data-item]")?.dataset.item;
       try {
         if (action === 'close') return this.close();
+        if (action === 'toggle-shop-size') {this.expanded=!this.expanded;this.element.style.width='';this.element.style.height='';this.element.classList.toggle('ns-expanded',this.expanded);return;}
         if (action === 'inspect-item')return await this.inspectItem(target.dataset.entryId);
         if (action === 'inspect-buyer-item'){
           const item=this.buyer?.items?.get?.(target.dataset.entryId);
