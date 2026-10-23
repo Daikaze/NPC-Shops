@@ -2,6 +2,7 @@ import {MODULE_ID, cpToGp, emptyShop, gpToCp, hasOwnership, itemPriceCp, moneyTo
 import {groupItems} from "./categories.js";
 import {isNpcActor} from "./merchant-types.js";
 import {initExtras,renderCompendiumBrowser,renderTables,extraInput,extraChange,extraDrop,extraClick} from "./shop-extras-ui.js";
+import {captureWindowState,restoreWindowState} from "./window-state.js";
 
 const windows = new Map();
 const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -43,6 +44,8 @@ export class ShopWindow {
     this.buyerId = null;
     this.remoteShop = null;
     this.categoryState = new Map();
+    this.windowState = new Map();
+    this.renderedMode = null;
     this.searchQueries = {buy: "", sell: "", manage: ""};
     initExtras(this);
   }
@@ -109,6 +112,7 @@ export class ShopWindow {
     const actor = this.actor;
     const label = this.gm ? actor?.name ?? this.name : this.name;
     const avatar = this.gm ? actor?.img ?? this.img : this.img;
+    captureWindowState(this.element, this.renderedMode, this.windowState);
     // Preserve accordion state across purchases, updates and tab changes.
     for (const section of this.element.querySelectorAll?.(".ns-category[data-category]") ?? []) {
       this.categoryState.set(`${section.dataset.view}:${section.dataset.category}`, section.open);
@@ -124,7 +128,9 @@ export class ShopWindow {
         ${this.mode === 'buy' ? this.renderBuy(shop, buyer) : this.mode === 'sell' ? this.renderSell(shop, buyer) : this.mode === 'tables' && this.gm ? renderTables(this, shop) : this.renderManage(shop)}
         <div class="ns-empty ns-no-results" hidden>No items match your search.</div>
       ` : `<div class="ns-empty">${this.loading ? 'Loading shop items…' : this.gm && !isNpcActor(actor) ? 'Only NPC actors can be converted into shops.' : this.gm ? 'Click Make Merchant to enable this NPC as a shop.' : 'Merchant information not available. A GM must be online.'}</div>`}
-      </main><footer>Foundry v${esc(game.version || game.release?.generation)} · NPC Shops v0.2.0 alpha</footer>`;
+      </main><footer>Foundry v${esc(game.version || game.release?.generation)} · NPC Shops v0.2.1 alpha</footer>`;
+    this.renderedMode = this.mode;
+    restoreWindowState(this.element, this.renderedMode, this.windowState);
     this.applySearchFilter();
   }
   /** Search stays mounted while filtering so unsaved Manage edits and quantities are preserved. */
@@ -183,7 +189,7 @@ export class ShopWindow {
       ${renderCompendiumBrowser(this)}
       <div class="ns-drop" data-drop="items">Drag & drop items here from Items, Compendiums or Actor sheets</div>
       <div class="ns-items">${this.renderCategories(shop.stock, s => s.item, s => `<div class="ns-item ns-manage-item" data-sku="${esc(s.id)}"><img src="${esc(s.item.img || 'icons/svg/item-bag.svg')}" alt=""/><div class="ns-itemtext"><strong>${esc(s.item.name)}</strong><small>Price GP <input data-field="price" type="number" min="0" step="0.01" value="${cpToGp(s.priceCp)}"/> Stock <input data-field="stock" type="number" min="0" step="1" value="${esc(s.quantity)}"/> <label><input type="checkbox" data-field="unlimited" ${s.unlimited ? 'checked' : ''}/> ∞</label></small></div>${button('save-item', 'Save')}${button('remove', '×')}</div>`)}</div>
-      <details class="ns-ledger"><summary>Transaction History (${shop.ledger.length})</summary><div class="ns-ledger-toolbar">${button("clear-history", "Clear History", !shop.ledger.length ? "disabled" : "")}</div>${shop.ledger.slice().reverse().map(l => `<div>${esc(l.at?.slice(0,16))}: ${esc(l.actorName)} ${esc(l.kind)} ${esc(l.quantity)} × ${esc(l.itemName)} (${cpToGp(l.totalCp)} GP)</div>`).join('') || 'No transactions yet'}</details>`;
+      <details class="ns-ledger" data-persist="ledger"><summary>Transaction History (${shop.ledger.length})</summary><div class="ns-ledger-toolbar">${button("clear-history", "Clear History", !shop.ledger.length ? "disabled" : "")}</div>${shop.ledger.slice().reverse().map(l => `<div>${esc(l.at?.slice(0,16))}: ${esc(l.actorName)} ${esc(l.kind)} ${esc(l.quantity)} × ${esc(l.itemName)} (${cpToGp(l.totalCp)} GP)</div>`).join('') || 'No transactions yet'}</details>`;
   }
   bindEvents(el) {
     el.addEventListener("input", e => {

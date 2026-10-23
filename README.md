@@ -1,6 +1,6 @@
 # NPC Shops
 
-**Experimental alpha v0.2.0** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+**Experimental alpha v0.2.1** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
 
 ## v0.1.19 — Search merchandise by name
 
@@ -88,6 +88,14 @@
 - Resolve v11 `text/documentCollection/documentId` and v14 `name/description/documentUuid` results. Prefer direct Item links, then exact Item names in world Items and the selected/Plutonium Item Compendium. Gather resources such as `Gathering: Coast: Gillyweed` match `Gillyweed`.
 - If a result is **text only** and no matching Item exists, the GM sees a clearly labeled **basic Loot** fallback (price configurable, default 0 GP). This doesn't fabricate Plutonium-specific stats. Disable the fallback to see Unresolved results.
 - Tables are GM-only. Player Buy/Sell, NPC badge, character-sheet behavior, categories, transaction logging, currency handling and NPC-only creation remain unchanged.
+
+## v0.2.1 — Better readability, persistent scroll, Import All Compendium Items
+
+- Improved contrast, font sizes, field widths and responsive layout in Buy, Sell, Manage and Rollable Tables. Long RollTable labels no longer wrap into narrow illegible fragments.
+- Re-rendering after actions preserves per-tab scroll positions, nested Compendium/Rolled Items list positions and expanded Compendium, Transaction History and Unresolved panels.
+- **Manage → Import from Item Compendium → Import All Items**: choose an Item Compendium then confirm mass import of *all physical Items* (not just the first 100 or current search matches). It skips items already imported from the same Compendium by source UUID, leaves existing stock and prices intact and reports added/skipped/failed items.
+- Imports are committed in groups of 25 to reduce payload spikes and avoid a single large partial operation. For very large packs, make a backup of the World first. No changes to players' inventories.
+- All player shopping, merchant token icons, chat notifications, Buy/Sell, Rollable Tables and transaction history are preserved.
 
 ## Features
 

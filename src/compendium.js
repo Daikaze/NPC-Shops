@@ -67,3 +67,55 @@ export async function listRollTableChoices({tables,packs}) {
   return [...new Map(rows.map(t=>[t.uuid,t])).values()]
     .sort((a,b)=>a.name.localeCompare(b.name));
 }
+
+/** Import *every physical Item* in the selected Compendium in safe batches.
+ * - Existing stock is never deleted or overwritten.
+ * - Identical sourceUuid values are skipped to prevent accidental duplicates.
+ * - Each batch is committed before continuing; failures report partial progress.
+ * - Index types may be missing on v11 packs: verify each actual document.
+ */
+export async function importAllCompendiumItems(pack,{
+  existingStock=[],
+  batchSize=25,
+  onBatch,
+  onProgress=()=>{}
+}={}) {
+  if(!isPackType(pack,'Item')||typeof pack?.getDocument!=='function')
+    throw new Error('Choose an Item Compendium first');
+  if(typeof onBatch!=='function')throw new Error('Missing stock save callback');
+  if(!Number.isSafeInteger(batchSize)||batchSize<1||batchSize>100)throw new Error('Invalid import batch size');
+  const index=packIndexItems(await pack.getIndex({fields:['name','type']}));
+  const candidates=[...new Set(index.filter(e=>e?.name && (!e.type||SALEABLE_TYPES.has(e.type)))
+    .map(e=>indexEntryId(e)).filter(Boolean))];
+  const existing=new Set((existingStock??[]).map(s=>s.sourceUuid).filter(Boolean));
+  const report={total:candidates.length,added:0,skippedExisting:0,skippedUnsupported:0,failed:0,failedNames:[]};
+  let staged=[];
+  const flush=async()=>{
+    if(!staged.length)return;
+    await onBatch(staged);
+    report.added+=staged.length;
+    staged=[];
+    onProgress({...report});
+  };
+  for(const id of candidates){
+    const uuid='Compendium.'+pack.collection+'.'+id;
+    if(existing.has(uuid)){report.skippedExisting++;continue;}
+    try {
+      const item=await pack.getDocument(id);
+      if(item?.documentName!=='Item'||!SALEABLE_TYPES.has(item.type)){
+        report.skippedUnsupported++;continue;
+      }
+      const entry=stockCopy(item,1);
+      entry.sourceUuid=uuid;
+      staged.push(entry);existing.add(uuid);
+    } catch(err){
+      report.failed++;if(report.failedNames.length<10)report.failedNames.push(id);
+      console.warn('NPC Shops: Item Compendium entry could not be loaded',pack.collection,id,err);
+    }
+    // A failed stock save is fatal, never misreported as a failed Item.
+    // Previous batches remain committed; this batch is not counted as added.
+    if(staged.length>=batchSize)await flush();
+  }
+  await flush();
+  return report;
+}
