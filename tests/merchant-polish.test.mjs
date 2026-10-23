@@ -141,7 +141,7 @@ test('Clear All merchant stock uses Foundry confirmation and preserves trade con
   {id:'first',item:{name:'Sword',type:'weapon',img:'sword.png',system:{}},priceCp:1500,quantity:4,unlimited:false},
   {id:'second',item:{name:'Potion',type:'consumable',img:'potion.png',system:{}},priceCp:300,quantity:12,unlimited:false}
  ];
- let saved={...emptyShop(),enabled:true,stock:npcItems,ledger:[{kind:'buy',itemName:'Potion'}],
+ let saved={...emptyShop(),enabled:true,stock:npcItems,ledger:[{kind:'buy',itemName:'Potion',quantity:1,totalCp:300,at:'2026-10-23T18:00:00Z',actorName:'Hero'}],
    tables:[{uuid:'RollTable.village',name:'Village'}],sellRate:.65,open:true};
  let writes=0;
  const npc={id:'npc',name:'Mura',type:'npc',img:'npc.png',getFlag:()=>saved,
