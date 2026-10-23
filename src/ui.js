@@ -57,7 +57,7 @@ export class ShopWindow {
     this.settingsPage = 'stock';
     this.buybackDraft = null;
     this.minimized = false;
-    this.expanded = false;
+
     initMerchantTables(this);
     this.searchQueries = {buy: "", sell: "", manage: ""};
   }
@@ -85,7 +85,6 @@ export class ShopWindow {
     this.element.style.display = "flex";
     // Keep the shop within Foundry's ordinary window stack. The former 10000+\n    // layer trapped every Actor and Item sheet behind the storefront.\n    this.element.style.zIndex = '60';
     this.element.classList?.toggle?.('ns-is-minimized',this.minimized);
-    this.element.classList?.toggle?.('ns-expanded',this.expanded);
     this.render();
     if (!this.gm) this.load();
   }
@@ -185,7 +184,6 @@ export class ShopWindow {
           ? button('enable','Make Merchant')
           : 'Only NPC actors may be made merchants.'}</div>`;
     this.element.classList?.toggle?.('ns-is-minimized',this.minimized);
-    this.element.classList?.toggle?.('ns-expanded',this.expanded);
     this.renderedMode = this.mode;
     restoreWindowState(this.element, this.renderedMode, this.windowState);
     this.applySearchFilter();
@@ -370,13 +368,25 @@ export class ShopWindow {
       const itemId = target.closest("[data-item]")?.dataset.item;
       try {
         if (action === 'close') return this.close();
-        if (action === 'toggle-shop-size') {this.expanded=!this.expanded;this.element.style.width='';this.element.style.height='';this.element.classList.toggle('ns-expanded',this.expanded);return;}
         if (action === 'inspect-item')return await this.inspectItem(target.dataset.entryId);
         if (action === 'inspect-buyer-item'){
           const item=this.buyer?.items?.get?.(target.dataset.entryId);
           if(!item)throw new Error('Item is not in your inventory');
           item.sheet?.render?.(true);
           return;
+        }
+        if (action==='cashbox-add' || action==='cashbox-remove'){
+          if(!this.gm || this.mode!=='manage' || this.settingsPage!=='cashbox')throw new Error('GM only');
+          const input=this.element.querySelector('[data-field="cashbox-amount"]');
+          const amount=gpToCp(input?.value);
+          if(amount<=0)throw new Error('Enter an amount greater than zero');
+          const actor=this.actor;
+          if(!actor?.system?.currency)throw new Error('Merchant has no currency wallet');
+          const {changeWallet}=await import('./core.js');
+          const {setCurrency}=await import('./transactions.js');
+          const wallet=changeWallet(actor.system.currency, action==='cashbox-add'?amount:-amount);
+          await setCurrency(actor,wallet);
+          this.render();return;
         }
         if (action === 'cart-give') return await this.giveCart();
         if (action === 'clear-all-stock') return await this.clearAllStock();
