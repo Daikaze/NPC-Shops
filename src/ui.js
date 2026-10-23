@@ -285,7 +285,24 @@ export class ShopWindow {
       this.searchQueries[this.mode] = e.target.value;
       this.applySearchFilter();
     });
-    el.addEventListener("change", e => {
+    el.addEventListener("change", async e => {
+      if(e.target?.matches?.('[data-field="cashbox-balance"]')) {
+        if(!this.gm || this.mode!=='manage' || this.settingsPage!=='cashbox')return;
+        const field=e.target;
+        try {
+          const amount=gpToCp(field.value);
+          const actor=this.actor;
+          if(!actor?.system?.currency)throw new Error('Merchant wallet unavailable');
+          const {moneyBreakdown}=await import('./core.js');
+          const {setCurrency}=await import('./transactions.js');
+          field.disabled=true;
+          // Replace the full balance; this does not alter lifetime proceeds.
+          await setCurrency(actor,moneyBreakdown(amount));
+          notify('NPC Shops: Merchant balance updated.');
+        }catch(error){notify('NPC Shops: '+error.message,true);}
+        finally{this.render();}
+        return;
+      }
       if (tableFieldChange(this,e)) return;
       if (e.target.matches('[data-field="buyer"]')) { this.buyerId = e.target.value; this.render(); }
     });
@@ -374,19 +391,6 @@ export class ShopWindow {
           if(!item)throw new Error('Item is not in your inventory');
           item.sheet?.render?.(true);
           return;
-        }
-        if (action==='cashbox-add' || action==='cashbox-remove'){
-          if(!this.gm || this.mode!=='manage' || this.settingsPage!=='cashbox')throw new Error('GM only');
-          const input=this.element.querySelector('[data-field="cashbox-amount"]');
-          const amount=gpToCp(input?.value);
-          if(amount<=0)throw new Error('Enter an amount greater than zero');
-          const actor=this.actor;
-          if(!actor?.system?.currency)throw new Error('Merchant has no currency wallet');
-          const {changeWallet}=await import('./core.js');
-          const {setCurrency}=await import('./transactions.js');
-          const wallet=changeWallet(actor.system.currency, action==='cashbox-add'?amount:-amount);
-          await setCurrency(actor,wallet);
-          this.render();return;
         }
         if (action === 'cart-give') return await this.giveCart();
         if (action === 'clear-all-stock') return await this.clearAllStock();
