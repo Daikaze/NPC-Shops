@@ -7,7 +7,7 @@ import {ShopWindow} from '../src/ui.js';
 const stock=(id,name,quantity=3,priceCp=100)=>({id,item:{type:'loot',name},priceCp,quantity,unlimited:false});
 const baseShop=()=>({enabled:true,open:true,allowSelling:true,sellRate:.5,
   stock:[stock('a','Apple',3,100),stock('b','Bread',4,200),stock('c','Rope',5,300)],
-  ledger:[{kind:'buy',itemName:'Old'}]});
+  ledger:[{kind:'buy',itemName:'Old',totalCp:100}]});
 function row(id,price,quantity,unlimited=false,hidden=false){
  const fields={'price':{value:price},'stock':{value:quantity},'unlimited':{checked:unlimited}};
  return {dataset:{sku:id},hidden,querySelector(selector){
