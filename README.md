@@ -1,5 +1,12 @@
 # NPC Shops
 
+## v0.4.1 — GM Cashbox shortcut, RP Give, item sheet layering
+
+- GM-only Cashbox button on the shop top navigation opens the existing NPC wallet and proceeds page.
+- GM-only Give action in the Buy bill grants selected items and quantities to a player-owned character Actor without charging money. Normal limited stock is reduced, unlimited stock stays unlimited; the gift is recorded in merchant history.
+- The native Item inspection sheet is raised above the custom shop window.
+- Live validation in Foundry 11 and 14 is still required.
+
 **Experimental alpha v0.4.0** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
 
 ## v0.4.0 — Merchant NPC receives coins, GM-only Cashbox, Item sheets and paid Drag & Drop
