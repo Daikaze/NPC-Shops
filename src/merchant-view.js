@@ -3,17 +3,29 @@ import {cpToGp,moneyTotal,itemPriceCp} from './core.js';
 import {cartEntries,cartLines,cartTotal,canCheckout} from './merchant-cart.js';
 const esc=v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
 const button=(a,t,extra='')=>`<button type="button" data-action="${a}" ${extra}>${t}</button>`;
-const coin=cp=>`${cpToGp(Math.round(Math.max(0,cp)))} <span class="ns-coin">gp</span>`;
+const coin=cp=>`<span class="ns-mp-money"><b>${cpToGp(Math.round(Math.max(0,cp)))}</b><span class="ns-coin" title="Gold pieces" aria-label="gold pieces"><i class="fas fa-coins" aria-hidden="true"></i></span></span>`;
+const describeItem=item=>{
+ const kind=String(item?.system?.type?.value??item?.type??'Item');
+ const type=kind ? kind.charAt(0).toUpperCase()+kind.slice(1) : 'Item';
+ const rarity=String(item?.system?.rarity??'').trim();
+ const rawWeight=item?.system?.weight?.value??item?.system?.weight;
+ const weight=Number(rawWeight);
+ return [type,rarity&&rarity.toLowerCase()!=='common'?rarity:'',rawWeight!==undefined&&Number.isFinite(weight)&&weight>0?weight+' lb':'']
+   .filter(Boolean).join(' · ');
+};
 const itemOf=(w,e)=>w.mode==='buy'?e.item:e;
 function hero(w,shop,buyer,label,avatar){
  const bal=buyer?.system?.currency?moneyTotal(buyer.system.currency):0;
  return `<header class="ns-mp-top"><span>${esc(label)}</span>${button('close','×','class="ns-close" aria-label="Close"')}</header>
  <div class="ns-mp-hero"><img src="${esc(avatar)}" alt="" class="ns-mp-avatar"/>
- <div class="ns-mp-intro"><h2>${esc(label)}</h2><p>Welcome, traveler. See what this merchant has to offer.</p>
- <div class="ns-mp-meta"><span class="${shop.open?'open':'closed'}">● ${shop.open?'Open':'Closed'}</span>
- <span> <i class="fas fa-balance-scale"></i> Sells at list · Buys at ${Math.round(shop.sellRate*100)}%</span></div></div>
+ <div class="ns-mp-intro"><h2>${esc(label)}</h2>
+ <p class="ns-mp-description">Step inside and browse the wares. Every item has a story; perhaps one of them will become part of yours.</p>
+ <div class="ns-mp-meta"><span class="${shop.open?'open':'closed'}"><i class="ns-mp-dot"></i>${shop.open?'Open':'Closed for trade'}</span>
+ <span><i class="fas fa-store" aria-hidden="true"></i> Merchant</span>
+ <span><i class="fas fa-balance-scale" aria-hidden="true"></i> Sells at list · Buys at ${Math.round(Number(shop.sellRate)*100)}%</span></div></div>
  <div class="ns-mp-purse"><small>BUYING AS</small>
- <select data-field="buyer"><option value="">Choose character</option>${w.eligibleBuyers.map(a=>`<option value="${esc(a.id)}" ${buyer?.id===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}</select>
+ <div class="ns-mp-picker"><span class="ns-mp-player-initial">${esc((buyer?.name??'?').charAt(0).toUpperCase())}</span>
+ <select data-field="buyer" aria-label="Choose trading character"><option value="">Choose character</option>${w.eligibleBuyers.map(a=>`<option value="${esc(a.id)}" ${buyer?.id===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}</select></div>
  <strong>${coin(bal)}</strong></div></div>`;
 }
 function tabs(w){
@@ -49,7 +61,7 @@ function catalog(w,shop,buyer,entries){
   const missing=stock!== '∞'&&Number(stock)<1;
   return `<div class="ns-item ns-mp-item" data-entry-id="${esc(entry.id)}">
     <img src="${esc(item.img??'icons/svg/item-bag.svg')}" alt=""/>
-    <div class="ns-itemtext"><strong>${esc(item.name)}</strong><small>${esc(item.type??'Item')} · ${esc(item.system?.rarity??'Common')}</small></div>
+    <div class="ns-itemtext"><strong>${esc(item.name)}</strong><small>${esc(describeItem(item))}</small></div>
     <span class="ns-mp-stock-label ${low?'low':''}">${esc(stock==='∞'?'Unlimited':low?'Last one':w.mode==='buy'?stock+' left':'×'+stock)}</span>
     <span class="ns-mp-price">${coin(price)}</span>
     ${button('cart-add','+',`class="ns-mp-add" data-entry-id="${esc(entry.id)}" aria-label="Add to bill" ${missing||!buyer||w.busy?'disabled':''}`)}
@@ -76,14 +88,15 @@ function bill(w,shop,buyer){
  const total=cartTotal(lines);
  const funds=buyer?.system?.currency?moneyTotal(buyer.system.currency):0;
  return `<aside class="ns-mp-bill" data-scroll-key="bill"><div class="ns-mp-bill-card">
- <small>BILL OF SALE · ${w.mode==='buy'?'BUYING':'SELLING'}</small><h3>${esc(w.name)}</h3><hr/>
+ <small>BILL OF SALE</small><h3>${esc(w.name)}</h3>
+ <div class="ns-mp-bill-date">${w.mode==='buy'?'Buying from the merchant':'Selling to the merchant'}</div><hr/>
  <div class="ns-mp-bill-lines">${lines.length?lines.map(l=>`<div class="ns-mp-bill-line"><div>${l.quantity} × ${esc(l.item.name)}<b>${coin(l.quantity*l.priceCp)}</b></div>
  <small>${coin(l.priceCp)} each</small>
  <div class="ns-mp-qty">${button('cart-minus','−',`data-entry-id="${esc(l.id)}"`)}<span>${l.quantity}</span>
  ${button('cart-plus','+',`data-entry-id="${esc(l.id)}"`)}</div></div>`).join(''):'<p class="ns-mp-bill-empty">Choose goods from the shelves to build your bill.</p>'}</div>
- <hr/><div class="ns-mp-bill-total"><span>${w.mode==='buy'?'SUM OWED':'YOU RECEIVE'}</span><strong>${coin(total)}</strong></div>
+ <hr class="ns-mp-double-rule"/><div class="ns-mp-bill-total"><span>${w.mode==='buy'?'SUM OWED':'YOU RECEIVE'}</span><strong>${coin(total)}</strong></div>
  <p class="ns-mp-after">${buyer?esc(buyer.name)+`’s purse after trade: ${coin(w.mode==='buy'?Math.max(0,funds-total):funds+total)}`:'Select a character.'}</p>
- ${button('cart-checkout',w.mode==='buy'?'Seal it · '+cpToGp(total)+' gp':'Sell it · '+cpToGp(total)+' gp',
+ ${button('cart-checkout',`<span class="ns-mp-seal"><i class="fas fa-stamp"></i></span><span>${w.mode==='buy'?'Seal it':'Sell it'} · ${cpToGp(total)} gp</span>`,
  `class="ns-mp-checkout" ${!canCheckout(w.cart[w.mode],shop,buyer,w.mode)||w.busy?'disabled':''}`)}
  ${lines.length?button('cart-clear','Clear bill','class="ns-mp-clear"'):''}
  </div></aside>`;
@@ -93,5 +106,5 @@ export function renderMerchantView(w,shop,buyer,label,avatar){
  return hero(w,shop,buyer,label,avatar)+tabs(w)+`<main class="ns-content ns-mp-body"><div class="ns-mp-grid">
  ${sidebar(w,entries)}<section class="ns-mp-main" data-scroll-key="catalog">${w.mode==='manage'?settings(w,shop):catalog(w,shop,buyer,entries)}
  <div class="ns-empty ns-no-results" hidden>No items match your search.</div></section>${bill(w,shop,buyer)}
- </div></main><footer>NPC Shops · Foundry v${esc(game.version||game.release?.generation)} · v0.3.0</footer>`;
+ </div></main><footer>NPC Shops · Foundry v${esc(game.version||game.release?.generation)} · v0.3.2</footer>`;
 }
