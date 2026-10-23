@@ -25,7 +25,7 @@ test('Save All validates and gathers every row including searched/hidden items',
  assert.equal(result.changed,3);
  assert.deepEqual(result.shop.stock.map(x=>x.quantity),[25,0,10]);
  assert.deepEqual(result.shop.stock.map(x=>x.priceCp),[450,0,325]);
- assert.deepEqual(result.shop.ledger,[{kind:'buy',itemName:'Old'}]);
+ assert.deepEqual(result.shop.ledger,[{kind:'buy',itemName:'Old',totalCp:100}]);
 });
 test('Save All does not mutate original shop record before persistence',()=>{
  const original=baseShop();
