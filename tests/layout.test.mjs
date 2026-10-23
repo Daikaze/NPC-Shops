@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {clampButtonPosition,clampShopFrame,shopSizeLayout,resizeShopFrame} from '../src/layout.js';
+import {clampButtonPosition,clampShopFrame,shopSizeLayout,resizeShopFrame,compactShopFrame} from '../src/layout.js';
 import {ShopWindow} from '../src/ui.js';
 
 test('movable button is constrained to the available screen', () => {
@@ -86,4 +86,56 @@ test('right-side drag event actually updates explicit pixel widths',()=>{
     listeners.get('pointerup')({pointerId:1});
     assert.equal(listeners.has('pointermove'),false);
   }finally{globalThis.document=oldDocument;globalThis.window=oldWindow;}
+});
+
+test('minimized merchant frame fits a compact title bar and a narrow viewport',()=>{
+  assert.deepEqual(compactShopFrame({left:100,top:90},1280,800),
+    {left:100,top:90,width:300,height:32});
+  assert.deepEqual(compactShopFrame({left:1200,top:770},1280,800),
+    {left:972,top:760,width:300,height:32});
+  assert.deepEqual(compactShopFrame({left:8,top:8},240,200),
+    {left:8,top:8,width:224,height:32});
+});
+test('double-click-style minimize and restore preserves original shop frame',()=>{
+  const savedWindow=globalThis.window;
+  globalThis.window={innerWidth:1280,innerHeight:800};
+  const frame={left:80,top:70,width:800,height:600};
+  const style={setProperty(prop,value){frame[prop]=Number.parseFloat(value);}};
+  const classState=new Map();
+  const element={style,getBoundingClientRect(){return {...frame};},
+    classList:{toggle(name,value){classState.set(name,value);}}};
+  try{
+    const win=new ShopWindow({actorId:'test'},()=>{},()=>{});
+    win.element=element;
+    win.render=()=>{};
+    win.toggleMinimize();
+    assert.equal(win.minimized,true);
+    assert.equal(frame.width,300);
+    assert.equal(frame.height,32);
+    assert.equal(classState.get('ns-is-minimized'),true);
+    win.toggleMinimize();
+    assert.equal(win.minimized,false);
+    assert.deepEqual(frame,{left:80,top:70,width:800,height:600});
+    assert.equal(classState.get('ns-is-minimized'),false);
+  }finally{globalThis.window=savedWindow;}
+});
+test('dragged minimized shop restores its full size at the moved position',()=>{
+  const savedWindow=globalThis.window;
+  globalThis.window={innerWidth:1280,innerHeight:800};
+  const frame={left:100,top:50,width:900,height:680};
+  const element={style:{setProperty(prop,value){frame[prop]=Number.parseFloat(value);}},
+    getBoundingClientRect(){return {...frame};},classList:{toggle(){}}};
+  try{
+    const win=new ShopWindow({actorId:'test'},()=>{},()=>{});
+    win.element=element;win.render=()=>{};
+    win.toggleMinimize();
+    frame.left+=70;frame.top+=25;
+    win.toggleMinimize();
+    assert.deepEqual(frame,{left:170,top:75,width:900,height:680});
+  }finally{globalThis.window=savedWindow;}
+});
+test('last-loaded theme hides all non-header content in minimized state',async()=>{
+  const {readFile}=await import('node:fs/promises');
+  const css=await readFile(new URL('../styles/merchant-tables.css',import.meta.url),'utf8');
+  assert.match(css,/ns-is-minimized > :not\(\.ns-mp-top\):not\(\.ns-header\)/);
 });
