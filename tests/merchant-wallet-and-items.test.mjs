@@ -126,3 +126,36 @@ test('dragging a shop item onto the bill adds it to cart, never directly creates
  assert.equal(w.buyer.delivered,undefined);
  assert.equal(w.merchant.system.currency.gp,2);
 });
+
+test('selecting a Buy price cannot start dragging its Item, while preview drag still purchases',()=>{
+  world();
+  const win=new ShopWindow({actorId:'shop'},()=>{},()=>{});
+  const handlers={};
+  win.element={innerHTML:'',querySelectorAll:()=>[],classList:{toggle(){}},
+    addEventListener:(name,fn)=>{handlers[name]=fn;}};
+  win.bindEvents(win.element);
+  win.render();
+  assert.match(win.element.innerHTML,/data-shop-drag-source="true"/);
+  assert.match(win.element.innerHTML,/class="ns-buy-price-editor" draggable="false"/);
+  assert.doesNotMatch(win.element.innerHTML,/class="ns-item ns-mp-item"[^>]*draggable="true"/);
+
+  let cancelled=0,dragged=false;
+  const input={closest:selector=>selector.includes('.ns-buy-price-editor')?{draggable:false}:null};
+  handlers.dragstart({target:input,dataTransfer:{setData(){dragged=true}},
+    preventDefault(){cancelled++},stopPropagation(){}});
+  assert.equal(cancelled,1);
+  assert.equal(dragged,false);
+
+  const row={dataset:{entryId:'sword'}};
+  const preview={closest:selector=>{
+    if(selector.includes('.ns-buy-price-editor'))return null;
+    if(selector==='[data-shop-drag-source="true"]')return preview;
+    if(selector==='.ns-mp-item[data-entry-id]')return row;
+    return null;
+  }};
+  const types={};
+  handlers.dragstart({target:preview,dataTransfer:{setData:(type,value)=>types[type]=value}});
+  assert.deepEqual(parseShopDrag(types['application/x-npc-shops']),
+    {merchantId:'shop',skuId:'sword',quantity:1});
+  assert.equal(types['text/plain'],types['application/x-npc-shops']);
+});
