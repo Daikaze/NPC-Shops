@@ -41,3 +41,19 @@ export function applyStockEdits(shop,changes) {
     throw new Error('Stock changed while editing. Reopen Settings and retry.');
   return {shop:next,rows:saved.size,changed};
 }
+
+/** A Buy-tab price change only affects a single merchandise entry.
+ * GM-only authorization belongs to ShopWindow; price conversions are checked
+ * here so the shop and purchase total use the same copper-precision price.
+ */
+export function setBuyPrice(shop, skuId, priceGp) {
+  if(!skuId || typeof skuId!=='string')throw new Error('Select an Item to price');
+  const raw=String(priceGp??'').trim();
+  if(!raw)throw new Error('Price cannot be empty');
+  const priceCp=gpToCp(raw);
+  const next=structuredClone(shop);
+  const target=next.stock?.find(entry=>entry.id===skuId);
+  if(!target || !target.item)throw new Error('Item is no longer in the shop');
+  target.priceCp=priceCp;
+  return next;
+}
