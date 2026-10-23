@@ -590,3 +590,12 @@
 .npc-shops-window .ns-mp-grid {min-height:0;}
 .npc-shops-window .ns-give-target {display:block;width:100%;max-width:100%;margin:10px 0;color:#fff;background:#16191f;}
 .npc-shops-window .ns-mp-give {margin-top:8px!important;border:1px solid #8c7342!important;background:#4b3825!important;color:#fff!important;width:100%!important;}
+
+/* v0.4.4: compact sizing with accessible scrollable panels. */
+.npc-shops-window:not(.ns-directory){min-width:350px!important;min-height:260px!important;resize:both!important}
+.npc-shops-window:not(.ns-directory) .ns-mp-hero{min-height:0!important;padding:10px 14px!important}
+.npc-shops-window:not(.ns-directory) .ns-mp-avatar{width:58px!important;height:58px!important}
+.npc-shops-window:not(.ns-directory) .ns-mp-intro h2{font-size:22px!important}
+.npc-shops-window:not(.ns-directory) .ns-mp-grid{grid-template-columns:minmax(100px,18%) minmax(0,1fr) minmax(155px,27%)!important}
+@media(max-width:650px){.npc-shops-window:not(.ns-directory) .ns-mp-grid{grid-template-columns:minmax(0,1fr)!important;overflow:auto!important}.npc-shops-window:not(.ns-directory) .ns-mp-sidebar{display:none!important}}
+.npc-shops-window:not(.ns-directory).ns-is-minimized{resize:none!important;min-height:30px!important}
