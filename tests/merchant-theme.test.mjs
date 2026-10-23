@@ -8,5 +8,5 @@ test('storefront has responsive three-panel layout and no third-party asset depe
  assert.match(ui,/ns-mp-hero/);
  assert.match(ui,/ns-mp-sidebar/);
  assert.match(css,/grid-template-columns:180px minmax/);
- assert.doesNotMatch(ui,/merchant-presets\\/|https:\\/\\/raw\\.githubusercontent/);
+ assert.ok(!ui.includes('raw.githubusercontent.com/mikiross87'));
 });

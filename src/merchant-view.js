@@ -65,6 +65,7 @@ function settings(w,shop){
  <div class="ns-mp-terms"><span>Shop: ${shop.open?'Open':'Closed'}</span>${button('toggle-open',shop.open?'Close Shop':'Open Shop')}</div>
  <div class="ns-mp-terms"><span>Buy from players: ${shop.allowSelling?'Yes':'No'}</span>${button('toggle-sell',shop.allowSelling?'Disable Selling':'Enable Selling')}</div></div>`;
  return `<div class="ns-mp-settings"><h3>Merchant Stock</h3><p>Edit quantities and prices below. Saving updates the Buy tab.</p>
+ <label class="ns-mp-search"><i class="fas fa-search"></i><input type="search" data-field="item-search" placeholder="Search items..." value="${esc(w.searchQueries.manage??'')}"/></label>
  ${w.renderManage(shop)}</div>`;
 }
 function bill(w,shop,buyer){
