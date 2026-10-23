@@ -1,5 +1,12 @@
 # NPC Shops
 
+## v0.4.2 — Give and Item Sheet fixes, resizing
+
+- Replaces the incompatible GM Give dialog with a shop-local recipient picker (player-owned character sheets only); keeps multi-item gifting and stock adjustment.
+- Prevents unsupported sheet-layering APIs from breaking Item previews and lifts opened Item Sheets in front of the shop after rendering.
+- Shop window supports drag resizing from the bottom-right corner, with minimum size and scrollable content.
+- Changes committed to source; live Foundry V11/V14 testing is still pending.
+
 ## v0.4.1 — GM Cashbox shortcut, RP Give, item sheet layering
 
 - GM-only Cashbox button on the shop top navigation opens the existing NPC wallet and proceeds page.
