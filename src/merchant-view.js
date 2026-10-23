@@ -62,14 +62,14 @@ function catalog(w,shop,buyer,entries){
   const stock=w.mode==='buy'?(entry.unlimited?'∞':entry.quantity):(entry.system?.quantity??1);
   const low=stock!== '∞'&&Number(stock)===1;
   const missing=stock!== '∞'&&Number(stock)<1;
-  return `<div class="ns-item ns-mp-item" data-entry-id="${esc(entry.id)}" ${w.mode==='buy'?'draggable="true" title="Drag to bill or character sheet to purchase"':''}>
-    <button type="button" class="ns-mp-item-preview" data-action="${w.mode==='buy'?'inspect-item':'inspect-buyer-item'}" data-entry-id="${esc(entry.id)}" title="Open ${esc(item.name)} Item sheet">
+  return `<div class="ns-item ns-mp-item" data-entry-id="${esc(entry.id)}">
+    <button type="button" class="ns-mp-item-preview" data-action="${w.mode==='buy'?'inspect-item':'inspect-buyer-item'}" data-entry-id="${esc(entry.id)}" ${w.mode==='buy'?'draggable="true" data-shop-drag-source="true"':''} title="${w.mode==='buy'?'Click to inspect; drag icon/name to bill or character sheet':'Open Item sheet'} — ${esc(item.name)}">
       <img src="${esc(item.img??'icons/svg/item-bag.svg')}" alt="" draggable="false"/>
       <span class="ns-itemtext"><strong>${esc(item.name)}</strong><small>${esc(describeItem(item))}</small></span>
     </button>
     <span class="ns-mp-stock-label ${low?'low':''}">${esc(stock==='∞'?'Unlimited':low?'Last one':w.mode==='buy'?stock+' left':'×'+stock)}</span>
     ${w.gm && w.mode==='buy'
-      ? `<div class="ns-buy-price-editor" title="GM only: change shop price"><label>Price (GP)<input type="number" data-field="buy-price" value="${cpToGp(entry.priceCp)}" min="0" step="0.01" inputmode="decimal" aria-label="Buy price for ${esc(item.name)}"/></label>
+      ? `<div class="ns-buy-price-editor" draggable="false" title="GM only: change shop price"><label>Price (GP)<input draggable="false" type="number" data-field="buy-price" value="${cpToGp(entry.priceCp)}" min="0" step="0.01" inputmode="decimal" aria-label="Buy price for ${esc(item.name)}"/></label>
        ${button('save-buy-price','<i class="fas fa-save" aria-hidden="true"></i>',`class="ns-buy-price-save" data-entry-id="${esc(entry.id)}" title="Save Buy price" aria-label="Save Buy price for ${esc(item.name)}"`)}
       </div>`
       : `<span class="ns-mp-price">${coin(price)}</span>`}
