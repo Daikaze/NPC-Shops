@@ -456,7 +456,7 @@ export class ShopWindow {
         if (action === 'close') return this.close();
         if (action === 'save-buy-price') {
           if(!this.gm || this.mode!=='buy')throw new Error('Only the GM can change Buy prices');
-          const row=target.closest('[data-entry-id]');
+          const row=target.closest('.ns-mp-item[data-entry-id]');
           const input=row?.querySelector('[data-field="buy-price"]');
           if(!row || !input)throw new Error('Buy price field is missing');
           this.busy=true;
