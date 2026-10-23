@@ -599,3 +599,12 @@
 .npc-shops-window:not(.ns-directory) .ns-mp-grid{grid-template-columns:minmax(100px,18%) minmax(0,1fr) minmax(155px,27%)!important}
 @media(max-width:650px){.npc-shops-window:not(.ns-directory) .ns-mp-grid{grid-template-columns:minmax(0,1fr)!important;overflow:auto!important}.npc-shops-window:not(.ns-directory) .ns-mp-sidebar{display:none!important}}
 .npc-shops-window:not(.ns-directory).ns-is-minimized{resize:none!important;min-height:30px!important}
+
+/* v0.4.5: explicit sheet-style expand/restore button in title bar. */
+.npc-shops-window:not(.ns-directory).ns-expanded {
+  width: min(1320px,98vw)!important;
+  height: min(960px,96vh)!important;
+  left:1vw!important;top:2vh!important;
+}
+.npc-shops-window .ns-size-btn {padding:2px 7px!important;min-height:24px!important;height:24px!important;background:transparent!important;color:#e7dbbd!important;border:0!important}
+.npc-shops-window .ns-size-btn:hover {background:#554635!important}
