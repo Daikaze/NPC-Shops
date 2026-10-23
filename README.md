@@ -1,6 +1,16 @@
 # NPC Shops
 
-**Experimental alpha v0.3.5** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+**Experimental alpha v0.3.6** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+
+## v0.3.6 — Native-style HUD, Buyback editing, All Table Items, spacious Settings
+
+- **v11 / v14 Make Merchant icon:** match Foundry's dark charcoal/white Token HUD button style rather than the colored navy/gold tile; retain the under-Elevation position in both versions.
+- **Buyback Percentage:** spacious dedicated control with an editable draft and **Save Buyback** button. Can be saved even with zero shop items, and persists an integer 0–100% to the NPC shop flag. Save All retains its existing ability to update the buyback field.
+- **Roll All Tables:** now enumerates **every row** from **every attached RollTable**, including World and Compendium tables, expands nested tables safely, resolves Item references/text results and **adds them directly to Stock in one commit**; never calls random `roll()` for that action. Existing inventory, prices and history are preserved. Duplicate Item sources are merged into their stock quantity; safety limit prevents accidental huge imports.
+- **Individual Roll** remains a random preview workflow with manually editable quantity/price and Add All. Roll All clears earlier previews after importing to prevent accidental double additions.
+- **Keep rolled checkbox:** one 19px square, clear label and consistent spacing, no overlapping native/Foundry glyphs.
+- Wider shop, less cramped merchant settings and RollTable selection, readable quantities, responsive fields, improved vertical spacing.
+- No Item Piles dependency and no new player-facing tab.
 
 ## v0.3.5 — Elevation placement verified for v11 and v14
 

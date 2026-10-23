@@ -74,8 +74,8 @@ function settings(w,shop){
  ${button('clear-history','Clear History',shop.ledger?.length?'':'disabled')}
  ${(shop.ledger??[]).slice().reverse().map(e=>`<p>${esc(e.actorName)} · ${esc(e.kind)} ${esc(e.quantity)} × ${esc(e.itemName)} · ${coin(e.totalCp)}</p>`).join('')||'<p>No transactions yet.</p>'}</div>`;
  if(w.settingsPage==='terms')return `<div class="ns-mp-settings"><h3>Terms</h3><p>Configure this merchant’s terms of trade.</p>
- <div class="ns-mp-terms"><label>Buys at (%) <input data-field="rate" type="number" min="0" max="100" step="1" value="${Math.round(shop.sellRate*100)}"/></label>
- ${button('save-rate','Save Terms')}</div>
+ <div class="ns-mp-terms"><label>Buys at (%) <input data-field="rate" type="number" min="0" max="100" step="1" value="${esc(w.buybackDraft??Math.round(shop.sellRate*100))}"/></label>
+ ${button('save-rate','Save Buyback Percentage')}</div>
  <div class="ns-mp-terms"><span>Shop: ${shop.open?'Open':'Closed'}</span>${button('toggle-open',shop.open?'Close Shop':'Open Shop')}</div>
  <div class="ns-mp-terms"><span>Buy from players: ${shop.allowSelling?'Yes':'No'}</span>${button('toggle-sell',shop.allowSelling?'Disable Selling':'Enable Selling')}</div>
  <div class="ns-mp-danger"><h4>Remove Merchant</h4><p>Deactivate this NPC's shop and hide the merchant icon. Inventory and history are kept for later reactivation.</p>

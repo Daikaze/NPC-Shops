@@ -100,3 +100,63 @@ test('merchant settings include Item Piles-style table controls but no player-fa
  assert.match(w.element.innerHTML,/Add Table/);
  assert.doesNotMatch(w.element.innerHTML,/data-action="tab-tables"/);
 });
+
+
+test('Roll All enumerates every attached table result, never calls random roll()',async()=>{
+ const {allMerchantTableItems}=await import('../src/merchant-tables.js');
+ let draws=0;
+ const inventory=[
+   {documentUuid:sword.uuid,name:'Shortsword'},
+   {documentCollection:'demo.items',documentId:'gilly',text:'Gathering: Coast: Gillyweed'},
+   {name:"Pixie's Parasol"}
+ ];
+ const table={documentName:'RollTable',name:'Village Store',results:{contents:inventory},roll:async()=>{draws++;throw Error('Should not draw random results')}};
+ const lookup=async uuid=>uuid==='RollTable.village'?table:uuid===sword.uuid?sword:uuid===gilly.uuid?gilly:null;
+ const a=await allMerchantTableItems([{uuid:'RollTable.village',name:table.name,rolls:1}],{
+   fromUuidFn:lookup,items:[],packs:[pack]
+ });
+ assert.equal(draws,0);
+ assert.equal(a.rows.length,3);
+ assert.deepEqual(a.rows.map(x=>x.doc.name),['Shortsword','Gillyweed',"Pixie's Parasol"]);
+ assert.equal(a.resultCount,3);
+ assert.equal(a.rows[2].fallback,true);
+});
+test('Roll All consumes every table attached, includes duplicates as stock quantity and preserves prices/history',async()=>{
+ const {allMerchantTableItems}=await import('../src/merchant-tables.js');
+ const mk=(results,name)=>({documentName:'RollTable',name,results:{contents:results}});
+ const docs={
+  'RollTable.one':mk([{documentUuid:sword.uuid},{documentUuid:gilly.uuid}],'Items 1'),
+  'RollTable.two':mk([{documentUuid:sword.uuid}],'Items 2'),
+  [sword.uuid]:sword,[gilly.uuid]:gilly
+ };
+ const rolls=await allMerchantTableItems([
+  {uuid:'RollTable.one',rolls:20},{uuid:'RollTable.two',rolls:10}
+ ],{fromUuidFn:async uuid=>docs[uuid]??null,items:[],packs:[]});
+ assert.equal(rolls.rows.length,3);
+ const state=combineRolled([],rolls.rows,false);
+ assert.equal(state.find(x=>x.doc.name==='Shortsword').quantity,2);
+ const existing={enabled:true,stock:[{id:'old',item:{name:'Rope'},quantity:7,priceCp:500}],
+    ledger:[{kind:'buy'}],tables:[]};
+ const next=commitRolledStock(existing,state);
+ assert.equal(next.stock.length,3);
+ assert.equal(next.stock[0].item.name,'Rope');
+ assert.deepEqual(next.ledger,existing.ledger);
+ assert.equal(existing.stock.length,1);
+});
+test('Roll All expands nested RollTable contents without repetition and rejects cycles',async()=>{
+ const {allMerchantTableItems}=await import('../src/merchant-tables.js');
+ const p1={documentName:'RollTable',name:'Top',results:[{documentCollection:'RollTable',documentId:'inner'}]};
+ const p2={documentName:'RollTable',name:'Inner',results:[{documentUuid:sword.uuid}]};
+ const m={'RollTable.top':p1,'RollTable.inner':p2,[sword.uuid]:sword};
+ const found=await allMerchantTableItems([{uuid:'RollTable.top'}],{fromUuidFn:async uuid=>m[uuid],items:[],packs:[]});
+ assert.equal(found.rows.length,1);
+ p2.results=[{documentCollection:'RollTable',documentId:'top'}];
+ await assert.rejects(allMerchantTableItems([{uuid:'RollTable.top'}],{fromUuidFn:async uuid=>m[uuid],items:[],packs:[]}),/Circular/);
+});
+test('Roll All stops before exceeding a safe row limit',async()=>{
+ const {allMerchantTableItems}=await import('../src/merchant-tables.js');
+ const table={documentName:'RollTable',name:'Too large',results:Array.from({length:6},()=>({documentUuid:sword.uuid}))};
+ await assert.rejects(allMerchantTableItems([{uuid:'RollTable.large'}],{
+   maxRows:5,fromUuidFn:async u=>u==='RollTable.large'?table:sword,items:[],packs:[]
+ }),/more than 5/);
+});

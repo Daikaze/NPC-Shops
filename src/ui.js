@@ -287,6 +287,7 @@ export class ShopWindow {
           this.busy=true;
           try {
             await this.saveShop(result.shop); // exactly one persistent shop update
+            this.buybackDraft=null;
             notify(`NPC Shops: Saved ${result.rows} items (${result.changed} changed).`);
           } finally {this.busy=false;}
           return;

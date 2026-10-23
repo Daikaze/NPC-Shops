@@ -133,3 +133,44 @@ export function commitRolledStock(shop,preview) {
  }
  return next;
 }
+
+/** Import EVERY result row from linked RollTables (not random weighted draws).
+ * Foundry RollTable.results holds the complete table in v11 and v14.
+ * Nested RollTables are expanded, with loop and size protection.
+ */
+export async function allMerchantTableItems(links,{
+ fromUuidFn=globalThis.fromUuid,items=globalThis.game?.items,
+ packs=globalThis.game?.packs,maxRows=3000
+}={}) {
+ if(typeof fromUuidFn!=='function')throw new Error('Foundry UUID resolution is unavailable');
+ const rows=[],unresolved=[],cache=new Map();
+ let visitedRows=0;
+ const visit=async(uuid,stack)=>{
+  if(stack.has(uuid))throw new Error('Circular RollTable reference: '+uuid);
+  if(stack.size>8)throw new Error('RollTable nesting exceeds 8 levels');
+  const table=await fromUuidFn(uuid);
+  if(!table||table.documentName!=='RollTable')throw new Error('RollTable not found: '+uuid);
+  const nextStack=new Set([...stack,uuid]);
+  for(const result of entries(table.results)) {
+   if(++visitedRows>maxRows)throw new Error('Import has more than '+maxRows+' table rows. Split the tables into smaller groups.');
+   let nested=null;
+   const collection=String(result.documentCollection??'');
+   if(result.documentId && (collection==='RollTable'||collection==='tables'||collection.endsWith('.tables'))){
+     nested=collection==='RollTable'||collection==='tables'
+       ?'RollTable.'+result.documentId
+       :(collection.startsWith('Compendium.')?collection:'Compendium.'+collection)+'.'+result.documentId;
+   }
+   if(!nested && /^RollTable\./.test(String(result.documentUuid??'')))nested=result.documentUuid;
+   if(nested){await visit(nested,nextStack);continue;}
+   const hit=await resolveRollResult(result,{
+     tableName:table.name,fromUuidFn,items,packs,indexCache:cache
+   });
+   if(!hit){unresolved.push(table.name+': '+String(result.text??result.name??'Unnamed result'));continue;}
+   const quantity=Number(result.quantity??1);
+   rows.push({doc:hit.doc,quantity:Number.isSafeInteger(quantity)&&quantity>=1&&quantity<=999999?quantity:1,
+     fallback:hit.fallback});
+  }
+ };
+ for(const link of links)await visit(tableLink(link).uuid,new Set());
+ return {rows,unresolved,tableCount:links.length,resultCount:visitedRows};
+}

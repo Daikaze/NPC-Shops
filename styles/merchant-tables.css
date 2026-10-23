@@ -67,3 +67,173 @@
 .npc-shops-window .ns-mp-danger p{color:#ead5d6!important;font-size:12px!important}
 .npc-shops-window button.ns-remove-merchant{color:#fff!important;background:#672a35!important;border-color:#be7d85!important}
 .npc-shops-window button.ns-remove-merchant:hover{background:#883845!important}
+
+/* v0.3.6 — v11/v14 HUD matches native dark Token HUD action tiles. */
+.npc-shop-hud.control-icon,
+.npc-shop-hud,
+.npc-shop-hud.ns-hud-floating,
+.npc-shop-hud.ns-hud-under-elevation {
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  width:38px!important;height:38px!important;
+  min-width:38px!important;min-height:38px!important;
+  max-width:38px!important;max-height:38px!important;
+  padding:0!important;margin:3px auto!important;
+  color:#f0f1f2!important;background:#252525!important;
+  border:1px solid #343434!important;border-radius:9px!important;
+  box-shadow:0 3px 9px #0009!important;
+  transform:none!important;filter:none!important;
+  cursor:pointer!important;
+}
+.npc-shop-hud.control-icon:hover,.npc-shop-hud:hover{
+  background:#3b3b3b!important;color:#fff!important;
+}
+.npc-shop-hud .fa-store {font-size:16px!important;color:#f0f1f2!important;line-height:1!important}
+.npc-shop-hud.ns-hud-elevation-fallback,
+.npc-shop-hud.ns-hud-floating {
+  position:absolute!important;left:-43px!important;right:auto!important;
+  top:calc(50% - 30px)!important;margin:0!important;
+}
+/* Less cramped Settings and Rollable Tables: more room for the catalog column. */
+.npc-shops-window:not(.ns-directory){width:min(1160px,97vw)!important;max-width:97vw!important}
+.npc-shops-window .ns-mp-grid {grid-template-columns:164px minmax(0,1fr) 245px!important}
+.npc-shops-window .ns-mp-main{padding:22px 20px!important}
+.npc-shops-window .ns-mp-settings >h3{margin:0 0 10px!important}
+.npc-shops-window .ns-mp-settings>p{margin:0 0 16px!important;line-height:1.55!important}
+.npc-shops-window .ns-mp-settings .ns-mp-search{margin:0 0 18px!important;max-width:310px!important}
+.npc-shops-window .ns-buyback-editor{
+  display:grid!important;
+  grid-template-columns:minmax(190px,1fr) auto 92px auto!important;
+  align-items:center!important;gap:14px!important;
+  padding:15px 18px!important;margin:14px 0 20px!important;
+  border:1px solid #515766!important;background:#242934!important;
+  border-radius:7px!important;
+}
+.npc-shops-window .ns-buyback-copy{
+  display:flex;flex-direction:column;gap:5px;
+  color:#eceef2!important;
+}
+.npc-shops-window .ns-buyback-copy strong{font-size:13px!important;color:#f2e4ce!important}
+.npc-shops-window .ns-buyback-copy small{
+  display:block!important;
+  font-size:11px!important;line-height:1.4!important;color:#c9ccd3!important;
+}
+.npc-shops-window .ns-buyback-editor>label{
+  font-size:12px!important;white-space:nowrap!important;color:#dcdce1!important;
+}
+.npc-shops-window .ns-buyback-editor input[data-field="rate"]{
+  width:92px!important;max-width:92px!important;
+  min-height:38px!important;padding:5px 8px!important;
+  background:#151a24!important;border:1px solid #6f7788!important;
+  font-size:16px!important;font-weight:700!important;color:#fff!important;
+  text-align:center!important;margin:0!important;
+}
+.npc-shops-window .ns-buyback-editor button[data-action="save-rate"]{
+  min-width:142px!important;min-height:38px!important;
+  background:#53323e!important;border-color:#97737b!important;
+  font-weight:700!important;color:#f8f2e9!important;
+  padding:8px 12px!important;white-space:nowrap!important;
+}
+.npc-shops-window .ns-save-all-bar{
+  padding:15px 18px!important;margin:16px 0!important;
+  gap:14px!important;min-height:65px!important;
+}
+.npc-shops-window .ns-drop{
+  margin:18px 0 22px!important;padding:24px!important;
+  line-height:1.5!important;
+}
+/* Legible RollTable controls: vertical spacing, bigger targets, aligned inputs. */
+.npc-shops-window .ns-populate{padding:20px!important;border-radius:8px!important}
+.npc-shops-window .ns-populate-header{align-items:center!important;gap:16px!important;padding-bottom:14px!important}
+.npc-shops-window .ns-populate-header h3{margin:0!important;line-height:1.35!important}
+.npc-shops-window .ns-populate-header button[data-action="roll-all-tables"]{
+  min-height:38px!important;white-space:normal!important;
+  font-weight:700!important;padding:9px 14px!important;
+  background:#54313c!important;border-color:#97737b!important;color:#fff!important;
+}
+.npc-shops-window .ns-populate-note{
+  margin:10px 0 18px!important;padding:9px 12px!important;
+  border-left:3px solid #a18a68!important;
+  background:#282c35!important;
+  color:#e0d7c8!important;line-height:1.55!important;
+}
+.npc-shops-window .ns-populate-select{
+  gap:12px!important;margin:16px 0 20px!important;
+  align-items:stretch!important;
+}
+.npc-shops-window .ns-populate-select select{
+  min-height:39px!important;flex:1 1 230px!important;
+}
+.npc-shops-window .ns-populate-select button{min-height:39px!important;padding:8px 12px!important}
+.npc-shops-window .ns-populate-table{
+  gap:12px!important;padding:14px 7px!important;
+  align-items:center!important;min-height:56px!important;
+}
+.npc-shops-window .ns-populate-table>strong{
+  flex:1 1 190px!important;line-height:1.5!important;
+}
+.npc-shops-window .ns-populate-table label{white-space:nowrap!important;gap:8px!important}
+.npc-shops-window .ns-populate-table input[type="number"]{
+  width:70px!important;max-width:70px!important;min-width:70px!important;
+  min-height:37px!important;text-align:center!important;
+}
+.npc-shops-window .ns-populate-table button{min-height:37px!important;padding:7px 11px!important}
+.npc-shops-window .ns-populate-rule{margin:24px 0 12px!important}
+.npc-shops-window .ns-populate-rollbar{
+  display:flex!important;justify-content:space-between!important;
+  align-items:center!important;
+  padding:16px!important;
+  gap:18px!important;
+  border:1px solid #4d5260!important;background:#252a34!important;
+  border-radius:7px!important;margin:13px 0 16px!important;
+}
+.npc-shops-window .ns-populate-roll-count{color:#e8e8ed!important;flex:1 1 160px!important;line-height:1.4!important}
+.npc-shops-window .ns-populate-rollbar label.ns-populate-keep{
+  display:inline-flex!important;align-items:center!important;flex-direction:row!important;
+  justify-content:flex-start!important;
+  gap:12px!important;padding:0!important;margin:0!important;
+  white-space:nowrap!important;font-size:12px!important;line-height:1.4!important;
+  min-width:135px!important;
+}
+.npc-shops-window .ns-populate-rollbar input[data-field="keep-rolled"]{
+  box-sizing:border-box!important;display:inline-block!important;position:relative!important;
+  width:19px!important;height:19px!important;min-width:19px!important;
+  max-width:19px!important;min-height:19px!important;max-height:19px!important;
+  padding:0!important;margin:0!important;flex:0 0 19px!important;
+  -webkit-appearance:none!important;appearance:none!important;
+  background:#171c26!important;border:1px solid #9da5b2!important;
+  border-radius:4px!important;box-shadow:none!important;outline-offset:3px!important;
+}
+.npc-shops-window .ns-populate-rollbar input[data-field="keep-rolled"]::before,
+.npc-shops-window .ns-populate-rollbar input[data-field="keep-rolled"]::after{
+  content:none!important;display:none!important;
+}
+.npc-shops-window .ns-populate-rollbar input[data-field="keep-rolled"]:checked {
+  background:#86633d!important;
+  border-color:#ebc78f!important;
+  background-image:linear-gradient(45deg,transparent 45%,#fff 46%,#fff 55%,transparent 56%),
+   linear-gradient(-45deg,transparent 48%,#fff 49%,#fff 58%,transparent 59%)!important;
+  background-size:11px 9px, 8px 13px!important;
+  background-position:2px 7px, 9px 3px!important;
+  background-repeat:no-repeat!important;
+}
+.npc-shops-window .ns-populate-preview{max-height:440px!important;margin-top:16px!important}
+.npc-shops-window .ns-populate-preview-row{
+  padding:12px!important;gap:12px!important;min-height:67px!important;
+}
+.npc-shops-window .ns-populate-preview-row label{gap:5px!important}
+.npc-shops-window .ns-populate-preview-row input[type=number]{
+  min-height:34px!important;width:85px!important;max-width:95px!important;
+}
+@media(max-width:950px){
+ .npc-shops-window .ns-mp-grid{grid-template-columns:135px minmax(0,1fr) 215px!important}
+ .npc-shops-window .ns-mp-main{padding:13px!important}
+ .npc-shops-window .ns-buyback-editor{grid-template-columns:minmax(0,1fr) 92px!important}
+ .npc-shops-window .ns-buyback-editor>label{grid-column:1!important}
+ .npc-shops-window .ns-buyback-editor button{grid-column:1/-1!important}
+}
+@media(max-width:700px){
+ .npc-shops-window .ns-mp-grid{grid-template-columns:105px minmax(0,1fr)!important}
+ .npc-shops-window .ns-populate-header{flex-direction:column!important;align-items:stretch!important}
+ .npc-shops-window .ns-buyback-editor{grid-template-columns:minmax(0,1fr) 92px!important}
+ .npc-shops-window .ns-mp-main{padding:14px!important}
+}
