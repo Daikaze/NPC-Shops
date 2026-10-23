@@ -532,3 +532,40 @@
  .npc-shops-window .ns-mp-stock-label{display:none!important}
  .npc-shops-window .ns-mp-bill-card{min-height:200px!important}
 }
+
+/* v0.3.3 — FIX unreadable WHITE native select popups (Firefox/Windows and v11/v14).
+   Modern Foundry and the user's OS can style the closed select independently
+   from the native expanded list. Explicit dark form color-scheme plus option
+   foreground/background are both needed so white text never sits on white. */
+.npc-shops-window:not(.ns-directory) {
+  color-scheme: dark !important;
+}
+.npc-shops-window:not(.ns-directory) select {
+  color-scheme: dark !important;
+  background-color: #252830 !important;
+  color: #f4f5f8 !important;
+}
+.npc-shops-window:not(.ns-directory) select option,
+.npc-shops-window:not(.ns-directory) select optgroup {
+  color-scheme: dark !important;
+  background-color: #252830 !important;
+  color: #f4f5f8 !important;
+}
+.npc-shops-window:not(.ns-directory) select option:checked {
+  background-color: #45536c !important;
+  color: #ffffff !important;
+}
+.npc-shops-window:not(.ns-directory) select option:disabled {
+  color: #b8bcc6 !important;
+  background-color: #252830 !important;
+}
+/* The buyer dropdown previously used transparent, making native popup white
+   on several Firefox setups even when the main shop was dark. */
+.npc-shops-window:not(.ns-directory) .ns-mp-purse select {
+  color-scheme: dark !important;
+  background: #352229 !important;
+  border: 1px solid #70525b !important;
+  border-radius: 4px !important;
+  color: #ffffff !important;
+  padding: 3px 5px !important;
+}

@@ -51,3 +51,14 @@ test('new hero, copper coin accents, bill wax stamp, and original actions coexis
  assert.match(html,/data-action="tab-manage"/);
  assert.match(html,/data-field="item-search"/);
 });
+
+test('every native shop select and expanded option uses contrasting dark colors',()=>{
+ const css=readFileSync(new URL('../styles/merchant-presets-look.css',import.meta.url),'utf8');
+ assert.match(css,/color-scheme:\s*dark\s*!important/);
+ assert.match(css,/select option,\s*\.npc-shops-window:not\(\.ns-directory\) select optgroup/);
+ assert.match(css,/select option:checked/);
+ assert.match(css,/select option:disabled/);
+ assert.match(css,/\.ns-mp-purse select\s*\{[\s\S]*?background:\s*#352229\s*!important/);
+ assert.match(css,/background-color:\s*#252830\s*!important/);
+ assert.match(css,/color:\s*#f4f5f8\s*!important/);
+});

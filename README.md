@@ -1,6 +1,12 @@
 # NPC Shops
 
-**Experimental alpha v0.3.2** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+**Experimental alpha v0.3.3** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+
+## v0.3.3 — Fix white, unreadable character dropdowns
+
+- Fixes expanded native HTML `select` menus in NPC Shops showing a **white background with white/invisible text** on Firefox/Windows or under Foundry's native control styling.
+- Applies an explicit dark `color-scheme` to the shop form controls, plus matching background/foreground colors for options, selected options, and option groups. The buyer picker gets an opaque background instead of its former transparency.
+- Scoped to the merchant window. No changes to other Foundry interfaces or NPC Shops inventory, trading, Save All, purchases, chat, or NPC controls.
 
 ## v0.3.1 — Slate theme + Save All Stock
 
