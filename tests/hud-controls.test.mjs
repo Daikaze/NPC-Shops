@@ -15,7 +15,7 @@ function mockUi(classic = false) {
     style: {}, ownerDocument: {createElement:()=>button},
     querySelector(sel){
       if (sel === '.npc-shop-hud') return container.child?.className.includes('npc-shop-hud') ? container.child : null;
-      if (sel === '.col.right' || sel === '.hud-column.right') return classic ? container : null;
+      if (sel === '.col.left' || sel === '.hud-column.left') return classic ? container : null;
       return null;
     },appendChild(el){container.appendChild(el);}
   };
@@ -77,4 +77,28 @@ test('HUD click rejects an NPC token that becomes a character',()=>{
   mutable.actor.type='character';
   button.fire('click');
   assert.equal(calls,0);
+});
+
+test('shop button inserts immediately BELOW Elevation in both v11 and v14 HUDs',()=>{
+ for(const classic of [true,false]){
+  const {root,button}=mockUi(classic);
+  const elevation={nextSibling:{name:'next'}};
+  const calls=[];
+  elevation.parentNode={insertBefore:(element,next)=>calls.push({element,next})};
+  const original=root.querySelector.bind(root);
+  root.querySelector=selector=>selector==='[data-action="elevation"]'?elevation:original(selector);
+  assert.equal(injectMerchantHudControl({
+   app:{object:token},html:classic?[root]:root,isGM:true,onOpen:()=>{}
+  }),true);
+  assert.equal(calls.length,1);
+  assert.equal(calls[0].element,button);
+  assert.equal(calls[0].next,elevation.nextSibling);
+  assert.ok(!button.className.includes('ns-hud-floating'));
+ }
+});
+test('shop control uses left HUD column as fallback in v11 without explicit Elevation node',()=>{
+ const {root,button,container}=mockUi(true);
+ assert.equal(injectMerchantHudControl({app:{object:token},html:root,isGM:true,onOpen:()=>{}}),true);
+ assert.equal(container.child,button);
+ assert.ok(!button.className.includes('ns-hud-floating'));
 });

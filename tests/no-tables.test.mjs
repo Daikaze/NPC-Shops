@@ -3,13 +3,13 @@ import assert from 'node:assert/strict';
 import {readFileSync, existsSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {dirname, resolve} from 'node:path';
-import {emptyShop, shopData} from '../src/core.js';
+import {emptyShop, shopData, publicShop} from '../src/core.js';
 
 const here=dirname(fileURLToPath(import.meta.url));
 const ui=readFileSync(resolve(here,'../src/ui.js'),'utf8');
 const css=readFileSync(resolve(here,'../styles/npc-shops.css'),'utf8');
-test('Rollable Tables UI and handlers are removed',()=>{
-  for(const forbidden of ['Rollable Tables','tab-tables','renderTables(','handleTableDrop(','roll-all-tables','tables.js','Import from Item Compendium','renderCompendiumBrowser','shop-extras-ui.js','import-all-compendium']) {
+test('Rollable Tables are only in Settings, with no old standalone tab or Compendium browser',()=>{
+  for(const forbidden of ['tab-tables','renderTables(','handleTableDrop(','tables.js','Import from Item Compendium','renderCompendiumBrowser','shop-extras-ui.js','import-all-compendium']) {
     assert.ok(!ui.includes(forbidden),forbidden);
   }
   assert.ok(!css.includes('.ns-table-'));
@@ -17,10 +17,10 @@ test('Rollable Tables UI and handlers are removed',()=>{
   assert.ok(!existsSync(resolve(here,'../src/compendium.js')));
   assert.ok(!existsSync(resolve(here,'../src/shop-extras-ui.js')));
 });
-test('new merchants have no table defaults',()=>{
+test('new merchants include safe private RollTable links',()=>{
   const shop=emptyShop();
   assert.deepEqual(shop.stock,[]);
-  assert.ok(!('tables' in shop));
+  assert.deepEqual(shop.tables,[]);
   assert.ok(!('autoTextLoot' in shop));
 });
 test('existing merchant stock survives removal',()=>{
@@ -30,5 +30,6 @@ test('existing merchant stock survives removal',()=>{
   assert.deepEqual(shop.stock,stock);
   assert.deepEqual(shop.ledger,old.ledger);
   assert.equal(shop.sellRate,0.7);
-  assert.deepEqual(old.tables,[{uuid:'RollTable.abc'}]);
+  assert.deepEqual(shop.tables,[{uuid:'RollTable.abc'}]);
+  assert.equal(publicShop(shop).tables,undefined);
 });

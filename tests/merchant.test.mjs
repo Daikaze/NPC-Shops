@@ -81,7 +81,7 @@ test('GM sees Buy, Sell and Manage; players see Buy and Sell only', async () => 
   assert.match(gmWin.element.innerHTML,/data-action="tab-buy"/);
   assert.match(gmWin.element.innerHTML,/data-action="tab-sell"/);
   assert.match(gmWin.element.innerHTML,/data-action="tab-manage"/);
-  assert.doesNotMatch(gmWin.element.innerHTML,/Rollable Tables/);
+  assert.match(gmWin.element.innerHTML,/Rollable Tables/);
   globalThis.game.user={id:'p',isGM:false};
   const playerWin=new ShopWindow({actorId:'merchant'},async()=>{},async()=>{});
   playerWin.remoteShop={enabled:true,open:true,stock:[],ledger:[],allowSelling:true};

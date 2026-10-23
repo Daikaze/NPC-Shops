@@ -11,6 +11,19 @@ export function currentHudToken(app, fallbackToken) {
   const options = [app?.object, app?.token, fallbackToken?.()];
   return options.find(token => token?.document?.actorId) ?? null;
 }
+export function findElevationControl(root) {
+  if(!root?.querySelector)return null;
+  for(const selector of [
+    '[data-action="elevation"]','[data-control="elevation"]',
+    '.control-icon.elevation','.elevation-control',
+    '[data-tooltip="Elevation"]','[aria-label="Elevation"]',
+    '[title="Elevation"]','.elevation'
+  ]){
+    const result=root.querySelector(selector);
+    if(result)return result;
+  }
+  return null;
+}
 export function injectMerchantHudControl({app, html, isGM, fallbackToken, onOpen}) {
   if (!isGM || typeof onOpen !== 'function') return false;
   const token = currentHudToken(app, fallbackToken);
@@ -25,13 +38,21 @@ export function injectMerchantHudControl({app, html, isGM, fallbackToken, onOpen
   button.title = 'NPC Shops — Make Merchant / Open Shop';
   button.setAttribute('aria-label', 'Make Merchant or Open Shop');
   button.innerHTML = '<i class="fas fa-store"></i>';
-  // v11 Token HUD has columns; v14 HUD uses ApplicationV2 and its own markup.
-  const classicColumn = root.querySelector('.col.right') || root.querySelector('.hud-column.right');
-  if (classicColumn) classicColumn.appendChild(button);
-  else {
+  // Both v11 and v14: put the shop immediately UNDER the Elevation control.
+  // The respective HUD DOM differs, so find the semantic control first.
+  const elevation = findElevationControl(root);
+  const left = root.querySelector('.col.left') ||
+    root.querySelector('.hud-column.left') ||
+    root.querySelector('[data-side="left"]') ||
+    root.querySelector('.left-controls');
+  if (elevation?.parentNode?.insertBefore) {
+    elevation.parentNode.insertBefore(button, elevation.nextSibling);
+  } else if (left?.appendChild) {
+    left.appendChild(button);
+  } else {
+    // v14 fallback if no stable HUD columns/semantic Elevation control exist.
+    // Stay to the LEFT below where the native Elevation control is rendered.
     button.classList.add('ns-hud-floating');
-    // The custom floating button is contained in the TokenHUD element, NOT the
-    // global body. It disappears automatically when Foundry closes the HUD.
     if (!root.style) return false;
     if (!root.style.position) root.style.position = 'relative';
     root.appendChild(button);

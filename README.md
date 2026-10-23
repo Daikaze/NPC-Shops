@@ -1,6 +1,15 @@
 # NPC Shops
 
-**Experimental alpha v0.3.3** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+**Experimental alpha v0.3.4** — A custom NPC merchant module for Foundry VTT. Target installations are **Foundry 11 / dnd5e 3.3.1** and **Foundry 14 / dnd5e 5.3.3**. These targets need live validation; do not interpret the manifest's `verified` field as a claim of v14 testing.
+
+## v0.3.4 — Small HUD under Elevation (v11 & v14), Remove Merchant, Item Piles-style Rollable Tables
+
+- **Both Foundry v11 and v14:** the GM Token HUD shop creation button is 27×27 px, inserted directly **below Elevation** when that control exists. Left-column fallback; no oversized button in the right column. The separate token-corner shop badge is unchanged.
+- **Remove Merchant:** GM Settings → Stock and Terms have a confirmation button. Disabling hides the merchant badge but preserves stock, pricing, ledger and linked RollTables; Make Merchant restores the same shop.
+- **Rollable Tables** live inside GM **Settings → Rollable Tables** (not a top-level tab). Browse World and Compendium RollTables, Add/Remove Table, set rolls, Roll or Roll All Tables, **Keep rolled**, inspect quantity/price, add one item or Add All Items and discard results.
+- Resolves Foundry v11 and v14 RollTable Item references and looks up exact text matches in world Items and Item Compendiums. Unmatched text becomes explicitly labeled zero-price basic Loot in the preview; it is never added without GM confirmation. Works independently of Item Piles.
+- Compatible with the existing merchant storefront, player Buy/Sell, Save All and public chat receipts. No merchant data is migrated or overwritten.
+- Based on the **workflow** of [Item Piles](https://foundryvtt.com/packages/item-piles), not a copy of its source, templates or assets.
 
 ## v0.3.3 — Fix white, unreadable character dropdowns
 

@@ -1,0 +1,69 @@
+/* NPC Shops HUD + Rollable Tables (v11/v14) */
+.npc-shop-hud.control-icon,
+.npc-shop-hud,
+.npc-shop-hud.ns-hud-floating {
+  width:27px!important;height:27px!important;
+  min-width:27px!important;min-height:27px!important;
+  max-width:27px!important;max-height:27px!important;
+  padding:2px!important;margin:3px auto!important;
+  background:#263447!important;border:1px solid #b3a076!important;
+  color:#f9e2a6!important;border-radius:5px!important;
+  box-shadow:0 2px 5px #0008!important;
+  line-height:1!important;z-index:6!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  transform:none!important;
+}
+.npc-shop-hud .fa-store{font-size:13px!important;line-height:1!important}
+.npc-shop-hud.ns-hud-floating{
+ position:absolute!important;left:-34px!important;right:auto!important;
+ top:calc(50% - 2px)!important;margin:0!important;
+}
+.npc-shops-window .ns-populate{
+ color:#ece7e0!important;background:#1e222b!important;
+ border:1px solid #525562!important;border-radius:5px!important;
+ padding:14px!important;
+}
+.npc-shops-window .ns-populate-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.npc-shops-window .ns-populate-header h3{
+ margin:0!important;color:#e2c7a0!important;font:700 19px Georgia,serif!important;
+}
+.npc-shops-window .ns-populate-note{font-size:12px!important;color:#bdc4ce!important;line-height:1.5!important}
+.npc-shops-window .ns-populate-select{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin:10px 0 12px}
+.npc-shops-window .ns-populate-select select{flex:1 1 170px;min-width:130px;max-width:none!important;margin:0!important}
+.npc-shops-window .ns-populate button{
+ color:#f0e6d5!important;background:#353744!important;
+ border:1px solid #77727a!important;border-radius:4px!important;
+ min-height:30px!important;padding:5px 9px!important;font-size:12px!important;
+}
+.npc-shops-window .ns-populate button:hover:not(:disabled){background:#4b4b5c!important}
+.npc-shops-window .ns-populate .ns-populate-table{
+ display:flex;flex-wrap:wrap;align-items:center;gap:6px;
+ padding:9px 4px;border-bottom:1px solid #414653;
+}
+.npc-shops-window .ns-populate-table>strong{flex:1 1 160px;min-width:135px;color:#f1f0f3;font-size:12px;overflow-wrap:anywhere}
+.npc-shops-window .ns-populate-table label{display:flex;align-items:center;gap:5px;font-size:12px!important}
+.npc-shops-window .ns-populate-table input[type=number]{width:55px!important;min-width:55px!important;max-width:55px!important;margin:0!important}
+.npc-shops-window .ns-populate-rule{border-top:1px solid #555a66;margin:14px 0 10px}
+.npc-shops-window .ns-populate-rollbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.npc-shops-window .ns-populate-rollbar label{display:flex;align-items:center;gap:7px;font-size:12px!important;white-space:nowrap}
+.npc-shops-window .ns-populate-rollbar input[type=checkbox]{width:16px!important;height:16px!important;min-height:16px!important;margin:0!important}
+.npc-shops-window .ns-populate-status{color:#d4caa9!important;font-size:12px!important}
+.npc-shops-window .ns-populate-preview{max-height:320px;overflow-y:auto;scrollbar-gutter:stable;margin-top:10px}
+.npc-shops-window .ns-populate-preview-toolbar{display:flex;gap:8px;margin:7px 0;flex-wrap:wrap}
+.npc-shops-window .ns-populate-preview-row{
+ display:flex;align-items:center;gap:7px;flex-wrap:wrap;
+ background:#262b36;border:1px solid #414653;border-radius:4px;
+ margin:5px 0;padding:7px;
+}
+.npc-shops-window .ns-populate-preview-row img{height:36px;width:36px;border:1px solid #6e6355;border-radius:4px;object-fit:cover}
+.npc-shops-window .ns-populate-itemname{flex:1 1 140px;min-width:100px;overflow-wrap:anywhere}
+.npc-shops-window .ns-populate-itemname strong{display:block;color:#f7f4ee;font-size:12px}
+.npc-shops-window .ns-populate-itemname small{display:block;color:#bdc0c9;font-size:11px}
+.npc-shops-window .ns-populate-preview-row label{font-size:11px;display:flex;flex-direction:column;gap:3px}
+.npc-shops-window .ns-populate-preview-row input[type=number]{width:70px!important;min-width:60px!important;max-width:75px!important}
+.npc-shops-window .ns-populate-unresolved{color:#e7c892!important;border:1px solid #6b5b49;padding:6px;margin-top:10px}
+.npc-shops-window .ns-mp-danger{border:1px solid #95565b;background:#30242a;color:#f5e8e6;padding:12px;margin:14px 0;border-radius:5px}
+.npc-shops-window .ns-mp-danger h4{color:#f3c2c2!important;font-size:15px!important;margin:0 0 4px}
+.npc-shops-window .ns-mp-danger p{color:#ead5d6!important;font-size:12px!important}
+.npc-shops-window button.ns-remove-merchant{color:#fff!important;background:#672a35!important;border-color:#be7d85!important}
+.npc-shops-window button.ns-remove-merchant:hover{background:#883845!important}

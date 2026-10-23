@@ -13,7 +13,8 @@ test('storefront has responsive three-panel layout and no third-party asset depe
 
 test('Merchant Presets-inspired appearance is loaded last and uses source screenshot palette',()=>{
  const manifest=JSON.parse(readFileSync(new URL('../module.json',import.meta.url),'utf8'));
- assert.equal(manifest.styles.at(-1),'styles/merchant-presets-look.css');
+ assert.equal(manifest.styles.at(-2),'styles/merchant-presets-look.css');
+ assert.equal(manifest.styles.at(-1),'styles/merchant-tables.css');
  const css=readFileSync(new URL('../styles/merchant-presets-look.css',import.meta.url),'utf8');
  assert.match(css,/#311b1f/);
  assert.match(css,/#491d25/);

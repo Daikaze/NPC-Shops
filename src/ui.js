@@ -5,6 +5,7 @@ import {captureWindowState,restoreWindowState} from "./window-state.js";
 import {renderMerchantView} from "./merchant-view.js";
 import {cartEntries,cartLines,adjustCart,canCheckout} from "./merchant-cart.js";
 import {collectStockEdits,applyStockEdits} from "./manage-stock.js";
+import {initMerchantTables,tableFieldChange,tableAction} from "./merchant-tables-ui.js";
 
 const windows = new Map();
 const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -52,6 +53,7 @@ export class ShopWindow {
     this.cart = {buy:new Map(),sell:new Map()};
     this.categoryFilter = {buy:'all',sell:'all'};
     this.settingsPage = 'stock';
+    initMerchantTables(this);
     this.searchQueries = {buy: "", sell: "", manage: ""};
   }
   get actor() { return game.actors.get(this.actorId); }
@@ -206,6 +208,7 @@ export class ShopWindow {
       this.applySearchFilter();
     });
     el.addEventListener("change", e => {
+      if (tableFieldChange(this,e)) return;
       if (e.target.matches('[data-field="buyer"]')) { this.buyerId = e.target.value; this.render(); }
     });
     el.addEventListener("dragover", e => {
@@ -228,12 +231,19 @@ export class ShopWindow {
       const itemId = target.closest("[data-item]")?.dataset.item;
       try {
         if (action === 'close') return this.close();
+        if (await tableAction(this,action,target)) return;
+        if (action === 'deactivate-merchant') return await this.deactivateMerchant();
         if (action === 'filter-category') {
           this.categoryFilter[this.mode]=target.dataset.category||'all'; return this.render();
         }
         if (action === 'settings-page') {
           if(!this.gm)throw new Error('GM only');
-          this.settingsPage=target.dataset.page||'stock';return this.render();
+          this.settingsPage=target.dataset.page||'stock';
+          if(this.settingsPage==='tables'&&!this.tableUI.available.length){
+            await tableAction(this,'find-tables',target);
+            return;
+          }
+          return this.render();
         }
         if (['cart-add','cart-plus','cart-minus','cart-clear','cart-checkout'].includes(action)) {
           if (action==='cart-checkout')return await this.checkoutCart();
@@ -255,7 +265,7 @@ export class ShopWindow {
         }
         if (action === 'enable') {
           if (!this.gm || !isNpcActor(this.actor)) throw new Error('Only NPC actors can be made merchants');
-          return await this.saveShop({...emptyShop(), enabled: true});
+          return await this.saveShop({...this.shop, enabled: true});
         }
         if (action === 'toggle-open') return await this.saveShop({...this.shop, open: !this.shop.open});
         if (action === 'toggle-sell') return await this.saveShop({...this.shop, allowSelling: !this.shop.allowSelling});
@@ -333,6 +343,17 @@ export class ShopWindow {
       }
       if(!this.gm)await this.load();
     } finally {this.busy=false;this.render();}
+  }
+  async deactivateMerchant(confirmAction=globalThis.confirm) {
+    if (!this.gm || !isNpcActor(this.actor))throw new Error('Only GM NPC merchants can be removed');
+    if (typeof confirmAction!=='function')throw new Error('Confirmation dialog is unavailable');
+    const approved=await confirmAction('NPC Shops — Remove Merchant\n\n'+this.actor.name+
+      ' will no longer be a shop. The token shop icon will disappear.\n\n'+
+      'Saved stock, prices, transaction history and linked RollTables will be retained if you make this NPC a merchant again. Continue?');
+    if(!approved)return false;
+    await this.saveShop({...this.shop,enabled:false});
+    notify('NPC Shops: '+this.actor.name+' is no longer a merchant.');
+    return true;
   }
   async saveShop(data) {
     if (!this.gm) throw new Error('GM only');

@@ -133,7 +133,7 @@ function updateBadges() {
     open: token => open(descriptorFromToken(token)),
     isMerchant: token => {
       const actor = worldActor(token.document.actorId);
-      return Boolean(token.document.getFlag(MODULE_ID,'merchant') || (actor && shopData(actor).enabled));
+      return actor ? Boolean(shopData(actor).enabled) : Boolean(token.document.getFlag(MODULE_ID,'merchant'));
     }
   });
   try { tokenBadges.sync(canvas.tokens?.placeables); }
@@ -264,5 +264,5 @@ Hooks.once('ready', () => {
     if (item.parent?.documentName === 'Actor') refreshWindows(item.parent.id);
   });
   game.modules.get(MODULE_ID).api = game.user.isGM ? {open, openSelected, openDirectory} : {open};
-  console.info('NPC Shops v0.3.0 alpha ready. GM: Alt+S. Players: click the token shop badge.');
+  console.info('NPC Shops v0.3.4 alpha ready. GM: Alt+S. Players: click the token shop badge.');
 });

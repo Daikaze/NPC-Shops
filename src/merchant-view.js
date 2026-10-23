@@ -1,6 +1,7 @@
 import {groupItems} from './categories.js';
 import {cpToGp,moneyTotal,itemPriceCp} from './core.js';
 import {cartEntries,cartLines,cartTotal,canCheckout} from './merchant-cart.js';
+import {renderMerchantTables} from './merchant-tables-ui.js';
 const esc=v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
 const button=(a,t,extra='')=>`<button type="button" data-action="${a}" ${extra}>${t}</button>`;
 const coin=cp=>`<span class="ns-mp-money"><b>${cpToGp(Math.round(Math.max(0,cp)))}</b><span class="ns-coin" title="Gold pieces" aria-label="gold pieces"><i class="fas fa-coins" aria-hidden="true"></i></span></span>`;
@@ -35,7 +36,7 @@ function tabs(w){
 }
 function sidebar(w,entries){
  if(w.mode==='manage')return `<aside class="ns-mp-sidebar" data-scroll-key="categories"><small>MERCHANT</small>
- ${[['stock','Stock'],['terms','Terms'],['history','History']].map(([k,v])=>
+ ${[['stock','Stock'],['tables','Rollable Tables'],['terms','Terms'],['history','History']].map(([k,v])=>
  button('settings-page',esc(v),`class="ns-mp-side-btn ${w.settingsPage===k?'active':''}" data-page="${k}"`)).join('')}</aside>`;
  const current=w.categoryFilter[w.mode]??'all';
  const groups=groupItems(entries,e=>itemOf(w,e));
@@ -68,6 +69,7 @@ function catalog(w,shop,buyer,entries){
   </div>`}).join('')}</section>`).join('')||'<div class="ns-mp-empty">No items in this category.</div>'}</div>`;
 }
 function settings(w,shop){
+ if(w.settingsPage==='tables')return renderMerchantTables(w,shop);
  if(w.settingsPage==='history')return `<div class="ns-mp-settings"><h3>History</h3>
  ${button('clear-history','Clear History',shop.ledger?.length?'':'disabled')}
  ${(shop.ledger??[]).slice().reverse().map(e=>`<p>${esc(e.actorName)} · ${esc(e.kind)} ${esc(e.quantity)} × ${esc(e.itemName)} · ${coin(e.totalCp)}</p>`).join('')||'<p>No transactions yet.</p>'}</div>`;
@@ -75,10 +77,14 @@ function settings(w,shop){
  <div class="ns-mp-terms"><label>Buys at (%) <input data-field="rate" type="number" min="0" max="100" step="1" value="${Math.round(shop.sellRate*100)}"/></label>
  ${button('save-rate','Save Terms')}</div>
  <div class="ns-mp-terms"><span>Shop: ${shop.open?'Open':'Closed'}</span>${button('toggle-open',shop.open?'Close Shop':'Open Shop')}</div>
- <div class="ns-mp-terms"><span>Buy from players: ${shop.allowSelling?'Yes':'No'}</span>${button('toggle-sell',shop.allowSelling?'Disable Selling':'Enable Selling')}</div></div>`;
+ <div class="ns-mp-terms"><span>Buy from players: ${shop.allowSelling?'Yes':'No'}</span>${button('toggle-sell',shop.allowSelling?'Disable Selling':'Enable Selling')}</div>
+ <div class="ns-mp-danger"><h4>Remove Merchant</h4><p>Deactivate this NPC's shop and hide the merchant icon. Inventory and history are kept for later reactivation.</p>
+ ${button('deactivate-merchant','<i class="fas fa-store-slash"></i> Remove Merchant','class="ns-remove-merchant"')}</div></div>`;
  return `<div class="ns-mp-settings"><h3>Merchant Stock</h3><p>Edit quantities and prices below. Saving updates the Buy tab.</p>
  <label class="ns-mp-search"><i class="fas fa-search"></i><input type="search" data-field="item-search" placeholder="Search items..." value="${esc(w.searchQueries.manage??'')}"/></label>
- ${w.renderManage(shop)}</div>`;
+ ${w.renderManage(shop)}
+ <div class="ns-mp-danger"><h4>Remove Merchant</h4><p>Stop selling from this NPC without deleting its stock or history.</p>
+ ${button('deactivate-merchant','<i class="fas fa-store-slash"></i> Remove Merchant','class="ns-remove-merchant"')}</div></div>`;
 }
 function bill(w,shop,buyer){
  if(w.mode==='manage')return `<aside class="ns-mp-bill" data-scroll-key="bill"><div class="ns-mp-bill-card"><small>THE MERCHANT</small><h3>${esc(w.name)}</h3><hr/>
@@ -106,5 +112,5 @@ export function renderMerchantView(w,shop,buyer,label,avatar){
  return hero(w,shop,buyer,label,avatar)+tabs(w)+`<main class="ns-content ns-mp-body"><div class="ns-mp-grid">
  ${sidebar(w,entries)}<section class="ns-mp-main" data-scroll-key="catalog">${w.mode==='manage'?settings(w,shop):catalog(w,shop,buyer,entries)}
  <div class="ns-empty ns-no-results" hidden>No items match your search.</div></section>${bill(w,shop,buyer)}
- </div></main><footer>NPC Shops · Foundry v${esc(game.version||game.release?.generation)} · v0.3.2</footer>`;
+ </div></main><footer>NPC Shops · Foundry v${esc(game.version||game.release?.generation)} · v0.3.4</footer>`;
 }
