@@ -122,3 +122,26 @@ test('only GMs get the Buy price input; other buyers still see normal price',()=
   assert.doesNotMatch(win.element.innerHTML,/data-field="buy-price"/);
   assert.doesNotMatch(win.element.innerHTML,/data-action="save-buy-price"/);
 });
+
+test('GM Save Buy Price button persists the merchandise row, not button dataset', async()=>{
+  let saved=baseShop(),writes=0;
+  const npc={id:'m',name:'Mura',type:'npc',img:'npc.png',
+    getFlag:()=>saved,setFlag:async(_module,_name,data)=>{writes++;saved=structuredClone(data);}};
+  const hero={id:'hero',name:'Hero',type:'character',system:{currency:{gp:50,pp:0,ep:0,sp:0,cp:0}},
+    items:{contents:[]},testUserPermission:()=>true};
+  globalThis.ui={notifications:{info:()=>{},error:()=>{}}};
+  globalThis.game={user:{isGM:true,id:'gm'},actors:{contents:[npc,hero],get:id=>id==='m'?npc:hero},
+    socket:{emit:()=>{}},version:'14'};
+  const win=new ShopWindow({actorId:'m'},async()=>({ok:true}),async()=>({ok:true}));
+  const handlers={};
+  win.element={innerHTML:'',addEventListener:(name,callback)=>{handlers[name]=callback;}};
+  win.bindEvents(win.element);
+  const row={dataset:{entryId:'b'},querySelector:selector=>
+    selector==='[data-field="buy-price"]'?{value:'7.25'}:null};
+  const button={dataset:{action:'save-buy-price'},closest:selector=>
+    selector==='.ns-mp-item[data-entry-id]'?row:null};
+  await handlers.click({target:{closest:()=>button}});
+  assert.equal(writes,1);
+  assert.equal(saved.stock[1].priceCp,725);
+  assert.deepEqual(saved.stock.map(x=>x.quantity),[3,4,5]);
+});
