@@ -2,10 +2,10 @@ import {MODULE_ID, cpToGp, emptyShop, gpToCp, hasOwnership, itemPriceCp, moneyTo
 import {groupItems} from "./categories.js";
 import {isNpcActor} from "./merchant-types.js";
 import {captureWindowState,restoreWindowState} from "./window-state.js";
-import {clampShopFrame,shopSizeLayout} from './layout.js';
+import {clampShopFrame,shopSizeLayout,resizeShopFrame} from './layout.js';
 import {renderMerchantView} from "./merchant-view.js";
 import {cartEntries,cartLines,adjustCart,canCheckout} from "./merchant-cart.js";
-import {collectStockEdits,applyStockEdits} from "./manage-stock.js";
+import {collectStockEdits,applyStockEdits,setBuyPrice} from "./manage-stock.js";
 import {initMerchantTables,tableFieldChange,tableAction} from "./merchant-tables-ui.js";
 import {confirmShopDialog} from "./shop-dialog.js";
 import {shopDragPayload,dragPayloadFromEvent,openShopItemSheet} from "./shop-item-interaction.js";
@@ -109,7 +109,7 @@ export class ShopWindow {
     } catch (err) { notify(`NPC Shops: ${err.message}`, true); }
     finally { this.loading = false; this.render(); }
   }
-  close() { this.element?.remove(); this.element = null; windows.delete(this.actorId); }
+  close() { this.cleanupResize?.();this.element?.remove();this.element = null;windows.delete(this.actorId); }
   confirm(message,{title="Confirm action",confirmLabel="Confirm",danger=false}={}) {
     return confirmShopDialog(this.element,{title,message,confirmLabel,danger});
   }
@@ -140,42 +140,54 @@ export class ShopWindow {
   applyShopFrame(frame) {
     if (!this.element) return;
     const next = clampShopFrame(frame, window.innerWidth, window.innerHeight);
-    this.element.style.width = `${next.width}px`;
-    this.element.style.height = `${next.height}px`;
-    this.element.style.left = `${next.left}px`;
-    this.element.style.top = `${next.top}px`;
+    // Explicit important inline dimensions override all historical theme rules.
+    this.element.style.setProperty('width',`${next.width}px`,'important');
+    this.element.style.setProperty('height',`${next.height}px`,'important');
+    this.element.style.setProperty('left',`${next.left}px`,'important');
+    this.element.style.setProperty('top',`${next.top}px`,'important');
     this.element.style.transform = 'none';
     const layout = shopSizeLayout(next.width);
     this.element.classList?.toggle?.('ns-shop-medium', layout === 'medium');
     this.element.classList?.toggle?.('ns-shop-compact', layout === 'compact');
   }
-  /** Foundry-style bottom-right drag handle; unlike CSS resize this never gets hidden offscreen. */
+  /**
+   * Side handles work with actual document pointer movements, rather than an
+   * event listener on the shop itself: moving outside the shop doesn't cancel
+   * the drag. This also avoids interference from Foundry canvas controls.
+   */
   makeResizable(el) {
-    let resizing = null;
-    el.addEventListener('pointerdown', event => {
-      const grip = event.target?.closest?.('.ns-shop-resize-handle');
-      if (!grip || !el.contains?.(grip) || event.button !== 0 || this.minimized) return;
-      const bounds = el.getBoundingClientRect();
-      resizing = {id:event.pointerId, grip, x:event.clientX, y:event.clientY,
-        left:bounds.left, top:bounds.top, width:bounds.width, height:bounds.height};
+    let resizing=null;
+    const drag = event => {
+      if (!resizing || (event.pointerId !== undefined && event.pointerId !== resizing.id)) return;
       event.preventDefault();
       event.stopPropagation();
-      try {grip.setPointerCapture?.(event.pointerId);} catch (_) {}
-    });
-    el.addEventListener('pointermove', event => {
-      if (!resizing || event.pointerId !== resizing.id) return;
-      event.preventDefault();
-      this.applyShopFrame({left:resizing.left,top:resizing.top,
-        width:resizing.width+event.clientX-resizing.x,
-        height:resizing.height+event.clientY-resizing.y});
-    });
-    const stop = event => {
-      if (!resizing || event.pointerId !== resizing.id) return;
-      try {resizing.grip.releasePointerCapture?.(event.pointerId);} catch (_) {}
-      resizing = null;
+      const next=resizeShopFrame(resizing.bounds,
+        event.clientX-resizing.x,event.clientY-resizing.y,resizing.edge,
+        window.innerWidth,window.innerHeight);
+      this.applyShopFrame(next);
     };
-    el.addEventListener('pointerup',stop);
-    el.addEventListener('pointercancel',stop);
+    const stop = event => {
+      if (!resizing || (event.pointerId !== undefined && event.pointerId !== resizing.id)) return;
+      document.removeEventListener('pointermove',drag,true);
+      document.removeEventListener('pointerup',stop,true);
+      document.removeEventListener('pointercancel',stop,true);
+      resizing=null;
+    };
+    el.addEventListener('pointerdown', event => {
+      const grip=event.target?.closest?.('[data-ns-resize]');
+      if(!grip || !el.contains(grip) || event.button!==0 || this.minimized) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation?.();
+      resizing={
+        id:event.pointerId,edge:grip.dataset.nsResize,
+        x:event.clientX,y:event.clientY,bounds:el.getBoundingClientRect()
+      };
+      document.addEventListener('pointermove',drag,true);
+      document.addEventListener('pointerup',stop,true);
+      document.addEventListener('pointercancel',stop,true);
+    },true);
+    this.cleanupResize=()=>{if(resizing)stop({pointerId:resizing.id});};
   }
   makeDraggable(el) {
     let origin;
@@ -233,7 +245,7 @@ export class ShopWindow {
           : 'Only NPC actors may be made merchants.'}</div>`;
     this.element.classList?.toggle?.('ns-is-minimized',this.minimized);
     // Re-rendering the shop must not remove its resize grip permanently.
-    this.element.insertAdjacentHTML?.('beforeend', '<div class="ns-shop-resize-handle" role="separator" aria-label="Resize shop" title="Drag to resize the shop"></div>');
+    this.element.insertAdjacentHTML?.('beforeend', '<div class="ns-shop-resize-edge ns-shop-resize-right" data-ns-resize="right" title="Drag left or right to resize width" aria-label="Resize shop width"></div><div class="ns-shop-resize-edge ns-shop-resize-left" data-ns-resize="left" title="Drag left or right to resize width" aria-label="Resize shop width"></div><div class="ns-shop-resize-edge ns-shop-resize-bottom" data-ns-resize="bottom" title="Drag up or down to resize height" aria-label="Resize shop height"></div><div class="ns-shop-resize-handle" data-ns-resize="bottom-right" title="Drag to resize width and height" aria-label="Resize shop"></div>');
     this.renderedMode = this.mode;
     restoreWindowState(this.element, this.renderedMode, this.windowState);
     this.applySearchFilter();
@@ -358,7 +370,7 @@ export class ShopWindow {
     });
     // A shop Item drag is a purchase reference, NEVER a free Foundry Item copy.
     el.addEventListener("dragstart",e=>{
-      if(this.mode!=='buy')return;
+      if(this.mode!=='buy' || e.target?.closest?.('.ns-buy-price-editor'))return;
       const row=e.target?.closest?.('.ns-mp-item[draggable="true"]');
       if(!row?.dataset?.entryId || !e.dataTransfer)return;
       const payload=shopDragPayload(this.actorId,row.dataset.entryId);
@@ -427,6 +439,13 @@ export class ShopWindow {
         toggleFromHeader(e,'touch');
       } else lastTouchTap={at:now,x:e.clientX??0,y:e.clientY??0};
     });
+    el.addEventListener('keydown',event=>{
+      if(event.key==='Enter' && event.target?.matches?.('[data-field="buy-price"]')){
+        event.preventDefault();
+        event.stopPropagation();
+        event.target.closest('[data-entry-id]')?.querySelector('[data-action="save-buy-price"]')?.click();
+      }
+    });
     el.addEventListener("click", async e => {
       const target = e.target.closest("button[data-action]");
       if (!target || this.busy) return;
@@ -435,6 +454,19 @@ export class ShopWindow {
       const itemId = target.closest("[data-item]")?.dataset.item;
       try {
         if (action === 'close') return this.close();
+        if (action === 'save-buy-price') {
+          if(!this.gm || this.mode!=='buy')throw new Error('Only the GM can change Buy prices');
+          const row=target.closest('[data-entry-id]');
+          const input=row?.querySelector('[data-field="buy-price"]');
+          if(!row || !input)throw new Error('Buy price field is missing');
+          this.busy=true;
+          try{
+            const next=setBuyPrice(this.shop,row.dataset.entryId,input.value);
+            await this.saveShop(next);
+            notify('NPC Shops: Updated Buy price for '+(next.stock.find(entry=>entry.id===row.dataset.entryId)?.item?.name??'item')+'.');
+          } finally {this.busy=false;}
+          return;
+        }
         if (action === 'inspect-item')return await this.inspectItem(target.dataset.entryId);
         if (action === 'inspect-buyer-item'){
           const item=this.buyer?.items?.get?.(target.dataset.entryId);
