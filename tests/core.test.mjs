@@ -18,3 +18,16 @@ test('price is precise to a copper', () => {
   assert.equal(itemPriceCp({system:{price:{value:2,denomination:'sp'}}}),20);
   assert.equal(emptyShop().sellRate,0.5);
 });
+
+test('Cashbox balance edits preserve denomination rather than converting gold to platinum',()=>{
+  const before={pp:0,gp:5,ep:0,sp:0,cp:0};
+  const desired=gpToCp('7.50');
+  const next=changeWallet(before,desired-moneyTotal(before));
+  assert.equal(moneyTotal(next),750);
+  assert.equal(next.pp,0);
+  assert.equal(next.gp,7);
+  assert.equal(next.sp,5);
+  const lower=changeWallet(next,gpToCp('3.00')-moneyTotal(next));
+  assert.equal(moneyTotal(lower),300);
+  assert.equal(lower.pp,0);
+});
