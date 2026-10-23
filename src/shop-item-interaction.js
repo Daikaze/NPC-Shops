@@ -58,5 +58,15 @@ export function openShopItemSheet(data,{
  const doc=new itemClass(data,{parent:null});
  if(typeof doc.sheet?.render!=='function')throw new Error("Foundry Item sheet is unavailable");
  doc.sheet.render(true);
+ // The shop is a custom DOM window; Foundry sheets must layer above it.
+ const bringForward=()=>{
+   const el=doc.sheet?.element;
+   const node=el?.[0]??el;
+   if(node?.style)node.style.zIndex=String(Math.max(20000,Number(node.style.zIndex)||0));
+   if(typeof doc.sheet?.bringToTop==='function')doc.sheet.bringToTop();
+   if(node?.style)node.style.zIndex=String(Math.max(20000,Number(node.style.zIndex)||0));
+ };
+ bringForward();
+ requestAnimationFrame(bringForward);
  return doc;
 }
