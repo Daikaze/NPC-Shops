@@ -81,9 +81,9 @@ function settings(w,shop){
     <p>GM-only. Money from player purchases is collected on this NPC Actor sheet when it supports currency.</p>
     <div class="ns-cashbox-stat"><span>Gross purchase proceeds</span><strong>${coin(earned)}</strong></div>
     <div class="ns-cashbox-stat"><span>Current NPC wallet</span><strong>${wallet?coin(moneyTotal(wallet)):'Not available on this NPC'}</strong></div>
-    <div class="ns-cashbox-manage"><label>Amount (GP)<input data-field="cashbox-amount" type="number" min="0.01" step="0.01" value="1"/></label>
-    ${button('cashbox-add','<i class="fas fa-plus"></i> Add Coins')}
-    ${button('cashbox-remove','<i class="fas fa-minus"></i> Remove Coins')}</div>
+    <div class="ns-cashbox-manage"><label>Wallet balance (GP)
+      <input data-field="cashbox-balance" type="number" min="0" step="0.01" value="${wallet?cpToGp(moneyTotal(wallet)):'0.00'}" ${wallet?'':'disabled'} title="Enter a new total balance and press Enter or click outside to save"/>
+    </label><small>Type the desired total balance. Press Enter or leave the field to save automatically.</small></div>
     <small>Both the Actor currency and purchase proceeds are GM-only in NPC Shops. Selling items to this merchant does not increase purchase proceeds.</small>
    </section>`;
  }
