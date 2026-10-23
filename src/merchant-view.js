@@ -18,7 +18,6 @@ const itemOf=(w,e)=>w.mode==='buy'?e.item:e;
 function hero(w,shop,buyer,label,avatar){
  const bal=buyer?.system?.currency?moneyTotal(buyer.system.currency):0;
  return `<header class="ns-mp-top" title="Double-click to minimize or restore"><span>${esc(label)}</span><div class="ns-mp-window-actions">
- ${button('toggle-shop-size','<i class="fas fa-expand-alt"></i>','class="ns-size-btn" title="Toggle shop size" aria-label="Toggle shop size"')}
  ${button('close','×','class="ns-close" aria-label="Close"')}</div></header>
  <div class="ns-mp-hero"><img src="${esc(avatar)}" alt="" class="ns-mp-avatar"/>
  <div class="ns-mp-intro"><h2>${esc(label)}</h2>
@@ -82,6 +81,9 @@ function settings(w,shop){
     <p>GM-only. Money from player purchases is collected on this NPC Actor sheet when it supports currency.</p>
     <div class="ns-cashbox-stat"><span>Gross purchase proceeds</span><strong>${coin(earned)}</strong></div>
     <div class="ns-cashbox-stat"><span>Current NPC wallet</span><strong>${wallet?coin(moneyTotal(wallet)):'Not available on this NPC'}</strong></div>
+    <div class="ns-cashbox-manage"><label>Amount (GP)<input data-field="cashbox-amount" type="number" min="0.01" step="0.01" value="1"/></label>
+    ${button('cashbox-add','<i class="fas fa-plus"></i> Add Coins')}
+    ${button('cashbox-remove','<i class="fas fa-minus"></i> Remove Coins')}</div>
     <small>Both the Actor currency and purchase proceeds are GM-only in NPC Shops. Selling items to this merchant does not increase purchase proceeds.</small>
    </section>`;
  }
