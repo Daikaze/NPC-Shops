@@ -58,7 +58,7 @@ export function openShopItemSheet(data,{
  // An inspection copy is not a merchant-owned embedded Item. Grant the
  // temporary document observer access so the ordinary dnd5e sheet is readable.
  const source=structuredClone(data);
- delete source._id;
+ source._id=globalThis.foundry?.utils?.randomID?.() ?? `preview${Math.random().toString(36).slice(2,10)}`;
  delete source.id;
  delete source.folder;
  delete source.ownership;
@@ -84,7 +84,7 @@ export function openShopItemSheet(data,{
    }catch(error){console.warn('NPC Shops: could not focus preview',error);}
  };
  try{
-   const rendered=sheet.render(true);
+   const rendered=sheet.render(true,{focus:true});
    Promise.resolve(rendered).then(()=>{
      bringToFront();
      if(typeof setTimeout==='function')setTimeout(bringToFront,80);
