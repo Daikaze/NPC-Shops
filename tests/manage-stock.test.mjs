@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {collectStockEdits,applyStockEdits} from '../src/manage-stock.js';
+import {collectStockEdits,applyStockEdits,setBuyPrice} from '../src/manage-stock.js';
 import {ShopWindow} from '../src/ui.js';
 
 const stock=(id,name,quantity=3,priceCp=100)=>({id,item:{type:'loot',name},priceCp,quantity,unlimited:false});
@@ -89,4 +89,36 @@ test('dark slate reference palette and Save All controls are scoped to NPC Shops
  const ui=readFileSync(new URL('../src/ui.js',import.meta.url),'utf8');
  assert.equal((ui.match(/button\('save-all-stock'/g)||[]).length,2);
  assert.match(ui,/collectStockEdits\(rows\)/);
+});
+
+test('GM Buy editor changes only the selected stock price in GP',()=>{
+  const original=baseShop();
+  const result=setBuyPrice(original,'b','12.75');
+  assert.equal(result.stock[1].priceCp,1275);
+  assert.equal(result.stock[0].priceCp,100);
+  assert.equal(result.stock[2].priceCp,300);
+  assert.equal(result.stock[1].quantity,4);
+  assert.deepEqual(result.ledger,original.ledger);
+  assert.equal(original.stock[1].priceCp,200);
+  assert.equal(setBuyPrice(original,'a','0').stock[0].priceCp,0);
+  for(const invalid of ['','-1','abc','1.001',null]){
+    assert.throws(()=>setBuyPrice(original,'a',invalid));
+  }
+  assert.throws(()=>setBuyPrice(original,'missing','4.00'),/no longer/);
+});
+test('only GMs get the Buy price input; other buyers still see normal price',()=>{
+  const stock=[{id:'a',item:{name:'Apple',type:'loot',img:'apple.png',system:{price:{value:1,denomination:'gp'}}},priceCp:100,quantity:2,unlimited:false}];
+  const npc={id:'npc',type:'npc',name:'Mura',img:'npc.png',getFlag:()=>({...baseShop(),stock})};
+  const hero={id:'hero',type:'character',name:'Hero',system:{currency:{gp:20,cp:0,sp:0,pp:0,ep:0}},items:{contents:[]},testUserPermission:()=>true};
+  globalThis.game={user:{isGM:true,id:'gm'},actors:{contents:[npc,hero],get:id=>id==='npc'?npc:hero},version:'14'};
+  const win=new ShopWindow({actorId:'npc'},()=>{},()=>{});
+  win.element={innerHTML:''};
+  win.render();
+  assert.match(win.element.innerHTML,/data-field="buy-price"/);
+  assert.match(win.element.innerHTML,/data-action="save-buy-price"/);
+  game.user={id:'p1',isGM:false};
+  win.remoteShop={enabled:true,open:true,sellRate:.5,allowSelling:true,hideTradeTerms:true,stock,ledger:[]};
+  win.render();
+  assert.doesNotMatch(win.element.innerHTML,/data-field="buy-price"/);
+  assert.doesNotMatch(win.element.innerHTML,/data-action="save-buy-price"/);
 });
