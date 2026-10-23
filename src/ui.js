@@ -409,11 +409,22 @@ export class ShopWindow {
       if (tableFieldChange(this,e)) return;
       if (e.target.matches('[data-field="buyer"]')) { this.buyerId = e.target.value; this.render(); }
     });
-    // A shop Item drag is a purchase reference, NEVER a free Foundry Item copy.
+    // Only the Item icon/name is draggable. The entire Buy row must NEVER be
+    // draggable: native browser drag otherwise steals mouse selection from the
+    // GM price input, even when a bubbling dragstart handler ignores that input.
+    // A shop drag emits a purchase reference, not a free Foundry Item copy.
     el.addEventListener("dragstart",e=>{
-      if(this.mode!=='buy' || e.target?.closest?.('.ns-buy-price-editor'))return;
-      const row=e.target?.closest?.('.ns-mp-item[draggable="true"]');
-      if(!row?.dataset?.entryId || !e.dataTransfer)return;
+      if (e.target?.closest?.('.ns-buy-price-editor,[data-field="buy-price"]')) {
+        e.preventDefault?.();
+        e.stopPropagation?.();
+        return;
+      }
+      const source=e.target?.closest?.('[data-shop-drag-source="true"]');
+      const row=source?.closest?.('.ns-mp-item[data-entry-id]');
+      if(this.mode!=='buy' || !row?.dataset?.entryId || !e.dataTransfer) {
+        e.preventDefault?.();
+        return;
+      }
       const payload=shopDragPayload(this.actorId,row.dataset.entryId);
       e.dataTransfer.setData('application/x-npc-shops',payload);
       e.dataTransfer.setData('text/plain',payload);
