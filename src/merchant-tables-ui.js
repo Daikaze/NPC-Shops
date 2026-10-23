@@ -1,6 +1,6 @@
 /** GM-only Item Piles-inspired Rollable Table panel in NPC Shops Settings. */
 import {cpToGp,gpToCp} from './core.js';
-import {listAvailableTables,tableLink,rollMerchantTable,combineRolled,commitRolledStock} from './merchant-tables.js';
+import {listAvailableTables,tableLink,rollMerchantTable,allMerchantTableItems,combineRolled,commitRolledStock} from './merchant-tables.js';
 const esc=v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
 const btn=(action,label,more='')=>`<button type="button" data-action="${action}" ${more}>${label}</button>`;
 export function initMerchantTables(win){
@@ -11,8 +11,8 @@ export function renderMerchantTables(win,shop){
  const state=win.tableUI, links=shop.tables??[];
  return `<section class="ns-populate">
  <header class="ns-populate-header"><h3><i class="fas fa-dice-d20"></i> Rollable Tables</h3>
-  ${btn('roll-all-tables','<i class="fas fa-dice-d20"></i> Roll All Tables',!links.length?'disabled':'')}</header>
- <p class="ns-populate-note">Populate shop stock from World or Compendium RollTables. Rolled results are a preview until you add them.</p>
+  ${btn('roll-all-tables','<i class="fas fa-boxes"></i> Roll All Tables',!links.length?'disabled':'title="Import every result from all linked tables into merchant stock"')}</header>
+ <p class="ns-populate-note">Roll All Tables imports every result from all linked tables directly into Stock. Individual Roll previews random results before you add them.</p>
  <div class="ns-populate-select">
   <select data-field="table-select" aria-label="Choose RollTable">
    <option value="">Choose a RollTable</option>
@@ -30,8 +30,9 @@ export function renderMerchantTables(win,shop){
     ${btn('unlink-table','<i class="fas fa-trash"></i>','title="Remove table" aria-label="Remove table"')}
  </div>`).join('')}
  <div class="ns-populate-rule"></div>
- <div class="ns-populate-rollbar"><span>${state.preview.length ? state.preview.reduce((s,e)=>s+e.quantity,0)+' items rolled' : 'Click roll to start'}</span>
-  <label>Keep rolled <input type="checkbox" data-field="keep-rolled" ${state.keepRolled?'checked':''}/></label>
+ <div class="ns-populate-rollbar">
+  <span class="ns-populate-roll-count">${state.preview.length ? state.preview.reduce((s,e)=>s+e.quantity,0)+' items in preview' : 'Use Roll to preview random results'}</span>
+  <label class="ns-populate-keep"><input type="checkbox" data-field="keep-rolled" ${state.keepRolled?'checked':''}/><span>Keep rolled</span></label>
  </div>
  ${state.status?`<p class="ns-populate-status" role="status">${esc(state.status)}</p>`:''}
  ${state.preview.length?`<div class="ns-populate-preview" data-scroll-key="rolled-preview">
@@ -134,8 +135,29 @@ export async function tableAction(win,action,target){
   const next=structuredClone(win.shop);next.tables=next.tables.filter(x=>x.uuid!==id);
   await win.saveShop(next);return true;
  }
- if(action==='roll-one-table'||action==='roll-all-tables'){
-  const links=action==='roll-one-table'?(link?[link]:[]):(win.shop.tables??[]);
+ if(action==='roll-all-tables'){
+  const links=win.shop.tables??[];
+  if(!links.length)throw new Error('Add a RollTable first');
+  state.working=true;
+  try{
+   // Enumerate the full results collection; never use random table.roll() here.
+   // Commit once, so the existing inventory is retained if resolution fails.
+   const all=await allMerchantTableItems(links);
+   if(!all.rows.length)throw new Error('No physical Items found in linked RollTables');
+   const grouped=combineRolled([],all.rows,false);
+   const next=commitRolledStock(win.shop,grouped);
+   await win.saveShop(next);
+   state.preview=[];
+   state.status='Imported '+all.rows.length+' entries ('+grouped.length+
+     ' distinct Items) from '+links.length+' linked table(s) into Stock.'+
+     (all.unresolved.length?' '+all.unresolved.length+' unresolvable results skipped.':'');
+   state.unresolved=all.unresolved;
+   win.render();
+  }finally{state.working=false;}
+  return true;
+ }
+ if(action==='roll-one-table'){
+  const links=link?[link]:[];
   // Read changed roll-count fields before rolling without forcing a full save.
   const updated=links.map(v=>{
    const el=win.element?.querySelector?.('[data-table-uuid="'+v.uuid+'"]');

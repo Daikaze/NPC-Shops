@@ -53,6 +53,7 @@ export class ShopWindow {
     this.cart = {buy:new Map(),sell:new Map()};
     this.categoryFilter = {buy:'all',sell:'all'};
     this.settingsPage = 'stock';
+    this.buybackDraft = null;
     initMerchantTables(this);
     this.searchQueries = {buy: "", sell: "", manage: ""};
   }
@@ -188,7 +189,12 @@ export class ShopWindow {
   }
   renderManage(shop) {
     if (!this.gm) return '';
-    return `<div class="ns-config"><label>Buyback percentage <input data-field="rate" type="number" min="0" max="100" step="1" value="${Math.round(shop.sellRate * 100)}"/></label>${button('save-rate', 'Save Rate')}</div>
+    return `<div class="ns-config ns-buyback-editor">
+        <div class="ns-buyback-copy"><strong>Buyback Percentage</strong><small>Percentage of base Item price paid when buying from players (0–100%).</small></div>
+        <label for="ns-buyback-${esc(this.actorId)}">Rate %</label>
+        <input id="ns-buyback-${esc(this.actorId)}" data-field="rate" type="number" min="0" max="100" step="1" value="${esc(this.buybackDraft ?? Math.round(shop.sellRate * 100))}"/>
+        ${button('save-rate','<i class="fas fa-save"></i> Save Buyback')}
+      </div>
       <div class="ns-save-all-bar">
         <span><i class="fas fa-layer-group"></i> Edit any number of items, then save them together.</span>
         ${button('save-all-stock', '<i class="fas fa-save"></i> Save All', !shop.stock.length ? 'disabled class="ns-save-all"' : 'class="ns-save-all"')}
@@ -203,6 +209,10 @@ export class ShopWindow {
   }
   bindEvents(el) {
     el.addEventListener("input", e => {
+      if(e.target.matches?.('[data-field="rate"]')){
+        this.buybackDraft=e.target.value;
+        return;
+      }
       if (!e.target.matches?.('[data-field="item-search"]')) return;
       this.searchQueries[this.mode] = e.target.value;
       this.applySearchFilter();
@@ -280,8 +290,9 @@ export class ShopWindow {
           // it, rather than leaving a nearby unsaved field behind.
           const rateField=el.querySelector('[data-field="rate"]');
           if (rateField) {
-            const n=Number(rateField.value);
-            if (!Number.isInteger(n)||n<0||n>100)throw new Error('Buyback must be 0–100%');
+            const raw=String(rateField.value??'').trim();
+            const n=Number(raw);
+            if(!raw||!Number.isInteger(n)||n<0||n>100)throw new Error('Buyback must be 0–100%');
             result.shop.sellRate=n/100;
           }
           this.busy=true;
@@ -293,9 +304,18 @@ export class ShopWindow {
           return;
         }
         if (action === 'save-rate') {
-          const n = Number(el.querySelector('[data-field="rate"]')?.value);
-          if (!Number.isInteger(n) || n < 0 || n > 100) throw new Error('Enter a whole number from 0 to 100');
-          return await this.saveShop({...this.shop, sellRate: n / 100});
+          if(!this.gm)throw new Error('GM only');
+          const field=target.closest?.('.ns-config,.ns-mp-terms')?.querySelector?.('[data-field="rate"]') ??
+            el.querySelector('[data-field="rate"]');
+          const raw=String(field?.value??this.buybackDraft??'').trim();
+          if(!raw)throw new Error('Buyback Percentage cannot be empty');
+          const n=Number(raw);
+          if (!Number.isInteger(n) || n < 0 || n > 100) throw new Error('Buyback Percentage must be 0–100');
+          await this.saveShop({...this.shop, sellRate:n/100});
+          this.buybackDraft=null;
+          notify('NPC Shops: Buyback Percentage saved at '+n+'%.');
+          this.render();
+          return;
         }
         if (action === 'save-item' || action === 'remove') {
           if (!this.gm) return;
