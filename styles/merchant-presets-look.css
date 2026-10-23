@@ -713,3 +713,90 @@
 .npc-shops-window:not(.ns-directory).ns-shop-compact .ns-mp-hero{
   flex-wrap:wrap!important;
 }
+
+
+/* v0.4.9: each border provides a genuine separate resize axis.
+ * These overlays receive pointer input even when a child scroll panel fills
+ * the entire custom shop window. JS sets pixel width/height explicitly.
+ */
+.npc-shops-window:not(.ns-directory) .ns-shop-resize-edge {
+  position:absolute!important;
+  z-index:20!important;
+  touch-action:none!important;
+  user-select:none!important;
+  background:transparent!important;
+}
+.npc-shops-window:not(.ns-directory) .ns-shop-resize-right {
+  top:30px!important;bottom:23px!important;right:0!important;
+  width:12px!important;
+  cursor:ew-resize!important;
+}
+.npc-shops-window:not(.ns-directory) .ns-shop-resize-left {
+  top:30px!important;bottom:23px!important;left:0!important;
+  width:9px!important;
+  cursor:ew-resize!important;
+}
+.npc-shops-window:not(.ns-directory) .ns-shop-resize-bottom {
+  left:10px!important;right:24px!important;bottom:0!important;
+  height:10px!important;
+  cursor:ns-resize!important;
+}
+.npc-shops-window:not(.ns-directory) .ns-shop-resize-handle {
+  z-index:21!important;
+  width:30px!important;
+  height:30px!important;
+  cursor:nwse-resize!important;
+  touch-action:none!important;
+}
+.npc-shops-window:not(.ns-directory) .ns-shop-resize-right:hover,
+.npc-shops-window:not(.ns-directory) .ns-shop-resize-left:hover,
+.npc-shops-window:not(.ns-directory) .ns-shop-resize-bottom:hover {
+  background:#bda37b26!important;
+}
+.npc-shops-window:not(.ns-directory).ns-is-minimized .ns-shop-resize-edge {
+  display:none!important;
+}
+/* Give the GM a small inline editor while leaving the standard read-only
+ * price and Buy buttons intact for players. */
+.npc-shops-window .ns-item.ns-mp-item:has(.ns-buy-price-editor) {
+  flex-wrap:wrap!important;
+}
+.npc-shops-window .ns-buy-price-editor {
+  display:flex!important;
+  align-items:end!important;
+  gap:4px!important;
+  flex:0 1 116px!important;
+  max-width:116px!important;
+  min-width:94px!important;
+}
+.npc-shops-window .ns-buy-price-editor label {
+  font:10px/1.3 Arial,sans-serif!important;
+  color:#bcb3a1!important;
+  min-width:0!important;
+  flex:1!important;
+}
+.npc-shops-window .ns-buy-price-editor input {
+  display:block!important;
+  width:76px!important;
+  max-width:100%!important;
+  padding:4px!important;
+  min-height:27px!important;
+  color:#fff!important;
+  background:#1b1f2a!important;
+  border:1px solid #827254!important;
+  border-radius:4px!important;
+  font:12px Arial,sans-serif!important;
+}
+.npc-shops-window .ns-buy-price-editor .ns-buy-price-save {
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  flex:0 0 25px!important;
+  width:25px!important;height:27px!important;min-height:27px!important;
+  padding:0!important;
+  color:#e0c38b!important;
+  border:1px solid #827254!important;
+  background:#282d37!important;
+  border-radius:4px!important;
+}
+.npc-shops-window.ns-shop-compact .ns-item.ns-mp-item:has(.ns-buy-price-editor) .ns-mp-item-preview {
+  flex:1 1 100%!important;
+}
