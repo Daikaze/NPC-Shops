@@ -569,3 +569,24 @@
   color: #ffffff !important;
   padding: 3px 5px !important;
 }
+
+/* v0.4.2: allow native bottom-right resize of merchant windows. */
+.npc-shops-window:not(.ns-directory) {
+  resize:both!important;
+  overflow:hidden!important;
+  min-width:540px!important;
+  min-height:360px!important;
+  max-width:98vw!important;
+  max-height:96vh!important;
+}
+.npc-shops-window:not(.ns-directory).ns-is-minimized {
+  resize:none!important;
+  min-height:30px!important;
+}
+.npc-shops-window:not(.ns-directory) .ns-mp-body {
+  min-height:0!important;
+  flex:1 1 auto!important;
+}
+.npc-shops-window .ns-mp-grid {min-height:0;}
+.npc-shops-window .ns-give-target {display:block;width:100%;max-width:100%;margin:10px 0;color:#fff;background:#16191f;}
+.npc-shops-window .ns-mp-give {margin-top:8px!important;border:1px solid #8c7342!important;background:#4b3825!important;color:#fff!important;width:100%!important;}
