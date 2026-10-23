@@ -80,7 +80,6 @@ export async function resolveRollResult(r,{tableName='',fromUuidFn=globalThis.fr
    if(isItem(doc))return {doc,fallback:false};
   }catch(err){console.warn('NPC Shops: item compendium lookup failed',pack.collection,err);}
  }
- }
  // The text result is explicitly marked as generic Loot (no made-up stats).
  return {doc:defaultLoot(name),fallback:true};
 }

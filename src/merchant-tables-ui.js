@@ -1,7 +1,7 @@
 /** GM-only Item Piles-inspired Rollable Table panel in NPC Shops Settings. */
 import {cpToGp,gpToCp} from './core.js';
 import {listAvailableTables,tableLink,rollMerchantTable,combineRolled,commitRolledStock} from './merchant-tables.js';
-const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\\'':'&#39;'}[c]));
+const esc=v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
 const btn=(action,label,more='')=>`<button type="button" data-action="${action}" ${more}>${label}</button>`;
 export function initMerchantTables(win){
  win.tableUI={available:[],selection:'',preview:[],unresolved:[],keepRolled:false,status:'',working:false};
