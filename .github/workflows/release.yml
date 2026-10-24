@@ -1,4 +1,4 @@
-name: Package NPC Shops
+name: Validate and Package NPC Shops
 on:
   push:
     branches: [main]
@@ -11,11 +11,13 @@ on:
       - README.md
       - LICENSE
       - .github/workflows/release.yml
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: write
 jobs:
-  publish:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,21 +25,27 @@ jobs:
         with:
           node-version: '22'
       - run: npm test && npm run check
+  publish:
+    needs: verify
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - name: Bundle module
         run: |
-          node -p "JSON.parse(require('fs').readFileSync('module.json','utf8')).version" > module-version.txt
+          VERSION=$(node -p "JSON.parse(require('fs').readFileSync('module.json','utf8')).version")
           mkdir -p dist/npc-shops
           cp module.json README.md LICENSE dist/npc-shops/
           cp -r src styles dist/npc-shops/
           (cd dist && zip -qr ../npc-shops.zip npc-shops)
-      - name: Publish or replace release asset
+      - name: Publish version-pinned release assets
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          VERSION=$(cat module-version.txt)
+          VERSION=$(node -p "JSON.parse(require('fs').readFileSync('module.json','utf8')).version")
           TAG="v${VERSION}"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" npc-shops.zip --clobber
+            gh release upload "$TAG" npc-shops.zip module.json --clobber
           else
-            gh release create "$TAG" npc-shops.zip --title "NPC Shops $TAG" --notes "Experimental alpha release; see README before using."
+            gh release create "$TAG" npc-shops.zip module.json --title "NPC Shops $TAG" --notes "Security hardening; see README. V11/V14 live integration verification still required."
           fi
