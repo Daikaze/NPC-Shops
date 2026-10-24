@@ -6,6 +6,7 @@ import {clampButtonPosition} from './layout.js';
 import {TokenShopBadges} from './token-badges.js';
 import {injectMerchantHudControl, isTokenHudApplication} from './hud-controls.js';
 import {isNpcToken} from './merchant-types.js';
+import {authorizeSocketMessage} from './socket-auth.js';
 
 const SOCKET = `module.${MODULE_ID}`;
 const pending = new Map();
@@ -256,27 +257,36 @@ Hooks.once('ready', () => {
     e.preventDefault();
     openSelected();
   });
-  game.socket.on(SOCKET, async data => {
-    if(data?.type === 'shop-changed' && typeof data.merchantId === 'string') {
-      if(!game.user.isGM)refreshWindows(data.merchantId,true);
+  // The second socket argument is attached by the Foundry server: it is not
+  // player-controlled payload data. Ignore messages when that proof is absent.
+  game.socket.on(SOCKET, async (incoming, senderId) => {
+    const data = authorizeSocketMessage(incoming, senderId, primaryGM()?.id);
+    if (!data) return;
+    if (data.type === 'shop-changed') {
+      if (!game.user.isGM) refreshWindows(data.merchantId, true);
       return;
     }
-    if (data?.type === 'response') {
+    if (data.type === 'response') {
       if (data.to !== game.user.id) return;
       const callback = pending.get(data.requestId);
       if (callback) {pending.delete(data.requestId); callback(data.result);}
       return;
     }
-    if (data?.type !== 'request' || !game.user.isGM || primaryGM()?.id !== game.user.id) return;
-    const payload = data.payload;
-    if (!payload || typeof payload.userId !== 'string' || !game.users.get(payload.userId)?.active) return;
+    if (!game.user.isGM || primaryGM()?.id !== game.user.id) return;
+    // A forged claim is rejected above; use the server-authenticated sender in
+    // every GM-side permission and ownership check.
+    const payload = {...data.payload, userId: senderId};
+    if (!game.users.get(senderId)?.active) return;
+    if (payload.action === 'trade') {
+      payload.details = {...payload.details, userId: senderId};
+    }
     let result;
     try { result = await dispatch(payload); }
     catch (err) {
       console.error('NPC Shops: GM socket request failed', err);
       result = {ok:false, message:`GM could not process ${payload.action}: ${err?.message || 'unknown error'}`};
     }
-    try { game.socket.emit(SOCKET, {type:'response',to:payload.userId,requestId:payload.requestId,result}); }
+    try { game.socket.emit(SOCKET, {type:'response',to:senderId,requestId:payload.requestId,result}); }
     catch (err) { console.error('NPC Shops: unable to send shop response', err); }
   });
   Hooks.on('canvasReady', () => {tokenBadges?.clear(); refreshBadges(); syncTokenFlags();});

@@ -1,5 +1,13 @@
 # NPC Shops
 
+## v0.5.3 — Socket authorization and public release preparation
+
+- **Authenticated transactions:** GM handlers now validate the server-supplied socket sender ID against the claimed player and the transaction's player ID. Forged identity claims are dropped before any item or currency is changed.
+- **Authenticated responses:** Player clients accept payment responses and storefront-refresh notifications only from the active GM, preventing spoofed success/failure messages.
+- **Fail closed:** A request without authenticated sender metadata is ignored instead of falling back to a payload-supplied user ID.
+- **Release packaging:** The download URL is pinned to the matching version; GitHub Releases include a versioned `module.json` alongside the ZIP, so Foundry's package directory can reference immutable releases.
+- **Compatibility:** Automated tests and syntax validation are not substitutes for live Foundry V11 and V14 verification. `verified` stays at V11 pending hands-on confirmation; do not submit a V14 compatibility claim yet.
+
 ## v0.5.2 — Buy price editing without unintended item dragging
 
 - The merchandise row is no longer draggable. Drag an item's **icon or name** in Buy to add it to the Bill of Sale or purchase it onto a character sheet.
@@ -273,7 +281,7 @@ The actor remains a normal NPC; shop stock is stored independently in `flags.npc
 
 - **ALPHA — back up the World before use**, test on copies first, and verify version compatibility on actual v11/3.3.1 and v14/5.3.3 installations.
 - Transactions touch multiple documents and are **not database-atomic**; best-effort rollback cannot guarantee recovery if Foundry crashes or other modules interfere mid-trade.
-- Requests use standard Foundry module socket messages. A client might forge a requester ID; **do not treat this module as secure against malicious players**. Use on trusted tables and inspect the ledger. Full trustworthy sender authentication requires server-side handling or another authenticated protocol.
+- GM transaction handling checks the **server-authenticated socket sender ID** (Foundry's second socket listener argument), not just a client-supplied player ID. Mismatched claims and unauthenticated packets are rejected; never bypass this check in custom integrations. Other modules and malicious clients may still disrupt play, so continue to use trusted tables, review trade logs, and back up Worlds. Transactions remain best-effort, not atomic.
 - Coin denominations are **not normalized upward** on trades. Purchases spend existing GP/EP/SP/CP where possible and only make lower-denomination change when needed; the module never automatically changes held gold into platinum. Standard D&D 5e exchange values are used; custom currencies are not supported.
 - Selling is limited to physical `weapon`, `equipment`, `consumable`, `tool`, and `loot` items. Containers, nested items, and nonstandard currencies are excluded in this alpha.
 - Merchants are **world Actors**, not unlinked synthetic tokens or Compendium-only Actors. Shop transfers create new item entries rather than automatically stacking identical items.
