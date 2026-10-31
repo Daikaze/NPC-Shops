@@ -2,7 +2,7 @@
   "id": "npc-shops",
   "title": "NPC Shops",
   "description": "GM-managed NPC merchant shops for dnd5e with buying, selling, stock, player access, and a private merchant cashbox.",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "authors": [
     {
       "name": "Daikaze"
@@ -10,7 +10,7 @@
   ],
   "compatibility": {
     "minimum": "11",
-    "verified": "11"
+    "verified": "14"
   },
   "relationships": {
     "systems": [
@@ -18,7 +18,8 @@
         "id": "dnd5e",
         "type": "system",
         "compatibility": {
-          "minimum": "3.3.1"
+          "minimum": "3.3.1",
+          "verified": "6.0.6"
         }
       }
     ]
@@ -29,11 +30,12 @@
   "styles": [
     "styles/npc-shops.css",
     "styles/merchant-presets-look.css",
-    "styles/merchant-tables.css"
+    "styles/merchant-tables.css",
+    "styles/native-v14.css"
   ],
   "url": "https://github.com/Daikaze/NPC-Shops",
   "manifest": "https://raw.githubusercontent.com/Daikaze/NPC-Shops/main/module.json",
-  "download": "https://github.com/Daikaze/NPC-Shops/releases/download/v0.5.3/npc-shops.zip",
+  "download": "https://github.com/Daikaze/NPC-Shops/releases/download/v0.5.4/npc-shops.zip",
   "readme": "README.md",
   "license": "LICENSE",
   "socket": true
