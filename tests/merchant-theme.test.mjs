@@ -11,10 +11,15 @@ test('storefront has responsive three-panel layout and no third-party asset depe
  assert.ok(!ui.includes('raw.githubusercontent.com/mikiross87'));
 });
 
-test('Merchant Presets-inspired appearance is loaded last and uses source screenshot palette',()=>{
+test('V11 legacy palette is retained and V14 native theme is loaded last',()=>{
  const manifest=JSON.parse(readFileSync(new URL('../module.json',import.meta.url),'utf8'));
- assert.equal(manifest.styles.at(-2),'styles/merchant-presets-look.css');
- assert.equal(manifest.styles.at(-1),'styles/merchant-tables.css');
+ assert.equal(manifest.styles.at(-3),'styles/merchant-presets-look.css');
+ assert.equal(manifest.styles.at(-2),'styles/merchant-tables.css');
+ assert.equal(manifest.styles.at(-1),'styles/native-v14.css');
+ const native=readFileSync(new URL('../styles/native-v14.css',import.meta.url),'utf8');
+ assert.match(native,/\\.application\\.npc-shops-native/);
+ assert.match(native,/\\.window-content/);
+ assert.ok(!native.includes('@import'));
  const css=readFileSync(new URL('../styles/merchant-presets-look.css',import.meta.url),'utf8');
  assert.match(css,/#311b1f/);
  assert.match(css,/#491d25/);
