@@ -8,9 +8,11 @@ import {cartEntries,cartLines,adjustCart,canCheckout} from "./merchant-cart.js";
 import {collectStockEdits,applyStockEdits,setBuyPrice} from "./manage-stock.js";
 import {initMerchantTables,tableFieldChange,tableAction} from "./merchant-tables-ui.js";
 import {confirmShopDialog} from "./shop-dialog.js";
+import {createNativeFrame, supportsNativeWindows} from "./native-window.js";
 import {shopDragPayload,dragPayloadFromEvent,openShopItemSheet} from "./shop-item-interaction.js";
 
 const windows = new Map();
+let directoryNative = null;
 const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const button = (action, label, extra = "") => `<button type="button" data-action="${action}" ${extra}>${label}</button>`;
 const notify = (text, error = false) => (error ? ui.notifications.error(text) : ui.notifications.info(text));
@@ -45,6 +47,7 @@ export class ShopWindow {
     this.info = info;
     this.mode = "buy";
     this.element = null;
+    this.nativeApp = null;
     this.busy = false;
     this.loading = false;
     this.buyerId = null;
@@ -73,6 +76,42 @@ export class ShopWindow {
   get giftRecipients() {return game.actors.contents.filter(a=>a.type==='character' && a.id!==this.actorId && game.users.some(u=>!u.isGM && a.testUserPermission?.(u,'OWNER')));}
   get buyer() { return this.eligibleBuyers.find(a => a.id === this.buyerId) ?? this.eligibleBuyers[0]; }
   open() {
+    // V14: use Foundry's real ApplicationV2 frame, native title bar,
+    // double-click minimization, resizing and window stacking.
+    if (supportsNativeWindows()) {
+      if (this.nativeApp) {
+        this.nativeApp.bringToFront?.();
+        if (this.element) this.render();
+        return;
+      }
+      const frame = createNativeFrame({
+        id: `npc-shops-merchant-${this.actorId}`,
+        title: `NPC Shops · ${this.name}`,
+        width: 1030, height: 740,
+        onClose: () => {
+          if (this.nativeApp !== frame) return;
+          this.element = null;
+          this.nativeApp = null;
+          windows.delete(this.actorId);
+        }
+      });
+      this.nativeApp = frame;
+      void frame.render(true).then(() => {
+        if (this.nativeApp !== frame) return;
+        const root = frame.element?.querySelector?.(".npc-shops-window");
+        if (!root) throw new Error("Native NPC Shops content was not rendered");
+        this.element = root;
+        this.bindEvents(root);
+        this.render();
+        if (!this.gm) void this.load();
+      }).catch(error => {
+        this.nativeApp = null;
+        this.element = null;
+        windows.delete(this.actorId);
+        notify(`NPC Shops: ${error.message}`, true);
+      });
+      return;
+    }
     const firstOpen = !this.element;
     if (!this.element) {
       const el = document.createElement("section");
@@ -111,7 +150,15 @@ export class ShopWindow {
     } catch (err) { notify(`NPC Shops: ${err.message}`, true); }
     finally { this.loading = false; this.render(); }
   }
-  close() { this.cleanupResize?.();this.element?.remove();this.element = null;windows.delete(this.actorId); }
+  close() {
+    this.cleanupResize?.();
+    const native = this.nativeApp;
+    this.nativeApp = null;
+    if (!native) this.element?.remove();
+    this.element = null;
+    windows.delete(this.actorId);
+    if (native) void native.close().catch(error => console.error("NPC Shops | close",error));
+  }
   confirm(message,{title="Confirm action",confirmLabel="Confirm",danger=false}={}) {
     return confirmShopDialog(this.element,{title,message,confirmLabel,danger});
   }
@@ -282,9 +329,10 @@ export class ShopWindow {
         <div class="ns-mp-init">${this.gm && isNpcActor(actor)
           ? button('enable','Make Merchant')
           : 'Only NPC actors may be made merchants.'}</div>`;
+    if (this.nativeApp) this.element.querySelector?.(".ns-mp-top")?.remove();
     this.element.classList?.toggle?.('ns-is-minimized',this.minimized);
-    // Re-rendering the shop must not remove its resize grip permanently.
-    this.element.insertAdjacentHTML?.('beforeend', '<div class="ns-shop-resize-edge ns-shop-resize-right" data-ns-resize="right" title="Drag left or right to resize width" aria-label="Resize shop width"></div><div class="ns-shop-resize-edge ns-shop-resize-left" data-ns-resize="left" title="Drag left or right to resize width" aria-label="Resize shop width"></div><div class="ns-shop-resize-edge ns-shop-resize-bottom" data-ns-resize="bottom" title="Drag up or down to resize height" aria-label="Resize shop height"></div><div class="ns-shop-resize-handle" data-ns-resize="bottom-right" title="Drag to resize width and height" aria-label="Resize shop"></div>');
+    // Legacy V11 uses its custom resize handles. V14 uses Foundry native resize.
+    if (!this.nativeApp) this.element.insertAdjacentHTML?.('beforeend', '<div class="ns-shop-resize-edge ns-shop-resize-right" data-ns-resize="right" title="Drag left or right to resize width" aria-label="Resize shop width"></div><div class="ns-shop-resize-edge ns-shop-resize-left" data-ns-resize="left" title="Drag left or right to resize width" aria-label="Resize shop width"></div><div class="ns-shop-resize-edge ns-shop-resize-bottom" data-ns-resize="bottom" title="Drag up or down to resize height" aria-label="Resize shop height"></div><div class="ns-shop-resize-handle" data-ns-resize="bottom-right" title="Drag to resize width and height" aria-label="Resize shop"></div>');
     this.renderedMode = this.mode;
     restoreWindowState(this.element, this.renderedMode, this.windowState);
     this.applySearchFilter();
@@ -795,16 +843,33 @@ export async function showDirectory(getDirectory, openMerchant, manageSelected =
     if (!result.ok) throw new Error(result.message);
     data = result.shops;
   } catch (err) {return notify(`NPC Shops: ${err.message}`, true);}
+  if (directoryNative) await directoryNative.close();
   document.getElementById('npc-shops-directory')?.remove();
-  const el = document.createElement('section');
+  let el;
+  let directoryApp = null;
+  if (supportsNativeWindows()) {
+    directoryApp = createNativeFrame({
+      id: 'npc-shops-directory-native',
+      title: 'NPC Shops · Current Scene',
+      width: 470, height: 540,
+      onClose: () => { if (directoryNative === directoryApp) directoryNative = null; }
+    });
+    directoryNative = directoryApp;
+    await directoryApp.render(true);
+    el = directoryApp.element.querySelector('.npc-shops-window');
+  } else {
+    el = document.createElement('section');
+  }
   el.id = 'npc-shops-directory';
   el.className = 'npc-shops-window ns-directory';
   el.innerHTML = `<header class="ns-header"><b><i class="fas fa-store"></i> NPC Shops · Current Scene</b>${button('close-directory', '×', 'class="ns-close"')}</header><main class="ns-content">${manageSelected ? `<div class="ns-directory-manage">${button("manage-selected", '<i class="fas fa-store"></i> Create / Edit Selected Shop')}</div>` : ""}${data.length ? data.map(s => `<button class="ns-directory-item" type="button" data-id="${esc(s.actorId)}" data-name="${esc(s.name)}" data-img="${esc(s.img)}"><img src="${esc(s.img)}" alt=""/><span>${esc(s.name)}<small>${s.open ? 'Open' : 'Closed'}</small></span></button>`).join('') : '<div class="ns-empty">No available merchant NPCs on this scene. GM: select an NPC and press Alt+S to create a shop.</div>'}</main>`;
-  document.body.appendChild(el);
+  if (!directoryApp) document.body.appendChild(el);
+  const dismiss = () => directoryApp ? void directoryApp.close() : el.remove();
+  if (directoryApp) el.querySelector(".ns-header")?.remove();
   el.addEventListener('click', e => {
-    if (e.target.closest('[data-action="close-directory"]')) return el.remove();
-    if (e.target.closest('[data-action="manage-selected"]') && manageSelected) { manageSelected(); el.remove(); return; }
+    if (e.target.closest('[data-action="close-directory"]')) return dismiss();
+    if (e.target.closest('[data-action="manage-selected"]') && manageSelected) { manageSelected(); dismiss(); return; }
     const btn = e.target.closest('button[data-id]');
-    if (btn) {openMerchant({actorId:btn.dataset.id,name:btn.dataset.name,img:btn.dataset.img}); el.remove();}
+    if (btn) {openMerchant({actorId:btn.dataset.id,name:btn.dataset.name,img:btn.dataset.img}); dismiss();}
   });
 }
