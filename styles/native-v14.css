@@ -1,0 +1,246 @@
+/**
+ * Foundry V14 presentation. Only affects NPC Shops native ApplicationV2
+ * windows; the existing v11 storefront stylesheet remains untouched.
+ * Prefer Foundry theme tokens; no global button, actor sheet or HUD resets.
+ */
+.application.npc-shops-native .window-content {
+  display: flex !important;
+  flex-direction: column !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+}
+.application.npc-shops-native .npc-shops-window,
+.application.npc-shops-native .npc-shops-window:not(.ns-directory) {
+  position: static !important;
+  inset: auto !important;
+  z-index: auto !important;
+  transform: none !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  flex: 1 1 auto !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  max-height: none !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  resize: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  font: inherit !important;
+  color: var(--color-text-primary, inherit) !important;
+  background: var(--color-bg, var(--color-cool-5, transparent)) !important;
+}
+/* Native Foundry frame supplies the window title, drag, minimize and resize. */
+.application.npc-shops-native .ns-mp-top,
+.application.npc-shops-native .ns-header,
+.application.npc-shops-native [data-ns-resize] { display: none !important; }
+.application.npc-shops-native .ns-native-summary {
+  display: flex !important;
+  flex: 0 0 auto !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 12px !important;
+  padding: 12px 16px !important;
+  border-bottom: 1px solid var(--color-border-light-primary, #7776) !important;
+  background: var(--color-bg-option, transparent) !important;
+}
+.application.npc-shops-native .ns-native-avatar {
+  width: 46px !important;
+  height: 46px !important;
+  object-fit: cover !important;
+  border-radius: 4px !important;
+}
+.application.npc-shops-native .ns-native-merchant { flex: 1 1 180px; min-width: 0; }
+.application.npc-shops-native .ns-native-merchant h2 {
+  margin: 0 0 3px !important;
+  font: 600 1.15em var(--font-primary, inherit) !important;
+  color: var(--color-text-primary, inherit) !important;
+}
+.application.npc-shops-native .ns-native-merchant small,
+.application.npc-shops-native .ns-native-balance small { color: var(--color-text-secondary, inherit) !important; }
+.application.npc-shops-native .ns-native-buyer {
+  display: grid !important;
+  gap: 3px !important;
+  flex: 0 1 240px !important;
+}
+.application.npc-shops-native .ns-native-buyer select { width: 100% !important; margin: 0 !important; }
+.application.npc-shops-native .ns-native-balance {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  gap: 3px !important;
+}
+.application.npc-shops-native .ns-mp-tabs {
+  display: flex !important;
+  flex: 0 0 auto !important;
+  flex-wrap: wrap !important;
+  gap: 4px !important;
+  margin: 0 !important;
+  padding: 8px 12px 0 !important;
+  background: transparent !important;
+  border-bottom: 1px solid var(--color-border-light-primary, #7776) !important;
+}
+.application.npc-shops-native .ns-mp-tabs button,
+.application.npc-shops-native .ns-mp-side-btn {
+  font: inherit !important;
+  color: var(--color-text-primary, inherit) !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: 4px 4px 0 0 !important;
+  box-shadow: none !important;
+}
+.application.npc-shops-native .ns-mp-tabs button.active,
+.application.npc-shops-native .ns-mp-side-btn.active {
+  background: var(--color-bg-option, #80808019) !important;
+  border-color: var(--color-border-light-primary, #7776) !important;
+  color: var(--color-text-primary, inherit) !important;
+  font-weight: 600 !important;
+}
+.application.npc-shops-native .ns-content.ns-mp-body {
+  display: block !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  overflow: auto !important;
+  background: transparent !important;
+}
+.application.npc-shops-native .ns-mp-grid {
+  display: grid !important;
+  grid-template-columns: minmax(155px, 175px) minmax(0, 1fr) minmax(220px, 255px) !important;
+  align-items: stretch !important;
+  gap: 0 !important;
+  min-height: 100% !important;
+}
+.application.npc-shops-native .ns-mp-sidebar,
+.application.npc-shops-native .ns-mp-main,
+.application.npc-shops-native .ns-mp-bill {
+  min-width: 0 !important;
+  padding: 12px !important;
+  color: var(--color-text-primary, inherit) !important;
+  background: transparent !important;
+  border-color: var(--color-border-light-primary, #7776) !important;
+  box-shadow: none !important;
+}
+.application.npc-shops-native .ns-mp-sidebar,
+.application.npc-shops-native .ns-mp-bill {
+  background: var(--color-bg-option, #8080800d) !important;
+}
+.application.npc-shops-native .ns-mp-sidebar { border-right: 1px solid var(--color-border-light-primary, #7776) !important; }
+.application.npc-shops-native .ns-mp-bill { border-left: 1px solid var(--color-border-light-primary, #7776) !important; }
+.application.npc-shops-native .ns-mp-main { max-width: none !important; }
+.application.npc-shops-native .ns-mp-side-btn { display: flex !important; width: 100% !important; border-radius: 4px !important; }
+.application.npc-shops-native .ns-mp-catalog-head,
+.application.npc-shops-native .ns-mp-settings,
+.application.npc-shops-native .ns-mp-bill-card,
+.application.npc-shops-native .ns-populate {
+  background: transparent !important;
+  border-color: var(--color-border-light-primary, #7776) !important;
+  color: var(--color-text-primary, inherit) !important;
+  box-shadow: none !important;
+}
+.application.npc-shops-native .ns-mp-bill-card { padding: 0 !important; border: none !important; }
+.application.npc-shops-native .ns-item,
+.application.npc-shops-native .ns-mp-item,
+.application.npc-shops-native .ns-category,
+.application.npc-shops-native .ns-mp-bill-line,
+.application.npc-shops-native .ns-populate-table,
+.application.npc-shops-native .ns-populate-preview-row,
+.application.npc-shops-native .ns-save-all-bar,
+.application.npc-shops-native .ns-mp-danger {
+  color: var(--color-text-primary, inherit) !important;
+  background: var(--color-bg-option, #8080800d) !important;
+  border: 1px solid var(--color-border-light-primary, #7776) !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+}
+.application.npc-shops-native .ns-mp-item-preview {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: inherit !important;
+}
+.application.npc-shops-native .npc-shops-window button:not(.ns-mp-item-preview),
+.application.npc-shops-native .npc-shops-window button:not(.ns-mp-item-preview):hover:not(:disabled) {
+  min-height: 28px !important;
+  font-family: inherit !important;
+  color: var(--button-text-color, var(--color-text-primary, inherit)) !important;
+  background: var(--button-background-color, var(--color-bg-option, transparent)) !important;
+  border: 1px solid var(--button-border-color, var(--color-border-light-primary, #7776)) !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+.application.npc-shops-native .npc-shops-window button.active,
+.application.npc-shops-native .npc-shops-window button:hover:not(:disabled) {
+  filter: brightness(1.07);
+}
+.application.npc-shops-native .npc-shops-window input:not([type="checkbox"]),
+.application.npc-shops-native .npc-shops-window select {
+  font: inherit !important;
+  color: var(--input-text-color, var(--color-text-primary, inherit)) !important;
+  background: var(--input-background-color, var(--color-bg-option, transparent)) !important;
+  border: 1px solid var(--input-border-color, var(--color-border-light-primary, #7776)) !important;
+  box-shadow: none !important;
+  border-radius: 4px !important;
+}
+.application.npc-shops-native .npc-shops-window h2,
+.application.npc-shops-native .npc-shops-window h3,
+.application.npc-shops-native .npc-shops-window h4,
+.application.npc-shops-native .npc-shops-window strong,
+.application.npc-shops-native .npc-shops-window small,
+.application.npc-shops-native .npc-shops-window label,
+.application.npc-shops-native .npc-shops-window p,
+.application.npc-shops-native .npc-shops-window .ns-mp-price,
+.application.npc-shops-native .npc-shops-window .ns-mp-money,
+.application.npc-shops-native .npc-shops-window .ns-itemtext strong,
+.application.npc-shops-native .npc-shops-window .ns-itemtext small {
+  color: inherit !important;
+  font-family: inherit !important;
+  text-shadow: none !important;
+}
+.application.npc-shops-native .npc-shops-window footer {
+  flex: 0 0 auto;
+  padding: 5px 10px !important;
+  background: transparent !important;
+  color: var(--color-text-secondary, inherit) !important;
+  border-top: 1px solid var(--color-border-light-primary, #7776) !important;
+}
+.application.npc-shops-native .ns-mp-init { padding: 16px !important; }
+.application.npc-shops-native .ns-mp-hero { background: transparent !important; }
+.application.npc-shops-native .ns-mp-purse,
+.application.npc-shops-native .ns-mp-qty { background: transparent !important; }
+.application.npc-shops-native .ns-mp-search { background: transparent !important; border-color: var(--color-border-light-primary, #7776) !important; }
+.application.npc-shops-native .ns-confirm-panel {
+  background: var(--color-bg, var(--color-cool-5, #202127)) !important;
+  color: var(--color-text-primary, inherit) !important;
+  border-color: var(--color-border-light-primary, #7776) !important;
+}
+.application.npc-shops-native .npc-shops-window.ns-directory .ns-content {
+  flex: 1 1 auto; min-height: 0; overflow: auto; padding: 12px !important;
+}
+.application.npc-shops-native .npc-shops-window.ns-directory .ns-directory-item {
+  display: flex !important; width: 100% !important;
+  background: transparent !important; color: inherit !important;
+  border-color: var(--color-border-light-primary, #7776) !important;
+}
+@media (max-width: 850px) {
+  .application.npc-shops-native .ns-mp-grid {
+    grid-template-columns: minmax(120px, 155px) minmax(0, 1fr) !important;
+  }
+  .application.npc-shops-native .ns-mp-bill {
+    grid-column: 1 / -1 !important;
+    border-left: none !important;
+    border-top: 1px solid var(--color-border-light-primary, #7776) !important;
+  }
+}
+@media (max-width: 570px) {
+  .application.npc-shops-native .ns-mp-grid { display: flex !important; flex-direction: column !important; }
+  .application.npc-shops-native .ns-mp-sidebar { border-right: none !important; border-bottom: 1px solid var(--color-border-light-primary, #7776) !important; }
+}
