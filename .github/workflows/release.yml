@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - module.json
+      - .github/scripts/**
       - src/**
       - tests/**
       - package.json
@@ -24,7 +25,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm test && npm run check
+      - run: npm test && npm run check && node --check .github/scripts/publish-foundry.mjs
   publish:
     needs: verify
     if: github.event_name != 'pull_request'
@@ -49,3 +50,8 @@ jobs:
           else
             gh release create "$TAG" npc-shops.zip module.json --title "NPC Shops $TAG" --notes "Security hardening; see README. V11/V14 live integration verification still required."
           fi
+      - name: Register release in Foundry VTT official package catalog
+        env:
+          FOUNDRY_PACKAGE_RELEASE_TOKEN: ${{ secrets.FOUNDRY_PACKAGE_RELEASE_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node .github/scripts/publish-foundry.mjs
