@@ -29,7 +29,8 @@
   "styles": [
     "styles/npc-shops.css",
     "styles/merchant-presets-look.css",
-    "styles/merchant-tables.css"
+    "styles/merchant-tables.css",
+    "styles/native-v14.css"
   ],
   "url": "https://github.com/Daikaze/NPC-Shops",
   "manifest": "https://raw.githubusercontent.com/Daikaze/NPC-Shops/main/module.json",
