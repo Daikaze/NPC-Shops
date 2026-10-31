@@ -17,6 +17,17 @@ const describeItem=item=>{
 const itemOf=(w,e)=>w.mode==='buy'?e.item:e;
 function hero(w,shop,buyer,label,avatar){
  const bal=buyer?.system?.currency?moneyTotal(buyer.system.currency):0;
+ if (w.nativeApp) return `<section class="ns-native-summary">
+   <img class="ns-native-avatar" src="${esc(avatar)}" alt=""/>
+   <div class="ns-native-merchant"><h2>${esc(label)}</h2>
+     <small>${shop.open ? 'Open for trade' : 'Closed for trade'}${w.gm || shop.hideTradeTerms===false ? ' · Buys at ' + Math.round(Number(shop.sellRate)*100) + '%' : ''}</small></div>
+   <label class="ns-native-buyer">Trading as
+     <select data-field="buyer" aria-label="Choose trading character">
+       <option value="">Choose character</option>
+       ${w.eligibleBuyers.map(a=>`<option value="${esc(a.id)}" ${buyer?.id===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}
+     </select></label>
+   <div class="ns-native-balance"><small>Balance</small><strong>${coin(bal)}</strong></div>
+ </section>`;
  return `<header class="ns-mp-top" title="Double-click to minimize or restore"><span>${esc(label)}</span><div class="ns-mp-window-actions">
  ${button('close','×','class="ns-close" aria-label="Close"')}</div></header>
  <div class="ns-mp-hero"><img src="${esc(avatar)}" alt="" class="ns-mp-avatar"/>
