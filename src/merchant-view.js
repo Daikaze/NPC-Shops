@@ -1,10 +1,16 @@
 import {groupItems} from './categories.js';
-import {cpToGp,moneyTotal,itemPriceCp} from './core.js';
+import {formatCoins,formatWallet,priceCoin,priceInputValue,PRICE_DENOMINATIONS,moneyTotal,itemPriceCp} from './core.js';
 import {cartEntries,cartLines,cartTotal,canCheckout} from './merchant-cart.js';
 import {renderMerchantTables} from './merchant-tables-ui.js';
 const esc=v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
 const button=(a,t,extra='')=>`<button type="button" data-action="${a}" ${extra}>${t}</button>`;
-const coin=cp=>`<span class="ns-mp-money"><b>${cpToGp(Math.round(Math.max(0,cp)))}</b><span class="ns-coin" title="Gold pieces" aria-label="gold pieces"><i class="fas fa-coins" aria-hidden="true"></i></span></span>`;
+const moneyMarkup=text=>'<span class="ns-mp-money">'+
+ text.replace(/(\d+) (pp|gp|ep|sp|cp)/g,(_match,n,unit)=>
+  '<span class="ns-money-unit ns-money-'+unit+'"><b>'+n+'</b><small>'+unit.toUpperCase()+'</small></span>')+'</span>';
+const coin=cp=>moneyMarkup(formatCoins(Math.round(Math.max(0,cp))));
+const walletCoin=wallet=>moneyMarkup(formatWallet(wallet));
+const currencySelect=(field,denom)=>'<select data-field="'+field+'" data-prev-denom="'+denom+'" aria-label="Price currency">'+
+ PRICE_DENOMINATIONS.map(x=>'<option value="'+x+'" '+(x===denom?'selected':'')+'>'+x.toUpperCase()+'</option>').join('')+'</select>';
 const describeItem=item=>{
  const kind=String(item?.system?.type?.value??item?.type??'Item');
  const type=kind ? kind.charAt(0).toUpperCase()+kind.slice(1) : 'Item';
@@ -17,7 +23,7 @@ const describeItem=item=>{
 const itemOf=(w,e)=>w.mode==='buy'?e.item:e;
 function hero(w,shop,buyer,label,avatar){
  const bal=buyer?.system?.currency?moneyTotal(buyer.system.currency):0;
- if (w.nativeApp) return `<section class="ns-native-summary">
+ if (w.nativeApp || w.unifiedInterface) return `<section class="ns-native-summary">
    <img class="ns-native-avatar" src="${esc(avatar)}" alt=""/>
    <div class="ns-native-merchant"><h2>${esc(label)}</h2>
      <small>${shop.open ? 'Open for trade' : 'Closed for trade'}${w.gm || shop.hideTradeTerms===false ? ' · Buys at ' + Math.round(Number(shop.sellRate)*100) + '%' : ''}</small></div>
@@ -26,7 +32,7 @@ function hero(w,shop,buyer,label,avatar){
        <option value="">Choose character</option>
        ${w.eligibleBuyers.map(a=>`<option value="${esc(a.id)}" ${buyer?.id===a.id?'selected':''}>${esc(a.name)}</option>`).join('')}
      </select></label>
-   <div class="ns-native-balance"><small>Balance</small><strong>${coin(bal)}</strong></div>
+   <div class="ns-native-balance"><small>Balance</small><strong>${walletCoin(buyer?.system?.currency??{})}</strong></div>
  </section>`;
  return `<header class="ns-mp-top" title="Double-click to minimize or restore"><span>${esc(label)}</span><div class="ns-mp-window-actions">
  ${button('close','×','class="ns-close" aria-label="Close"')}</div></header>
@@ -64,7 +70,7 @@ function catalog(w,shop,buyer,entries){
    w.mode==='sell'&&!shop.allowSelling?'Merchant is not buying items.':
    w.mode==='sell'&&!buyer?'Choose a character to sell items.':'';
  const groups=groupItems(entries,e=>itemOf(w,e));
- const visible=(w.categoryFilter[w.mode]??'all')==='all'?groups:groups.filter(g=>g.id===w.categoryFilter[w.mode]);
+ const visible=groups; // Render all groups; the DOM filter combines category selection and live search.
  return `<div class="ns-mp-catalog-head"><strong>${w.mode==='buy'?'Browse the shelves':'Offer your items'}</strong>
  <label class="ns-mp-search"><i class="fas fa-search"></i><input type="search" data-field="item-search" placeholder="Search items..." value="${esc(w.searchQueries[w.mode]??'')}"/></label></div>
  <div class="ns-items ns-mp-stock">${blocked?`<div class="ns-mp-empty">${esc(blocked)}</div>`:visible.map(g=>`<section class="ns-category" data-view="${w.mode}" data-category="${g.id}">
@@ -73,14 +79,14 @@ function catalog(w,shop,buyer,entries){
   const stock=w.mode==='buy'?(entry.unlimited?'∞':entry.quantity):(entry.system?.quantity??1);
   const low=stock!== '∞'&&Number(stock)===1;
   const missing=stock!== '∞'&&Number(stock)<1;
-  return `<div class="ns-item ns-mp-item" data-entry-id="${esc(entry.id)}">
+  return `<div class="ns-item ns-mp-item" data-entry-id="${esc(entry.id)}" data-search-name="${esc(item.name)}">
     <button type="button" class="ns-mp-item-preview" data-action="${w.mode==='buy'?'inspect-item':'inspect-buyer-item'}" data-entry-id="${esc(entry.id)}" ${w.mode==='buy'?'draggable="true" data-shop-drag-source="true"':''} title="${w.mode==='buy'?'Click to inspect; drag icon/name to bill or character sheet':'Open Item sheet'} — ${esc(item.name)}">
       <img src="${esc(item.img??'icons/svg/item-bag.svg')}" alt="" draggable="false"/>
       <span class="ns-itemtext"><strong>${esc(item.name)}</strong><small>${esc(describeItem(item))}</small></span>
     </button>
     <span class="ns-mp-stock-label ${low?'low':''}">${esc(stock==='∞'?'Unlimited':low?'Last one':w.mode==='buy'?stock+' left':'×'+stock)}</span>
     ${w.gm && w.mode==='buy'
-      ? `<div class="ns-buy-price-editor" draggable="false" title="GM only: change shop price"><label>Price (GP)<input draggable="false" type="number" data-field="buy-price" value="${cpToGp(entry.priceCp)}" min="0" step="0.01" inputmode="decimal" aria-label="Buy price for ${esc(item.name)}"/></label>
+      ? `<div class="ns-buy-price-editor" draggable="false" title="GM only: change shop price"><label>Price<input draggable="false" type="number" data-field="buy-price" value="${priceInputValue(entry.priceCp,priceCoin(entry))}" min="0" step="any" inputmode="decimal" aria-label="Buy price for ${esc(item.name)}"/></label>${currencySelect("buy-price-denomination",priceCoin(entry))}
        ${button('save-buy-price','<i class="fas fa-save" aria-hidden="true"></i>',`class="ns-buy-price-save" data-entry-id="${esc(entry.id)}" title="Save Buy price" aria-label="Save Buy price for ${esc(item.name)}"`)}
       </div>`
       : `<span class="ns-mp-price">${coin(price)}</span>`}
@@ -95,10 +101,10 @@ function settings(w,shop){
     <h3><i class="fas fa-coins"></i> Merchant Cashbox</h3>
     <p>GM-only. Money from player purchases is collected on this NPC Actor sheet when it supports currency.</p>
     <div class="ns-cashbox-stat"><span>Gross purchase proceeds</span><strong>${coin(earned)}</strong></div>
-    <div class="ns-cashbox-stat"><span>Current NPC wallet</span><strong>${wallet?coin(moneyTotal(wallet)):'Not available on this NPC'}</strong></div>
-    <div class="ns-cashbox-manage"><label>Wallet balance (GP)
-      <input data-field="cashbox-balance" type="number" min="0" step="0.01" value="${wallet?cpToGp(moneyTotal(wallet)):'0.00'}" ${wallet?'':'disabled'} title="Enter a new total balance and press Enter or click outside to save"/>
-    </label><small>Type the desired total balance. Press Enter or leave the field to save automatically.</small></div>
+    <div class="ns-cashbox-stat"><span>Current NPC wallet</span><strong>${wallet?walletCoin(wallet):'Not available on this NPC'}</strong></div>
+    <div class="ns-cashbox-manage"><label>Wallet balance
+      <input data-field="cashbox-balance" type="number" min="0" step="any" value="${wallet?priceInputValue(moneyTotal(wallet),'gp'):'0'}" ${wallet?'':'disabled'} title="Enter a new total balance and press Enter or click outside to save"/>
+    </label>${currencySelect("cashbox-denomination","gp")}<small>Choose PP, GP, SP or CP; this edits the merchant's total coin value.</small></div>
     <small>Both the Actor currency and purchase proceeds are GM-only in NPC Shops. Selling items to this merchant does not increase purchase proceeds.</small>
    </section>`;
  }
@@ -138,7 +144,7 @@ function bill(w,shop,buyer){
  ${button('cart-plus','+',`data-entry-id="${esc(l.id)}"`)}</div></div>`).join(''):'<p class="ns-mp-bill-empty">Choose goods from the shelves to build your bill.</p>'}</div>
  <hr class="ns-mp-double-rule"/><div class="ns-mp-bill-total"><span>${w.mode==='buy'?'SUM OWED':'YOU RECEIVE'}</span><strong>${coin(total)}</strong></div>
  <p class="ns-mp-after">${buyer?esc(buyer.name)+`’s purse after trade: ${coin(w.mode==='buy'?Math.max(0,funds-total):funds+total)}`:'Select a character.'}</p>
- ${button('cart-checkout',`<span class="ns-mp-seal"><i class="fas fa-stamp"></i></span><span>${w.mode==='buy'?'Buy':'Sell'} · ${cpToGp(total)} gp</span>`,
+ ${button('cart-checkout',`<span class="ns-mp-seal"><i class="fas fa-stamp"></i></span><span>${w.mode==='buy'?'Buy':'Sell'} · ${formatCoins(total)}</span>`,
  `class="ns-mp-checkout" ${!canCheckout(w.cart[w.mode],shop,buyer,w.mode)||w.busy?'disabled':''}`)}
  ${w.gm&&w.mode==='buy'?button('cart-give','<i class="fas fa-gift"></i> Give (GM)',`class="ns-mp-give" ${!lines.length||w.busy?'disabled':''}`):''}
  ${lines.length?button('cart-clear','Clear bill','class="ns-mp-clear"'):''}
@@ -146,8 +152,9 @@ function bill(w,shop,buyer){
 }
 export function renderMerchantView(w,shop,buyer,label,avatar){
  const entries=cartEntries(shop,buyer,w.mode);
- return hero(w,shop,buyer,label,avatar)+tabs(w)+`<main class="ns-content ns-mp-body"><div class="ns-mp-grid">
+ return (!w.nativeApp && w.unifiedInterface ? `<header class="ns-mp-top" title="Drag to move · double-click to minimize"><span>NPC Shops</span><div class="ns-mp-window-actions">${button('close','×','class="ns-close" aria-label="Close"')}</div></header>` : '')+
+ hero(w,shop,buyer,label,avatar)+tabs(w)+`<main class="ns-content ns-mp-body"><div class="ns-mp-grid">
  ${sidebar(w,entries)}<section class="ns-mp-main" data-scroll-key="catalog">${w.mode==='manage'?settings(w,shop):catalog(w,shop,buyer,entries)}
  <div class="ns-empty ns-no-results" hidden>No items match your search.</div></section>${bill(w,shop,buyer)}
- </div></main><footer>NPC Shops · Foundry v${esc(game.version||game.release?.generation)} · v0.5.4</footer>`;
+ </div></main><footer>NPC Shops · Foundry v${esc(game.version||game.release?.generation)} · v0.5.5</footer>`;
 }
