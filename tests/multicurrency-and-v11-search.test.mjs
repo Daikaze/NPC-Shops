@@ -63,7 +63,7 @@ test('search scans all shelves even with another category selected and opens v11
  w.searchQueries.manage='';w.applySearchFilter();
  assert.equal(weapons.open,false);
 });
-test('Foundry v11 & v14 use the same NPC Shops merchant summary and coin selectors',()=>{
+test('Foundry v11 & v14 use the same NPC Shops merchant summary and coin fields',()=>{
  const stock=[{id:'a',item:{name:'Dagger',type:'weapon',system:{}},priceCp:5,quantity:1}];
  const npc={id:'merchant',name:'Mura',type:'npc',img:'mura.png',getFlag:()=>({enabled:true,open:true,sellRate:.5,allowSelling:true,stock,ledger:[]})};
  const buyer={id:'hero',name:'Hero',type:'character',system:{currency:{pp:1,gp:1,sp:2,cp:3,ep:0}},items:{contents:[]},testUserPermission:()=>true};
@@ -76,12 +76,23 @@ test('Foundry v11 & v14 use the same NPC Shops merchant summary and coin selecto
    win.element={innerHTML:'',classList:{toggle(){}},querySelectorAll:()=>[]};
    win.render();
    assert.match(win.element.innerHTML,/ns-native-summary/);
-   assert.match(win.element.innerHTML,/data-field="buy-price-denomination"/);
+   assert.match(win.element.innerHTML,/data-coin-field="buy-price" data-coin="pp"/);
+   assert.match(win.element.innerHTML,/data-coin-field="buy-price" data-coin="gp"/);
+   assert.match(win.element.innerHTML,/data-coin-field="buy-price" data-coin="sp"/);
+   assert.match(win.element.innerHTML,/data-coin-field="buy-price" data-coin="cp"/);
+   assert.doesNotMatch(win.element.innerHTML,/buy-price-denomination/);
    assert.match(win.element.innerHTML,/ns-money-pp/);
    win.mode='manage';win.settingsPage='stock';win.render();
-   assert.match(win.element.innerHTML,/data-field="price-denomination"/);
+   assert.match(win.element.innerHTML,/data-coin-field="price" data-coin="pp"/);
+   assert.match(win.element.innerHTML,/data-coin-field="price" data-coin="cp"/);
+   assert.doesNotMatch(win.element.innerHTML,/price-denomination/);
    win.settingsPage='cashbox';win.render();
+   assert.match(win.element.innerHTML,/data-coin-field="cashbox-balance" data-coin="pp"/);
+   assert.match(win.element.innerHTML,/data-coin-field="cashbox-balance" data-coin="gp"/);
+   assert.match(win.element.innerHTML,/data-coin-field="cashbox-balance" data-coin="sp"/);
+   assert.match(win.element.innerHTML,/data-coin-field="cashbox-balance" data-coin="cp"/);
    assert.match(win.element.innerHTML,/data-action="save-cashbox-balance"/);
+   assert.doesNotMatch(win.element.innerHTML,/cashbox-denomination/);
   }
  } finally {globalThis.game=previous;}
 });
