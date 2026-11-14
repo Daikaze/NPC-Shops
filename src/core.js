@@ -1,6 +1,8 @@
 import {itemCategory} from "./categories.js";
 export const MODULE_ID = "npc-shops";
 export const COINS = Object.freeze({pp: 1000, gp: 100, ep: 50, sp: 10, cp: 1});
+export const PRICE_COINS = Object.freeze({pp: 1000, gp: 100, sp: 10, cp: 1});
+export const PRICE_DENOMINATIONS = Object.freeze(Object.keys(PRICE_COINS));
 export const SALEABLE_TYPES = new Set(["weapon", "equipment", "consumable", "tool", "loot", "container"]);
 const denominations = Object.keys(COINS);
 
@@ -67,7 +69,8 @@ export function spendCoins(wallet, costCp) {
 export function addCoins(wallet, amountCp) {
   amountCp = assertInt(amountCp, 0, Number.MAX_SAFE_INTEGER);
   const result = walletCoins(wallet);
-  const increment = {gp: Math.floor(amountCp / 100), sp: Math.floor((amountCp % 100) / 10), cp: amountCp % 10};
+  const increment = {pp: Math.floor(amountCp / 1000), gp: Math.floor((amountCp % 1000) / 100),
+    sp: Math.floor((amountCp % 100) / 10), cp: amountCp % 10};
   for (const [coin, amount] of Object.entries(increment)) result[coin] = assertInt(result[coin] + amount, 0, Number.MAX_SAFE_INTEGER);
   if (moneyTotal(result) !== moneyTotal(wallet) + amountCp) throw new Error("Currency reconciliation failed");
   return result;
@@ -76,12 +79,45 @@ export function changeWallet(wallet, diffCp) {
   if (!Number.isSafeInteger(diffCp)) throw new Error("Invalid money adjustment");
   return diffCp < 0 ? spendCoins(wallet, -diffCp) : addCoins(wallet, diffCp);
 }
+/** All shop prices are stored as integer copper regardless of the selected coin. */
+export function priceToCp(value, denomination = "gp") {
+  const factor = PRICE_COINS[String(denomination).toLowerCase()];
+  if (!factor) throw new Error("Choose PP, GP, SP or CP");
+  const raw = String(value ?? "").trim();
+  const num = Number(raw);
+  if (!raw || !Number.isFinite(num) || num < 0) throw new Error("Invalid price");
+  const exact = num * factor;
+  const rounded = Math.round(exact);
+  if (!Number.isSafeInteger(rounded) || Math.abs(exact - rounded) > 0.000001)
+    throw new Error("Price must be a whole number of copper pieces");
+  return rounded;
+}
+export function priceInputValue(amountCp, denomination = "gp") {
+  const factor = PRICE_COINS[denomination];
+  if (!factor) throw new Error("Invalid currency denomination");
+  return String(assertInt(amountCp, 0, Number.MAX_SAFE_INTEGER) / factor);
+}
+export function priceCoin(item) {
+  const denom = String(item?.priceDenomination ?? "gp").toLowerCase();
+  return PRICE_COINS[denom] ? denom : "gp";
+}
+export function formatCoins(amountCp) {
+  let cp = assertInt(amountCp, 0, Number.MAX_SAFE_INTEGER);
+  const output = [];
+  for (const [denom, factor] of Object.entries(PRICE_COINS)) {
+    const count = Math.floor(cp / factor);
+    if (count) output.push(count + " " + denom);
+    cp %= factor;
+  }
+  return output.join(" ") || "0 cp";
+}
+export function formatWallet(wallet = {}) {
+  const coins = walletCoins(wallet);
+  return ["pp","gp","ep","sp","cp"].filter(coin => coins[coin])
+    .map(coin => coins[coin] + " " + coin).join(" ") || "0 cp";
+}
 export function gpToCp(value) {
-  const num = Number(value);
-  if (!Number.isFinite(num) || num < 0 || num > 100000000) throw new Error("Invalid price");
-  const cp = Math.round(num * 100);
-  if (Math.abs(num * 100 - cp) > 0.000001) throw new Error("Prices use at most two decimal places of GP");
-  return cp;
+  return priceToCp(value, "gp");
 }
 export function cpToGp(cp) { return (assertInt(cp, 0, Number.MAX_SAFE_INTEGER) / 100).toFixed(2); }
 export function itemPriceCp(item) {
@@ -110,7 +146,7 @@ export function publicShop(shop) {
     enabled: !!shop.enabled, open: !!shop.open, allowSelling: !!shop.allowSelling,
     sellRate: Number(shop.sellRate) || 0,
     hideTradeTerms: shop.hideTradeTerms !== false,
-    stock: (shop.stock ?? []).map(s => ({id: s.id, item: {name: String(s.item?.name ?? "Item"), img: String(s.item?.img ?? "icons/svg/item-bag.svg"), category: itemCategory(s.item)}, priceCp: s.priceCp, quantity: s.quantity, unlimited: !!s.unlimited})),
+    stock: (shop.stock ?? []).map(s => ({id: s.id, item: {name: String(s.item?.name ?? "Item"), img: String(s.item?.img ?? "icons/svg/item-bag.svg"), category: itemCategory(s.item)}, priceCp: s.priceCp, priceDenomination: priceCoin(s), quantity: s.quantity, unlimited: !!s.unlimited})),
     ledger: []
   };
 }
