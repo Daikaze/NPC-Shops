@@ -10,7 +10,7 @@ test('receipt includes character, player, merchant, item, amount; HTML is escape
   assert.match(html,/Player &amp; A/);
   assert.match(html,/Kiro Shop/);
   assert.match(html,/2 × &lt;script&gt;/);
-  assert.match(html,/10.00 GP/);
+  assert.match(html,/1 pp/);
   assert.doesNotMatch(html,/<script>/);
 });
 test('v11 uses numeric OOC chat type, GM speaker and public visibility',()=>{
