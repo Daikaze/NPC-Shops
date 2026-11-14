@@ -5,8 +5,8 @@ import {isNpcActor} from "./merchant-types.js";
 import {captureWindowState,restoreWindowState} from "./window-state.js";
 import {clampShopFrame,shopSizeLayout,resizeShopFrame,compactShopFrame} from './layout.js';
 import {renderMerchantView} from "./merchant-view.js";
-import {cartEntries,cartLines,adjustCart,canCheckout} from "./merchant-cart.js";
-import {collectStockEdits,applyStockEdits,setBuyPrice} from "./manage-stock.js";
+import {cartEntries,cartLines,adjustCart,canCheckout,buyStockLimit} from "./merchant-cart.js";
+import {collectStockEdits,applyStockEdits,setBuyPrice,setUnlimitedForAll} from "./manage-stock.js";
 import {initMerchantTables,tableFieldChange,tableAction} from "./merchant-tables-ui.js";
 import {confirmShopDialog} from "./shop-dialog.js";
 import {createNativeFrame, supportsNativeWindows} from "./native-window.js";
@@ -398,6 +398,7 @@ export class ShopWindow {
   }
   renderManage(shop) {
     if (!this.gm) return '';
+    const allUnlimited=shop.stock.length>0 && shop.stock.every(s=>!!s.unlimited);
     return `<div class="ns-config ns-buyback-editor">
         <div class="ns-buyback-copy"><strong>Buyback Percentage</strong><small>Percentage of base Item price paid when buying from players (0–100%).</small></div>
         <label for="ns-buyback-${esc(this.actorId)}">Rate %</label>
@@ -407,6 +408,7 @@ export class ShopWindow {
       <div class="ns-save-all-bar">
         <span><i class="fas fa-layer-group"></i> Edit any number of items, then save them together.</span>
         <div class="ns-stock-batch-actions">
+          ${button('toggle-unlimited-all',allUnlimited?'<i class="fas fa-infinity"></i> Disable Unlimited All':'<i class="fas fa-infinity"></i> Unlimited All',shop.stock.length?`class="ns-unlimited-all ${allUnlimited?'active':''}" aria-pressed="${allUnlimited}" title="Apply Unlimited to all stock items; click again to restore limited stock"`:'disabled class="ns-unlimited-all"')}
           ${button('save-all-stock','<i class="fas fa-save"></i> Save All',!shop.stock.length?'disabled class="ns-save-all"':'class="ns-save-all"')}
           ${button('clear-all-stock','<i class="fas fa-trash-alt"></i> Clear All',!shop.stock.length?'disabled class="ns-clear-all"':'class="ns-clear-all"')}
         </div>
@@ -486,7 +488,7 @@ export class ShopWindow {
         e.preventDefault();e.stopPropagation();
         const entry=cartEntries(this.shop,this.buyer,'buy').find(x=>x.id===payload.skuId);
         if(!entry)return;
-        const cap=entry.unlimited?9999:Number(entry.quantity??0);
+        const cap=buyStockLimit(entry);
         adjustCart(this.cart.buy,payload.skuId,1,Math.max(0,Math.min(9999,cap)));
         this.render();
         return;
@@ -612,7 +614,7 @@ export class ShopWindow {
           const id=target.dataset.entryId;
           const entry=cartEntries(this.shop,this.buyer,this.mode).find(x=>x.id===id);
           if(!entry)return;
-          const cap=this.mode==='buy'?(entry.unlimited?9999:Number(entry.quantity??0)):Number(entry.system?.quantity??1);
+          const cap=this.mode==='buy'?buyStockLimit(entry):Number(entry.system?.quantity??1);
           adjustCart(this.cart[this.mode],id,action==='cart-minus'?-1:1,Math.max(0,Math.min(9999,cap)));
           return this.render();
         }
@@ -631,6 +633,23 @@ export class ShopWindow {
         }
         if (action === 'toggle-open') return await this.saveShop({...this.shop, open: !this.shop.open});
         if (action === 'toggle-sell') return await this.saveShop({...this.shop, allowSelling: !this.shop.allowSelling});
+        if (action === 'toggle-unlimited-all') {
+          if(!this.gm || this.mode!=='manage' || this.settingsPage!=='stock')
+            throw new Error('Only the GM can change unlimited stock');
+          const current=this.shop;
+          if(!current.stock?.length)return;
+          const enabled=!current.stock.every(entry=>!!entry.unlimited);
+          // Include every row, even search-hidden rows; keep unsaved coin/stock edits.
+          const rows=el.querySelectorAll('.ns-manage-item[data-sku]');
+          const edits=rows.length?collectStockEdits(rows):null;
+          const updated=setUnlimitedForAll(current,enabled,edits);
+          this.busy=true;
+          try {
+            await this.saveShop(updated);
+            notify(`NPC Shops: Unlimited ${enabled?'enabled':'disabled'} for all ${updated.stock.length} items.`);
+          } finally {this.busy=false;}
+          return;
+        }
         if (action === 'save-all-stock') {
           if (!this.gm || this.mode !== 'manage' || this.settingsPage !== 'stock')
             throw new Error('Only GMs can edit merchant stock');
