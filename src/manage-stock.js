@@ -1,4 +1,5 @@
-import {priceToCp,priceCoin} from './core.js';
+import {priceToCp,priceCoin,assertInt} from './core.js';
+import {readCoinEditor} from './coin-inputs.js';
 
 /** Convert every rendered Manage/Stock row into validated changes.
  * Hidden/search-filtered rows remain in the DOM, so Save All includes them.
@@ -9,15 +10,16 @@ export function collectStockEdits(rows) {
   for (const row of rows??[]) {
     const id=row?.dataset?.sku;
     if(!id || changes.has(id)) throw new Error('Invalid or duplicated stock row');
+    const coinPrices=readCoinEditor(row,'price',{allowLegacy:true});
     const priceField=row.querySelector?.('[data-field="price"]');
     const stockField=row.querySelector?.('[data-field="stock"]');
     const denomination=row.querySelector?.('[data-field="price-denomination"]')?.value ?? 'gp';
     const unlimited=row.querySelector?.('[data-field="unlimited"]');
-    if(!priceField||!stockField||!unlimited)throw new Error('Missing stock editor for '+id);
-    const priceValue=String(priceField.value??'').trim();
+    if(!coinPrices && !priceField || !stockField || !unlimited)throw new Error('Missing stock editor for '+id);
+    const priceValue=String(priceField?.value??'').trim();
     const amountValue=String(stockField.value??'').trim();
-    if(!priceValue || !amountValue)throw new Error('Price and Stock cannot be empty');
-    const priceCp=priceToCp(priceValue,denomination);
+    if((coinPrices.legacy && !priceValue) || !amountValue)throw new Error('Price and Stock cannot be empty');
+    const priceCp=coinPrices.legacy ? priceToCp(priceValue,denomination):coinPrices.totalCp;
     const quantity=Number(amountValue);
     if(!Number.isSafeInteger(quantity)||quantity<0||quantity>999999)
       throw new Error('Stock must be a whole number from 0 to 999999');
@@ -49,13 +51,13 @@ export function applyStockEdits(shop,changes) {
  */
 export function setBuyPrice(shop, skuId, priceValue, denomination = 'gp') {
   if(!skuId || typeof skuId!=='string')throw new Error('Select an Item to price');
-  const raw=String(priceValue??'').trim();
-  if(!raw)throw new Error('Price cannot be empty');
-  const priceCp=priceToCp(raw,denomination);
+  const priceCp=priceValue && typeof priceValue==='object' && 'totalCp' in priceValue
+    ? assertInt(priceValue.totalCp,0,Number.MAX_SAFE_INTEGER)
+    : priceToCp(priceValue,denomination);
   const next=structuredClone(shop);
   const target=next.stock?.find(entry=>entry.id===skuId);
   if(!target || !target.item)throw new Error('Item is no longer in the shop');
   target.priceCp=priceCp;
-  target.priceDenomination=denomination;
+  target.priceDenomination=typeof priceValue==='object'?'gp':denomination;
   return next;
 }

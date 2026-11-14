@@ -1,0 +1,117 @@
+/* NPC Shops 0.5.6: four side-by-side money fields, v11 and v14. No currency dropdown. */
+.npc-shops-window .ns-coin-inputs {
+  display: grid !important;
+  grid-template-columns: repeat(4,minmax(0,1fr)) !important;
+  gap: 4px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  align-items: end !important;
+}
+.npc-shops-window .ns-coin-inputs .ns-coin-input {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  min-width: 0 !important;
+  flex: 1 1 0 !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: .2px !important;
+  cursor: text !important;
+  text-align: center !important;
+}
+.npc-shops-window .ns-coin-inputs .ns-coin-input span {
+  display: block !important;
+  font-size: 10px !important;
+  line-height: 1.1 !important;
+  color: inherit !important;
+  padding: 0 !important;
+  white-space: nowrap !important;
+}
+.npc-shops-window .ns-coin-inputs .ns-coin-input input[type="number"] {
+  display: block !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  margin: 0 !important;
+  padding: 2px 3px !important;
+  border: 1px solid var(--color-border-light-primary,#827254) !important;
+  border-radius: 4px !important;
+  background: var(--input-background-color,#20242c) !important;
+  color: var(--input-text-color,#fff) !important;
+  font: 12px var(--font-primary,Arial),sans-serif !important;
+  text-align: center !important;
+  box-shadow: none !important;
+  cursor: text !important;
+  user-select: text !important;
+  appearance: textfield !important;
+  -moz-appearance: textfield !important;
+}
+.npc-shops-window .ns-coin-inputs input::-webkit-inner-spin-button,
+.npc-shops-window .ns-coin-inputs input::-webkit-outer-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+.npc-shops-window .ns-coin-inputs .ns-input-pp span { color: #a9dcfa !important; }
+.npc-shops-window .ns-coin-inputs .ns-input-gp span { color: #e3c779 !important; }
+.npc-shops-window .ns-coin-inputs .ns-input-sp span { color: #c4d1e0 !important; }
+.npc-shops-window .ns-coin-inputs .ns-input-cp span { color: #d99a77 !important; }
+.npc-shops-window .ns-coin-editor-caption {
+  display: block !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  margin: 0 0 3px !important;
+  flex: 1 1 100% !important;
+}
+.npc-shops-window .ns-buy-price-editor {
+  display: flex !important;
+  align-items: end !important;
+  flex-flow: row wrap !important;
+  gap: 3px !important;
+  flex: 1 1 245px !important;
+  width: 245px !important;
+  min-width: min(210px,100%) !important;
+  max-width: 265px !important;
+}
+.npc-shops-window .ns-buy-price-editor .ns-coin-inputs {
+  flex: 1 1 calc(100% - 33px) !important;
+  width: calc(100% - 33px) !important;
+}
+.npc-shops-window .ns-buy-price-editor .ns-buy-price-save {
+  flex: 0 0 27px !important;
+  width: 27px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.npc-shops-window .ns-stock-price {
+  display: flex !important;
+  flex-direction: column !important;
+  min-width: min(100%,230px) !important;
+  width: min(100%,260px) !important;
+  flex: 1 1 240px !important;
+}
+.npc-shops-window .ns-stock-fields .ns-stock-price .ns-coin-inputs {
+  width: 100% !important;
+}
+.npc-shops-window .ns-cashbox-manage .ns-coin-editor-block {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  flex: 1 1 280px !important;
+  max-width: 420px !important;
+  min-width: min(100%,220px) !important;
+}
+.npc-shops-window .ns-cashbox-manage .ns-coin-editor-block>strong {
+  font-size: 13px !important;
+}
+.npc-shops-window .ns-cashbox-manage [data-action="save-cashbox-balance"] {
+  align-self: end !important;
+}
+@media(max-width:650px) {
+ .npc-shops-window .ns-buy-price-editor { flex: 1 1 100% !important; width: 100% !important; max-width: 100% !important; }
+}

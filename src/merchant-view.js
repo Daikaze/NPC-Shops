@@ -1,5 +1,6 @@
 import {groupItems} from './categories.js';
-import {formatCoins,formatWallet,priceCoin,priceInputValue,PRICE_DENOMINATIONS,moneyTotal,itemPriceCp} from './core.js';
+import {formatCoins,formatWallet,moneyTotal,itemPriceCp} from './core.js';
+import {coinEditor} from './coin-inputs.js';
 import {cartEntries,cartLines,cartTotal,canCheckout} from './merchant-cart.js';
 import {renderMerchantTables} from './merchant-tables-ui.js';
 const esc=v=>String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
@@ -9,8 +10,6 @@ const moneyMarkup=text=>'<span class="ns-mp-money">'+
   '<span class="ns-money-unit ns-money-'+unit+'"><b>'+n+'</b><small>'+unit.toUpperCase()+'</small></span>')+'</span>';
 const coin=cp=>moneyMarkup(formatCoins(Math.round(Math.max(0,cp))));
 const walletCoin=wallet=>moneyMarkup(formatWallet(wallet));
-const currencySelect=(field,denom)=>'<select data-field="'+field+'" data-prev-denom="'+denom+'" aria-label="Price currency">'+
- PRICE_DENOMINATIONS.map(x=>'<option value="'+x+'" '+(x===denom?'selected':'')+'>'+x.toUpperCase()+'</option>').join('')+'</select>';
 const describeItem=item=>{
  const kind=String(item?.system?.type?.value??item?.type??'Item');
  const type=kind ? kind.charAt(0).toUpperCase()+kind.slice(1) : 'Item';
@@ -86,7 +85,7 @@ function catalog(w,shop,buyer,entries){
     </button>
     <span class="ns-mp-stock-label ${low?'low':''}">${esc(stock==='∞'?'Unlimited':low?'Last one':w.mode==='buy'?stock+' left':'×'+stock)}</span>
     ${w.gm && w.mode==='buy'
-      ? `<div class="ns-buy-price-editor" draggable="false" title="GM only: change shop price"><label>Price<input draggable="false" type="number" data-field="buy-price" value="${priceInputValue(entry.priceCp,priceCoin(entry))}" min="0" step="any" inputmode="decimal" aria-label="Buy price for ${esc(item.name)}"/></label>${currencySelect("buy-price-denomination",priceCoin(entry))}
+      ? `<div class="ns-buy-price-editor" draggable="false" title="GM only: change shop price"><span class="ns-coin-editor-caption">Price</span>${coinEditor("buy-price",entry.priceCp)}
        ${button('save-buy-price','<i class="fas fa-save" aria-hidden="true"></i>',`class="ns-buy-price-save" data-entry-id="${esc(entry.id)}" title="Save Buy price" aria-label="Save Buy price for ${esc(item.name)}"`)}
       </div>`
       : `<span class="ns-mp-price">${coin(price)}</span>`}
@@ -102,9 +101,9 @@ function settings(w,shop){
     <p>GM-only. Money from player purchases is collected on this NPC Actor sheet when it supports currency.</p>
     <div class="ns-cashbox-stat"><span>Gross purchase proceeds</span><strong>${coin(earned)}</strong></div>
     <div class="ns-cashbox-stat"><span>Current NPC wallet</span><strong>${wallet?walletCoin(wallet):'Not available on this NPC'}</strong></div>
-    <div class="ns-cashbox-manage"><label>Wallet balance
-      <input data-field="cashbox-balance" type="number" min="0" step="any" value="${wallet?priceInputValue(moneyTotal(wallet),'gp'):'0'}" ${wallet?'':'disabled'} title="Enter the total balance and press Save or Enter"/>
-    </label>${currencySelect("cashbox-denomination","gp")}${button("save-cashbox-balance","Save Balance")}<small>Choose PP, GP, SP or CP; press Save or Enter to update the merchant wallet.</small></div>
+    <div class="ns-cashbox-manage"><div class="ns-coin-editor-block"><strong>Wallet balance</strong>${coinEditor("cashbox-balance",wallet??{}, {disabled:!wallet})}</div>
+      ${button("save-cashbox-balance","Save Balance",wallet?"":"disabled")}</div>
+    <small>Set each coin balance directly. Existing electrum (EP) is left unchanged.</small>
     <small>Both the Actor currency and purchase proceeds are GM-only in NPC Shops. Selling items to this merchant does not increase purchase proceeds.</small>
    </section>`;
  }
@@ -156,5 +155,5 @@ export function renderMerchantView(w,shop,buyer,label,avatar){
  hero(w,shop,buyer,label,avatar)+tabs(w)+`<main class="ns-content ns-mp-body"><div class="ns-mp-grid">
  ${sidebar(w,entries)}<section class="ns-mp-main" data-scroll-key="catalog">${w.mode==='manage'?settings(w,shop):catalog(w,shop,buyer,entries)}
  <div class="ns-empty ns-no-results" hidden>No items match your search.</div></section>${bill(w,shop,buyer)}
- </div></main><footer>NPC Shops · Foundry v${esc(game.version||game.release?.generation)} · v0.5.5</footer>`;
+ </div></main><footer>NPC Shops · Foundry v${esc(game.version||game.release?.generation)} · v0.5.6</footer>`;
 }
