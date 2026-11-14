@@ -45,6 +45,18 @@ export function applyStockEdits(shop,changes) {
   return {shop:next,rows:saved.size,changed};
 }
 
+/** Bulk toggle every merchant SKU, including search-hidden stock rows.
+ * Pending stock/price edits are saved alongside the unlimited toggle.
+ * Quantities are preserved even while inventory is unlimited.
+ */
+export function setUnlimitedForAll(shop,enabled,edits=null) {
+ if(typeof enabled!=="boolean")throw new Error("Unlimited state must be boolean");
+ const base=edits ? applyStockEdits(shop,edits).shop : structuredClone(shop);
+ if(!Array.isArray(base.stock))throw new Error("Merchant stock unavailable");
+ for(const entry of base.stock)entry.unlimited=enabled;
+ return base;
+}
+
 /** A Buy-tab price change only affects a single merchandise entry.
  * GM-only authorization belongs to ShopWindow; price conversions are checked
  * here so the shop and purchase total use the same copper-precision price.
