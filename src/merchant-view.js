@@ -103,8 +103,8 @@ function settings(w,shop){
     <div class="ns-cashbox-stat"><span>Gross purchase proceeds</span><strong>${coin(earned)}</strong></div>
     <div class="ns-cashbox-stat"><span>Current NPC wallet</span><strong>${wallet?walletCoin(wallet):'Not available on this NPC'}</strong></div>
     <div class="ns-cashbox-manage"><label>Wallet balance
-      <input data-field="cashbox-balance" type="number" min="0" step="any" value="${wallet?priceInputValue(moneyTotal(wallet),'gp'):'0'}" ${wallet?'':'disabled'} title="Enter a new total balance and press Enter or click outside to save"/>
-    </label>${currencySelect("cashbox-denomination","gp")}<small>Choose PP, GP, SP or CP; this edits the merchant's total coin value.</small></div>
+      <input data-field="cashbox-balance" type="number" min="0" step="any" value="${wallet?priceInputValue(moneyTotal(wallet),'gp'):'0'}" ${wallet?'':'disabled'} title="Enter the total balance and press Save or Enter"/>
+    </label>${currencySelect("cashbox-denomination","gp")}${button("save-cashbox-balance","Save Balance")}<small>Choose PP, GP, SP or CP; press Save or Enter to update the merchant wallet.</small></div>
     <small>Both the Actor currency and purchase proceeds are GM-only in NPC Shops. Selling items to this merchant does not increase purchase proceeds.</small>
    </section>`;
  }
