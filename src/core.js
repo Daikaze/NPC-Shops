@@ -146,7 +146,14 @@ export function publicShop(shop) {
     enabled: !!shop.enabled, open: !!shop.open, allowSelling: !!shop.allowSelling,
     sellRate: Number(shop.sellRate) || 0,
     hideTradeTerms: shop.hideTradeTerms !== false,
-    stock: (shop.stock ?? []).map(s => ({id: s.id, item: {name: String(s.item?.name ?? "Item"), img: String(s.item?.img ?? "icons/svg/item-bag.svg"), category: itemCategory(s.item)}, priceCp: s.priceCp, priceDenomination: priceCoin(s), quantity: s.quantity, unlimited: !!s.unlimited})),
+    stock: (shop.stock ?? []).map(s => ({
+      id: s.id,
+      item: {name: String(s.item?.name ?? "Item"), img: String(s.item?.img ?? "icons/svg/item-bag.svg"), category: itemCategory(s.item)},
+      priceCp: s.priceCp, priceDenomination: priceCoin(s),
+      // Never send real quantities or the unlimited flag to player clients.
+      // The GM validates actual stock at checkout.
+      available: !!s.unlimited || Number(s.quantity) > 0
+    })),
     ledger: []
   };
 }
