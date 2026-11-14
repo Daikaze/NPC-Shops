@@ -18,8 +18,8 @@ function row(id,price,quantity,unlimited=false,hidden=false){
 test('Save All validates and gathers every row including searched/hidden items',()=>{
  const edits=collectStockEdits([row('a','4.50','25'),row('b','0','0',true,true),row('c','3.25','10')]);
  assert.equal(edits.size,3);
- assert.deepEqual(edits.get('a'),{priceCp:450,quantity:25,unlimited:false});
- assert.deepEqual(edits.get('b'),{priceCp:0,quantity:0,unlimited:true});
+ assert.deepEqual(edits.get('a'),{priceCp:450,priceDenomination:'gp',quantity:25,unlimited:false});
+ assert.deepEqual(edits.get('b'),{priceCp:0,priceDenomination:'gp',quantity:0,unlimited:true});
  const result=applyStockEdits(baseShop(),edits);
  assert.equal(result.rows,3);
  assert.equal(result.changed,3);
