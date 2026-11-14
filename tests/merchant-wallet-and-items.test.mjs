@@ -65,8 +65,8 @@ test('GM Cashbox is private; player never gets Cashbox navigation or proceeds',(
  const gm=renderMerchantView({...base,gm:true},shop,null,'Mura','img');
  assert.match(gm,/Merchant Cashbox/);
  assert.match(gm,/Gross purchase proceeds/);
- assert.match(gm,/4.50/);
- assert.match(gm,/15.00/);
+ assert.match(gm,/ns-money-sp/);
+ assert.match(gm,/15<\/b><small>GP/);
  const player=renderMerchantView({...base,gm:false,mode:'buy'},publicShop(shop),null,'Mura','img');
  assert.doesNotMatch(player,/Cashbox|Gross purchase proceeds|4.50/);
 });

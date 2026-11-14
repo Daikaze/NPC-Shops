@@ -11,11 +11,14 @@ test('storefront has responsive three-panel layout and no third-party asset depe
  assert.ok(!ui.includes('raw.githubusercontent.com/mikiross87'));
 });
 
-test('V11 legacy palette is retained and V14 native theme is loaded last',()=>{
+test('V11 shares the V14 native storefront while retaining classic compatibility styles',()=>{
  const manifest=JSON.parse(readFileSync(new URL('../module.json',import.meta.url),'utf8'));
- assert.equal(manifest.styles.at(-3),'styles/merchant-presets-look.css');
- assert.equal(manifest.styles.at(-2),'styles/merchant-tables.css');
- assert.equal(manifest.styles.at(-1),'styles/native-v14.css');
+ assert.equal(manifest.styles.at(-4),'styles/merchant-presets-look.css');
+ assert.equal(manifest.styles.at(-3),'styles/merchant-tables.css');
+ assert.equal(manifest.styles.at(-2),'styles/native-v14.css');
+ assert.equal(manifest.styles.at(-1),'styles/unified-v11.css');
+ const unified=readFileSync(new URL('../styles/unified-v11.css',import.meta.url),'utf8');
+ assert.match(unified,/ns-modern-v11/);
  const native=readFileSync(new URL('../styles/native-v14.css',import.meta.url),'utf8');
  assert.match(native,/\.application\.npc-shops-native/);
  assert.match(native,/\.window-content/);

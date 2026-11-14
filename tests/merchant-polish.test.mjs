@@ -130,7 +130,7 @@ test('Checkout says Buy (not Seal it); Sell uses Sell and both preserve actions'
  for(const [mode,word] of [['buy','Buy'],['sell','Sell']]){
   const w=mockWindow(true,mode);
   const markup=renderMerchantView(w,shop,null,'Merchant','img');
-  assert.match(markup,new RegExp('>'+word+' · 0.00 gp</span>'));
+  assert.match(markup,new RegExp('>'+word+' · 0 cp</span>'));
   assert.doesNotMatch(markup,/Seal it|Sell it/);
   assert.match(markup,/data-action="cart-checkout"/);
  }

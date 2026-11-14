@@ -1,3 +1,4 @@
+import {formatCoins} from './core.js';
 /** Public trade receipts, created by the processing GM AFTER the transaction is committed. */
 const esc = s => String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -10,7 +11,7 @@ export function tradeReceiptContent(receipt) {
   return '<div class="npc-shops-receipt"><h3>🛍️ NPC Shops — '+(bought?'Purchase':'Sale')+'</h3>'+
     '<p><strong>'+esc(buyerName)+'</strong> ('+esc(userName)+') '+(bought?'bought from':'sold to')+' <strong>'+esc(merchantName)+'</strong></p>'+
     '<p>Item: <strong>'+qty+' × '+esc(itemName)+'</strong></p>'+
-    '<p>Total: <strong>'+(cost/100).toFixed(2)+' GP</strong></p></div>';
+    '<p>Total: <strong>'+formatCoins(cost)+'</strong></p></div>';
 }
 
 /** Foundry 11 requires the legacy numeric "type" field; newer versions
