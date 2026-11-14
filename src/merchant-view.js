@@ -87,7 +87,7 @@ function catalog(w,shop,buyer,entries){
       <img src="${esc(item.img??'icons/svg/item-bag.svg')}" alt="" draggable="false"/>
       <span class="ns-itemtext"><strong>${esc(item.name)}</strong><small>${esc(describeItem(item))}</small></span>
     </button>
-    <span class="ns-mp-stock-label ${low?'low':''} ${missing?'sold-out':''}">${esc(stockLabel)}</span>
+    <span class="ns-mp-stock-label ${low?'low':''} ${missing?'sold-out':''} ${!w.gm&&w.mode==='buy'?'ns-public-availability':''}">${esc(stockLabel)}</span>
     ${w.gm && w.mode==='buy'
       ? `<div class="ns-buy-price-editor" draggable="false" title="GM only: change shop price"><span class="ns-coin-editor-caption">Price</span>${coinEditor("buy-price",entry.priceCp)}
        ${button('save-buy-price','<i class="fas fa-save" aria-hidden="true"></i>',`class="ns-buy-price-save" data-entry-id="${esc(entry.id)}" title="Save Buy price" aria-label="Save Buy price for ${esc(item.name)}"`)}
