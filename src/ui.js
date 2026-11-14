@@ -1,4 +1,5 @@
-import {MODULE_ID, formatCoins, priceCoin, priceInputValue, priceToCp, PRICE_DENOMINATIONS, emptyShop, hasOwnership, itemPriceCp, moneyTotal, shopData, stockCopy, SALEABLE_TYPES} from "./core.js";
+import {MODULE_ID, formatCoins, walletCoins, PRICE_DENOMINATIONS, emptyShop, hasOwnership, itemPriceCp, moneyTotal, shopData, stockCopy, SALEABLE_TYPES} from "./core.js";
+import {coinEditor,readCoinEditor} from "./coin-inputs.js";
 import {groupItems} from "./categories.js";
 import {isNpcActor} from "./merchant-types.js";
 import {captureWindowState,restoreWindowState} from "./window-state.js";
@@ -418,7 +419,7 @@ export class ShopWindow {
         <div class="ns-itemtext ns-stock-detail">
           <button type="button" class="ns-stock-name" data-action="inspect-item" data-entry-id="${esc(s.id)}"><strong>${esc(s.item.name)}</strong></button>
           <div class="ns-stock-fields">
-            <label>Price<input aria-label="${esc(s.item.name)} price" data-field="price" type="number" min="0" step="any" value="${priceInputValue(s.priceCp,priceCoin(s))}"/><select data-field="price-denomination" data-prev-denom="${priceCoin(s)}" aria-label="Price currency">${PRICE_DENOMINATIONS.map(c=>`<option value="${c}" ${priceCoin(s)===c?"selected":""}>${c.toUpperCase()}</option>`).join("")}</select></label>
+            <div class="ns-stock-price"><span class="ns-coin-editor-caption">Price</span>${coinEditor("price",s.priceCp)}</div>
             <label>Stock<input aria-label="${esc(s.item.name)} stock quantity" data-field="stock" type="number" min="0" step="1" value="${esc(s.quantity)}"/></label>
             <label class="ns-stock-unlimited"><input aria-label="${esc(s.item.name)} unlimited stock" type="checkbox" data-field="unlimited" ${s.unlimited ? 'checked' : ''}/> Unlimited</label>
           </div>
@@ -443,21 +444,7 @@ export class ShopWindow {
       this.applySearchFilter();
     });
     el.addEventListener("change", async e => {
-      if (["price-denomination","buy-price-denomination","cashbox-denomination"].includes(e.target?.dataset?.field)) {
-         const select=e.target;
-         const previous=select.dataset.prevDenom ?? "gp";
-         const fieldName=select.dataset.field==="price-denomination"?"price":
-           select.dataset.field==="buy-price-denomination"?"buy-price":"cashbox-balance";
-         const field=select.parentElement?.querySelector?.('[data-field="'+fieldName+'"]');
-         // Change the displayed NUMBER, not the saved price, when switching coin units.
-         if(field && String(field.value).trim()!=="") {
-           try {field.value=priceInputValue(priceToCp(field.value,previous),select.value);}
-           catch(error){notify("NPC Shops: "+error.message,true);select.value=previous;return;}
-         }
-         select.dataset.prevDenom=select.value;
-         return;
-       }
-       if (tableFieldChange(this,e)) return;
+      if (tableFieldChange(this,e)) return;
       if (e.target.matches('[data-field="buyer"]')) { this.buyerId = e.target.value; this.render(); }
     });
     // Only the Item icon/name is draggable. The entire Buy row must NEVER be
@@ -543,13 +530,13 @@ export class ShopWindow {
       } else lastTouchTap={at:now,x:e.clientX??0,y:e.clientY??0};
     });
     el.addEventListener('keydown',event=>{
-       if(event.key==='Enter' && event.target?.matches?.('[data-field="cashbox-balance"]')){
+       if(event.key==='Enter' && event.target?.matches?.('[data-coin-field="cashbox-balance"]')){
          event.preventDefault();
          event.stopPropagation?.();
          el.querySelector?.('[data-action="save-cashbox-balance"]')?.click();
          return;
        }
-      if(event.key==='Enter' && event.target?.matches?.('[data-field="buy-price"]')){
+      if(event.key==='Enter' && event.target?.matches?.('[data-coin-field="buy-price"]')){
         event.preventDefault();
         event.stopPropagation();
         event.target.closest('[data-entry-id]')?.querySelector('[data-action="save-buy-price"]')?.click();
@@ -565,29 +552,27 @@ export class ShopWindow {
         if (action === 'close') return this.close();
          if (action === 'save-cashbox-balance') {
            if(!this.gm || this.mode!=='manage' || this.settingsPage!=='cashbox')throw new Error('GM only');
-           const field=el.querySelector('[data-field="cashbox-balance"]');
-           const denom=el.querySelector('[data-field="cashbox-denomination"]')?.value ?? 'gp';
-           const amount=priceToCp(field?.value,denom);
            const actor=this.actor;
            if(!actor?.system?.currency)throw new Error('Merchant wallet unavailable');
-           const {changeWallet}=await import('./core.js');
+           const {parts}=readCoinEditor(el,'cashbox-balance');
+           const next=walletCoins(actor.system.currency);
+           for(const denomination of PRICE_DENOMINATIONS)next[denomination]=parts[denomination];
            const {setCurrency}=await import('./transactions.js');
            this.busy=true;
            try {
-             const difference=amount-moneyTotal(actor.system.currency);
-             await setCurrency(actor,changeWallet(actor.system.currency,difference));
-             notify('NPC Shops: Merchant wallet updated.');
+             await setCurrency(actor,next);
+             notify('NPC Shops: Merchant coin balances updated.');
            } finally {this.busy=false;}
            return this.render();
          }
         if (action === 'save-buy-price') {
           if(!this.gm || this.mode!=='buy')throw new Error('Only the GM can change Buy prices');
           const row=target.closest('.ns-mp-item[data-entry-id]');
-          const input=row?.querySelector('[data-field="buy-price"]');
-          if(!row || !input)throw new Error('Buy price field is missing');
+          if(!row)throw new Error('Buy price row is missing');
+          const money=readCoinEditor(row,'buy-price',{allowLegacy:true});
           this.busy=true;
           try{
-            const next=setBuyPrice(this.shop,row.dataset.entryId,input.value,row.querySelector('[data-field="buy-price-denomination"]')?.value ?? "gp");
+            const next=setBuyPrice(this.shop,row.dataset.entryId,{totalCp:money.totalCp});
             await this.saveShop(next);
             notify('NPC Shops: Updated Buy price for '+(next.stock.find(entry=>entry.id===row.dataset.entryId)?.item?.name??'item')+'.');
           } finally {this.busy=false;}
@@ -692,8 +677,8 @@ export class ShopWindow {
           if (action === 'remove') copy.stock = copy.stock.filter(s => s.id !== sku);
           else {
             const tr = target.closest('.ns-item');
-            entry.priceDenomination = tr.querySelector('[data-field="price-denomination"]')?.value ?? 'gp';
-             entry.priceCp = priceToCp(tr.querySelector('[data-field="price"]').value,entry.priceDenomination);
+            entry.priceCp = readCoinEditor(tr,'price',{allowLegacy:true}).totalCp;
+             entry.priceDenomination = 'gp';
             entry.quantity = Number(tr.querySelector('[data-field="stock"]').value);
             if (!Number.isSafeInteger(entry.quantity) || entry.quantity < 0 || entry.quantity > 999999) throw new Error('Invalid stock');
             entry.unlimited = tr.querySelector('[data-field="unlimited"]').checked;
