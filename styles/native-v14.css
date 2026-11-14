@@ -244,3 +244,55 @@
   .application.npc-shops-native .ns-mp-grid { display: flex !important; flex-direction: column !important; }
   .application.npc-shops-native .ns-mp-sidebar { border-right: none !important; border-bottom: 1px solid var(--color-border-light-primary, #7776) !important; }
 }
+
+/* Shared PP / GP / SP / CP display for V11 and V14 (EP only if wallet contains it). */
+.npc-shops-window .ns-mp-money {
+  display: inline-flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  justify-content: flex-start !important;
+  gap: 4px 8px !important;
+  max-width: 100% !important;
+  color: inherit !important;
+}
+.npc-shops-window .ns-money-unit {
+  display: inline-flex !important;
+  gap: 3px !important;
+  white-space: nowrap !important;
+  align-items: baseline !important;
+  font-size: 12px !important;
+}
+.npc-shops-window .ns-money-unit b { color: inherit !important; font-size: inherit !important; }
+.npc-shops-window .ns-money-unit small {
+  display: inline !important;
+  margin: 0 !important;
+  font: inherit !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  color: inherit !important;
+  opacity: 0.85;
+}
+.npc-shops-window .ns-money-pp { color: #a9dcfa !important; }
+.npc-shops-window .ns-money-gp { color: #e3c779 !important; }
+.npc-shops-window .ns-money-ep { color: #a5d6c3 !important; }
+.npc-shops-window .ns-money-sp { color: #c4d1e0 !important; }
+.npc-shops-window .ns-money-cp { color: #d99a77 !important; }
+.npc-shops-window .ns-buy-price-editor {
+  display: flex !important; align-items: center !important; flex-wrap: wrap !important;
+  gap: 4px !important; min-width: 100px !important;
+}
+.npc-shops-window .ns-buy-price-editor label { min-width: 0 !important; flex: 1 1 68px !important; }
+.npc-shops-window .ns-buy-price-editor [data-field="buy-price"] { width: 100% !important; min-width: 60px !important; }
+.npc-shops-window .ns-buy-price-editor [data-field="buy-price-denomination"] {
+  width: 58px !important; max-width: 58px !important; margin: 0 !important; padding: 2px !important;
+}
+.npc-shops-window .ns-stock-fields [data-field="price-denomination"] {
+  min-width: 52px !important; max-width: 65px !important; margin: 3px 0 !important; padding: 2px !important;
+}
+.npc-shops-window .ns-cashbox-manage [data-field="cashbox-denomination"] {
+  max-width: 72px !important; margin: 0 !important;
+}
+/* Ensure v11 category rows really disappear on live search. */
+.npc-shops-window .ns-category[hidden],
+.npc-shops-window .ns-category .ns-item[hidden],
+.npc-shops-window .ns-no-results[hidden] { display: none !important; }
