@@ -1,0 +1,250 @@
+/*
+ * Foundry V11 compatibility presentation.
+ * Shares the V14 native storefront content, layout, controls and theme tokens.
+ * Only scoped NPC Shops windows are touched; not the Foundry UI or other modules.
+ */
+.npc-shops-window.ns-modern-v11:not(.ns-directory) {
+  width: min(1030px, 96vw) !important;
+  height: min(740px, 91vh) !important;
+  max-height: 91vh !important;
+  min-height: 360px !important;
+  border: 1px solid var(--color-border-light-primary, #666) !important;
+  border-radius: 6px !important;
+  color: var(--color-text-primary, #ececec) !important;
+  background: var(--color-bg, #202127) !important;
+  box-shadow: 0 12px 44px #0009 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-top {
+  display: flex !important;
+  flex: 0 0 34px !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 0 12px !important;
+  cursor: move !important;
+  user-select: none !important;
+  background: var(--color-bg-option, #28282e) !important;
+  color: var(--color-text-primary, #eee) !important;
+  border-bottom: 1px solid var(--color-border-light-primary, #666) !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-top .ns-close {
+  width: 27px !important;
+  min-height: 26px !important;
+  background: transparent !important;
+  border: none !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-native-summary {
+  flex: 0 0 auto !important;
+  min-height: 78px !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-body {
+  overflow: auto !important;
+}
+.npc-shops-window.ns-modern-v11.ns-directory {
+  background: var(--color-bg, #202127) !important;
+  border-color: var(--color-border-light-primary, #666) !important;
+}
+
+/* Adapted from the same module's native-v14.css, not a separate UI. */
+.npc-shops-window.ns-modern-v11 .ns-native-summary {
+  display: flex !important;
+  flex: 0 0 auto !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 12px !important;
+  padding: 12px 16px !important;
+  border-bottom: 1px solid var(--color-border-light-primary, #7776) !important;
+  background: var(--color-bg-option, transparent) !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-native-avatar {
+  width: 46px !important;
+  height: 46px !important;
+  object-fit: cover !important;
+  border-radius: 4px !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-native-merchant { flex: 1 1 180px; min-width: 0; }
+.npc-shops-window.ns-modern-v11 .ns-native-merchant h2 {
+  margin: 0 0 3px !important;
+  font: 600 1.15em var(--font-primary, inherit) !important;
+  color: var(--color-text-primary, inherit) !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-native-merchant small,
+.npc-shops-window.ns-modern-v11 .ns-native-balance small { color: var(--color-text-secondary, inherit) !important; }
+.npc-shops-window.ns-modern-v11 .ns-native-buyer {
+  display: grid !important;
+  gap: 3px !important;
+  flex: 0 1 240px !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-native-buyer select { width: 100% !important; margin: 0 !important; }
+.npc-shops-window.ns-modern-v11 .ns-native-balance {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  gap: 3px !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-tabs {
+  display: flex !important;
+  flex: 0 0 auto !important;
+  flex-wrap: wrap !important;
+  gap: 4px !important;
+  margin: 0 !important;
+  padding: 8px 12px 0 !important;
+  background: transparent !important;
+  border-bottom: 1px solid var(--color-border-light-primary, #7776) !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-tabs button,
+.npc-shops-window.ns-modern-v11 .ns-mp-side-btn {
+  font: inherit !important;
+  color: var(--color-text-primary, inherit) !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: 4px 4px 0 0 !important;
+  box-shadow: none !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-tabs button.active,
+.npc-shops-window.ns-modern-v11 .ns-mp-side-btn.active {
+  background: var(--color-bg-option, #80808019) !important;
+  border-color: var(--color-border-light-primary, #7776) !important;
+  color: var(--color-text-primary, inherit) !important;
+  font-weight: 600 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-content.ns-mp-body {
+  display: block !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  overflow: auto !important;
+  background: transparent !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-grid {
+  display: grid !important;
+  grid-template-columns: minmax(155px, 175px) minmax(0, 1fr) minmax(220px, 255px) !important;
+  align-items: stretch !important;
+  gap: 0 !important;
+  min-height: 100% !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-sidebar,
+.npc-shops-window.ns-modern-v11 .ns-mp-main,
+.npc-shops-window.ns-modern-v11 .ns-mp-bill {
+  min-width: 0 !important;
+  padding: 12px !important;
+  color: var(--color-text-primary, inherit) !important;
+  background: transparent !important;
+  border-color: var(--color-border-light-primary, #7776) !important;
+  box-shadow: none !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-sidebar,
+.npc-shops-window.ns-modern-v11 .ns-mp-bill {
+  background: var(--color-bg-option, #8080800d) !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-sidebar { border-right: 1px solid var(--color-border-light-primary, #7776) !important; }
+.npc-shops-window.ns-modern-v11 .ns-mp-bill { border-left: 1px solid var(--color-border-light-primary, #7776) !important; }
+.npc-shops-window.ns-modern-v11 .ns-mp-main { max-width: none !important; }
+.npc-shops-window.ns-modern-v11 .ns-mp-side-btn { display: flex !important; width: 100% !important; border-radius: 4px !important; }
+.npc-shops-window.ns-modern-v11 .ns-mp-catalog-head,
+.npc-shops-window.ns-modern-v11 .ns-mp-settings,
+.npc-shops-window.ns-modern-v11 .ns-mp-bill-card,
+.npc-shops-window.ns-modern-v11 .ns-populate {
+  background: transparent !important;
+  border-color: var(--color-border-light-primary, #7776) !important;
+  color: var(--color-text-primary, inherit) !important;
+  box-shadow: none !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-bill-card { padding: 0 !important; border: none !important; }
+.npc-shops-window.ns-modern-v11 .ns-item,
+.npc-shops-window.ns-modern-v11 .ns-mp-item,
+.npc-shops-window.ns-modern-v11 .ns-category,
+.npc-shops-window.ns-modern-v11 .ns-mp-bill-line,
+.npc-shops-window.ns-modern-v11 .ns-populate-table,
+.npc-shops-window.ns-modern-v11 .ns-populate-preview-row,
+.npc-shops-window.ns-modern-v11 .ns-save-all-bar,
+.npc-shops-window.ns-modern-v11 .ns-mp-danger {
+  color: var(--color-text-primary, inherit) !important;
+  background: var(--color-bg-option, #8080800d) !important;
+  border: 1px solid var(--color-border-light-primary, #7776) !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-item-preview {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: inherit !important;
+}
+.npc-shops-window.ns-modern-v11 button:not(.ns-mp-item-preview),
+.npc-shops-window.ns-modern-v11 button:not(.ns-mp-item-preview):hover:not(:disabled) {
+  min-height: 28px !important;
+  font-family: inherit !important;
+  color: var(--button-text-color, var(--color-text-primary, inherit)) !important;
+  background: var(--button-background-color, var(--color-bg-option, transparent)) !important;
+  border: 1px solid var(--button-border-color, var(--color-border-light-primary, #7776)) !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+.npc-shops-window.ns-modern-v11 button.active,
+.npc-shops-window.ns-modern-v11 button:hover:not(:disabled) {
+  filter: brightness(1.07);
+}
+.npc-shops-window.ns-modern-v11 input:not([type="checkbox"]),
+.npc-shops-window.ns-modern-v11 select {
+  font: inherit !important;
+  color: var(--input-text-color, var(--color-text-primary, inherit)) !important;
+  background: var(--input-background-color, var(--color-bg-option, transparent)) !important;
+  border: 1px solid var(--input-border-color, var(--color-border-light-primary, #7776)) !important;
+  box-shadow: none !important;
+  border-radius: 4px !important;
+}
+.npc-shops-window.ns-modern-v11 h2,
+.npc-shops-window.ns-modern-v11 h3,
+.npc-shops-window.ns-modern-v11 h4,
+.npc-shops-window.ns-modern-v11 strong,
+.npc-shops-window.ns-modern-v11 small,
+.npc-shops-window.ns-modern-v11 label,
+.npc-shops-window.ns-modern-v11 p,
+.npc-shops-window.ns-modern-v11 .ns-mp-price,
+.npc-shops-window.ns-modern-v11 .ns-mp-money,
+.npc-shops-window.ns-modern-v11 .ns-itemtext strong,
+.npc-shops-window.ns-modern-v11 .ns-itemtext small {
+  color: inherit !important;
+  font-family: inherit !important;
+  text-shadow: none !important;
+}
+.npc-shops-window.ns-modern-v11 footer {
+  flex: 0 0 auto;
+  padding: 5px 10px !important;
+  background: transparent !important;
+  color: var(--color-text-secondary, inherit) !important;
+  border-top: 1px solid var(--color-border-light-primary, #7776) !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-init { padding: 16px !important; }
+.npc-shops-window.ns-modern-v11 .ns-mp-hero { background: transparent !important; }
+.npc-shops-window.ns-modern-v11 .ns-mp-purse,
+.npc-shops-window.ns-modern-v11 .ns-mp-qty { background: transparent !important; }
+.npc-shops-window.ns-modern-v11 .ns-mp-search { background: transparent !important; border-color: var(--color-border-light-primary, #7776) !important; }
+.npc-shops-window.ns-modern-v11 .ns-confirm-panel {
+  background: var(--color-bg, var(--color-cool-5, #202127)) !important;
+  color: var(--color-text-primary, inherit) !important;
+  border-color: var(--color-border-light-primary, #7776) !important;
+}
+.npc-shops-window.ns-modern-v11.ns-directory .ns-content {
+  flex: 1 1 auto; min-height: 0; overflow: auto; padding: 12px !important;
+}
+.npc-shops-window.ns-modern-v11.ns-directory .ns-directory-item {
+  display: flex !important; width: 100% !important;
+  background: transparent !important; color: inherit !important;
+  border-color: var(--color-border-light-primary, #7776) !important;
+}
+@media (max-width: 850px) {
+  .npc-shops-window.ns-modern-v11 .ns-mp-grid {
+    grid-template-columns: minmax(120px, 155px) minmax(0, 1fr) !important;
+  }
+  .npc-shops-window.ns-modern-v11 .ns-mp-bill {
+    grid-column: 1 / -1 !important;
+    border-left: none !important;
+    border-top: 1px solid var(--color-border-light-primary, #7776) !important;
+  }
+}
+@media (max-width: 570px) {
+  .npc-shops-window.ns-modern-v11 .ns-mp-grid { display: flex !important; flex-direction: column !important; }
+  .npc-shops-window.ns-modern-v11 .ns-mp-sidebar { border-right: none !important; border-bottom: 1px solid var(--color-border-light-primary, #7776) !important; }
+}
