@@ -106,7 +106,7 @@ test('successful player sale posts one chat receipt and duplicate ID does not re
   globalThis.game={user:gm,users:{get:id=>id===player.id?player:null},actors:{get:id=>id===merchant.id?merchant:id===buyer.id?buyer:null}};
   const req={kind:'sell',merchantId:merchant.id,buyerId:buyer.id,itemId:source.id,quantity:2,userId:player.id,requestId:'v016-sale-test'};
   const result=await executeTrade(req);
-  assert.equal(result.ok,true,result.message);assert.equal(buyer.system.currency.gp,12);
+  assert.equal(result.ok,true,result.message);assert.equal(buyer.system.currency.gp,2);assert.equal(buyer.system.currency.pp,1);
   assert.equal(chat.length,1);assert.match(chat[0].content,/Stoyan/);
   assert.match(chat[0].content,/Rashira/);assert.match(chat[0].content,/Kiro Shop/);
   assert.match(chat[0].content,/2 × Gillyweed/);
