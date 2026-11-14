@@ -84,5 +84,6 @@ test('player receives new stock after GM update',async()=>{
  win.remoteShop={enabled:true,open:true,sellRate:.5,allowSelling:true,stock:[{id:'s1',item:{name:'Potion'},priceCp:300,quantity:3}],ledger:[]};
  win.info=async()=>({ok:true,shop:{...win.remoteShop,stock:[{id:'s1',item:{name:'Potion'},priceCp:300,quantity:19}]},name:'Kiro',img:'npc.png'});
  await win.load();
- assert.match(win.element.innerHTML,/19 left/);
+ assert.match(win.element.innerHTML,/Available/);
+ assert.doesNotMatch(win.element.innerHTML,/19 left/);
 });
