@@ -1,4 +1,4 @@
-import {MODULE_ID, cpToGp, emptyShop, gpToCp, hasOwnership, itemPriceCp, moneyTotal, shopData, stockCopy, SALEABLE_TYPES} from "./core.js";
+import {MODULE_ID, formatCoins, priceCoin, priceInputValue, priceToCp, PRICE_DENOMINATIONS, emptyShop, hasOwnership, itemPriceCp, moneyTotal, shopData, stockCopy, SALEABLE_TYPES} from "./core.js";
 import {groupItems} from "./categories.js";
 import {isNpcActor} from "./merchant-types.js";
 import {captureWindowState,restoreWindowState} from "./window-state.js";
@@ -48,6 +48,7 @@ export class ShopWindow {
     this.mode = "buy";
     this.element = null;
     this.nativeApp = null;
+    this.unifiedInterface = true; // Both versions use the latest shop contents.
     this.busy = false;
     this.loading = false;
     this.buyerId = null;
@@ -343,24 +344,31 @@ export class ShopWindow {
   }
   applySearchFilter() {
     if (!this.element?.querySelectorAll) return;
-    const query = this.searchQueries[this.mode] ?? "";
+    const query = String(this.searchQueries[this.mode] ?? "").trim();
+    const chosen = this.mode === "manage" ? "all" : (this.categoryFilter[this.mode] ?? "all");
     const categories = this.element.querySelectorAll(".ns-items .ns-category");
     let found = false;
     for (const category of categories) {
+      const allowed = !!query || chosen === "all" || category.dataset?.category === chosen;
       let visibleCount = 0;
       for (const row of category.querySelectorAll(".ns-item")) {
-        const name = row.querySelector(".ns-itemtext strong")?.textContent ?? "";
-        const visible = matchesItemSearch(name, query);
+        const name = row.dataset?.searchName ?? row.querySelector(".ns-itemtext strong")?.textContent ?? "";
+        const visible = allowed && matchesItemSearch(name,query);
         row.hidden = !visible;
         if (visible) visibleCount++;
       }
-      category.hidden = visibleCount === 0;
+      category.hidden = !allowed || visibleCount === 0;
       if (visibleCount) found = true;
       const count = category.querySelector(".ns-category-count");
-      if (count) count.textContent = `${visibleCount} item${visibleCount === 1 ? "" : "s"}`;
+      if (count) count.textContent = visibleCount + " item" + (visibleCount === 1 ? "" : "s");
+      // Closed v11 <details> categories must open when search finds an item.
+      if (category.tagName === "DETAILS") {
+        if (query) category.open = visibleCount > 0;
+        else category.open = this.categoryState.get(category.dataset?.view + ":" + category.dataset?.category) !== false;
+      }
     }
     const noResults = this.element.querySelector?.(".ns-no-results");
-    if (noResults) noResults.hidden = !String(query).trim() || !categories.length || found;
+    if (noResults) noResults.hidden = !query || !categories.length || found;
   }
   /** Collapsible, alphabetically sorted categories. No item data is changed. */
   renderCategories(entries, itemFor, renderRow) {
@@ -376,7 +384,7 @@ export class ShopWindow {
   renderBuy(shop, buyer) {
     if (!shop.open) return '<div class="ns-empty">Shop is currently closed.</div>';
     return `<div class="ns-items">${shop.stock.length ? this.renderCategories(shop.stock, s => s.item, s => `
-      <div class="ns-item" data-sku="${esc(s.id)}"><img src="${esc(s.item.img || 'icons/svg/item-bag.svg')}" alt=""/><div class="ns-itemtext"><strong>${esc(s.item.name)}</strong><small>${cpToGp(s.priceCp)} GP · ${s.unlimited ? '∞' : esc(s.quantity)} in stock</small></div><input type="number" class="ns-qty" min="1" max="9999" value="1" aria-label="Quantity"/>${button('buy', 'Buy', !buyer || this.busy || (!s.unlimited && s.quantity < 1) ? 'disabled' : '')}</div>
+      <div class="ns-item" data-sku="${esc(s.id)}"><img src="${esc(s.item.img || 'icons/svg/item-bag.svg')}" alt=""/><div class="ns-itemtext"><strong>${esc(s.item.name)}</strong><small>${formatCoins(s.priceCp)} · ${s.unlimited ? '∞' : esc(s.quantity)} in stock</small></div><input type="number" class="ns-qty" min="1" max="9999" value="1" aria-label="Quantity"/>${button('buy', 'Buy', !buyer || this.busy || (!s.unlimited && s.quantity < 1) ? 'disabled' : '')}</div>
     `) : '<div class="ns-empty">No items for sale. GM: use Manage to add items.</div>'}</div>`;
   }
   renderSell(shop, buyer) {
@@ -384,7 +392,7 @@ export class ShopWindow {
     if (!buyer) return '<div class="ns-empty">Select a character you control.</div>';
     const inv = buyer.items.contents.filter(i => SALEABLE_TYPES.has(i.type) && Number(i.system?.quantity ?? 1) > 0);
     return `<div class="ns-items">${inv.length ? this.renderCategories(inv, item => item, item => `
-      <div class="ns-item" data-item="${esc(item.id)}"><img src="${esc(item.img || 'icons/svg/item-bag.svg')}" alt=""/><div class="ns-itemtext"><strong>${esc(item.name)}</strong><small>${cpToGp(Math.floor(itemPriceCp(item) * shop.sellRate))} GP each · Owned: ${esc(item.system?.quantity ?? 1)}</small></div><input type="number" class="ns-qty" min="1" max="9999" value="1" aria-label="Quantity"/>${button('sell', 'Sell', this.busy ? 'disabled' : '')}</div>
+      <div class="ns-item" data-item="${esc(item.id)}"><img src="${esc(item.img || 'icons/svg/item-bag.svg')}" alt=""/><div class="ns-itemtext"><strong>${esc(item.name)}</strong><small>${formatCoins(Math.floor(itemPriceCp(item) * shop.sellRate))} each · Owned: ${esc(item.system?.quantity ?? 1)}</small></div><input type="number" class="ns-qty" min="1" max="9999" value="1" aria-label="Quantity"/>${button('sell', 'Sell', this.busy ? 'disabled' : '')}</div>
     `) : '<div class="ns-empty">No saleable physical items.</div>'}</div>`;
   }
   renderManage(shop) {
@@ -410,7 +418,7 @@ export class ShopWindow {
         <div class="ns-itemtext ns-stock-detail">
           <button type="button" class="ns-stock-name" data-action="inspect-item" data-entry-id="${esc(s.id)}"><strong>${esc(s.item.name)}</strong></button>
           <div class="ns-stock-fields">
-            <label>Price (GP)<input aria-label="${esc(s.item.name)} price in GP" data-field="price" type="number" min="0" step="0.01" value="${cpToGp(s.priceCp)}"/></label>
+            <label>Price<input aria-label="${esc(s.item.name)} price" data-field="price" type="number" min="0" step="any" value="${priceInputValue(s.priceCp,priceCoin(s))}"/><select data-field="price-denomination" data-prev-denom="${priceCoin(s)}" aria-label="Price currency">${PRICE_DENOMINATIONS.map(c=>`<option value="${c}" ${priceCoin(s)===c?"selected":""}>${c.toUpperCase()}</option>`).join("")}</select></label>
             <label>Stock<input aria-label="${esc(s.item.name)} stock quantity" data-field="stock" type="number" min="0" step="1" value="${esc(s.quantity)}"/></label>
             <label class="ns-stock-unlimited"><input aria-label="${esc(s.item.name)} unlimited stock" type="checkbox" data-field="unlimited" ${s.unlimited ? 'checked' : ''}/> Unlimited</label>
           </div>
@@ -422,7 +430,7 @@ export class ShopWindow {
         <span>Save quantities, prices and unlimited stock for all items.</span>
         ${button('save-all-stock', '<i class="fas fa-save"></i> Save All', !shop.stock.length ? 'disabled class="ns-save-all"' : 'class="ns-save-all"')}
       </div>
-      <details class="ns-ledger" data-persist="ledger"><summary>Transaction History (${shop.ledger.length})</summary><div class="ns-ledger-toolbar">${button("clear-history", "Clear History", !shop.ledger.length ? "disabled" : "")}</div>${shop.ledger.slice().reverse().map(l => `<div>${esc(l.at?.slice(0,16))}: ${esc(l.actorName)} ${esc(l.kind)} ${esc(l.quantity)} × ${esc(l.itemName)} (${cpToGp(l.totalCp)} GP)</div>`).join('') || 'No transactions yet'}</details>`;
+      <details class="ns-ledger" data-persist="ledger"><summary>Transaction History (${shop.ledger.length})</summary><div class="ns-ledger-toolbar">${button("clear-history", "Clear History", !shop.ledger.length ? "disabled" : "")}</div>${shop.ledger.slice().reverse().map(l => `<div>${esc(l.at?.slice(0,16))}: ${esc(l.actorName)} ${esc(l.kind)} ${esc(l.quantity)} × ${esc(l.itemName)} (${formatCoins(l.totalCp)})</div>`).join('') || 'No transactions yet'}</details>`;
   }
   bindEvents(el) {
     el.addEventListener("input", e => {
@@ -439,7 +447,7 @@ export class ShopWindow {
         if(!this.gm || this.mode!=='manage' || this.settingsPage!=='cashbox')return;
         const field=e.target;
         try {
-          const amount=gpToCp(field.value);
+          const amount=priceToCp(field.value,this.element.querySelector?.('[data-field="cashbox-denomination"]')?.value ?? "gp");
           const actor=this.actor;
           if(!actor?.system?.currency)throw new Error('Merchant wallet unavailable');
           const {moneyTotal,changeWallet}=await import('./core.js');
@@ -454,7 +462,21 @@ export class ShopWindow {
         finally{this.render();}
         return;
       }
-      if (tableFieldChange(this,e)) return;
+      if (["price-denomination","buy-price-denomination","cashbox-denomination"].includes(e.target?.dataset?.field)) {
+         const select=e.target;
+         const previous=select.dataset.prevDenom ?? "gp";
+         const fieldName=select.dataset.field==="price-denomination"?"price":
+           select.dataset.field==="buy-price-denomination"?"buy-price":"cashbox-balance";
+         const field=select.parentElement?.querySelector?.('[data-field="'+fieldName+'"]');
+         // Change the displayed NUMBER, not the saved price, when switching coin units.
+         if(field && String(field.value).trim()!=="") {
+           try {field.value=priceInputValue(priceToCp(field.value,previous),select.value);}
+           catch(error){notify("NPC Shops: "+error.message,true);select.value=previous;return;}
+         }
+         select.dataset.prevDenom=select.value;
+         return;
+       }
+       if (tableFieldChange(this,e)) return;
       if (e.target.matches('[data-field="buyer"]')) { this.buyerId = e.target.value; this.render(); }
     });
     // Only the Item icon/name is draggable. The entire Buy row must NEVER be
@@ -561,7 +583,7 @@ export class ShopWindow {
           if(!row || !input)throw new Error('Buy price field is missing');
           this.busy=true;
           try{
-            const next=setBuyPrice(this.shop,row.dataset.entryId,input.value);
+            const next=setBuyPrice(this.shop,row.dataset.entryId,input.value,row.querySelector('[data-field="buy-price-denomination"]')?.value ?? "gp");
             await this.saveShop(next);
             notify('NPC Shops: Updated Buy price for '+(next.stock.find(entry=>entry.id===row.dataset.entryId)?.item?.name??'item')+'.');
           } finally {this.busy=false;}
@@ -666,7 +688,8 @@ export class ShopWindow {
           if (action === 'remove') copy.stock = copy.stock.filter(s => s.id !== sku);
           else {
             const tr = target.closest('.ns-item');
-            entry.priceCp = gpToCp(tr.querySelector('[data-field="price"]').value);
+            entry.priceDenomination = tr.querySelector('[data-field="price-denomination"]')?.value ?? 'gp';
+             entry.priceCp = priceToCp(tr.querySelector('[data-field="price"]').value,entry.priceDenomination);
             entry.quantity = Number(tr.querySelector('[data-field="stock"]').value);
             if (!Number.isSafeInteger(entry.quantity) || entry.quantity < 0 || entry.quantity > 999999) throw new Error('Invalid stock');
             entry.unlimited = tr.querySelector('[data-field="unlimited"]').checked;
