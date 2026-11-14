@@ -1,0 +1,43 @@
+/* NPC Shops v0.5.7: bulk unlimited GM control and discrete customer availability. */
+.npc-shops-window .ns-stock-batch-actions {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+.npc-shops-window .ns-save-all-bar [data-action="toggle-unlimited-all"] {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  min-width: 125px !important;
+  width: auto !important;
+  padding: 5px 9px !important;
+  background: var(--button-background-color,#2d3742) !important;
+  border: 1px solid var(--color-border-light-primary,#73808b) !important;
+  color: var(--button-text-color,#e8e8e8) !important;
+  border-radius: 5px !important;
+  white-space: nowrap !important;
+}
+.npc-shops-window .ns-save-all-bar [data-action="toggle-unlimited-all"].active {
+  border-color: #87ad8a !important;
+  color: #a5dcb0 !important;
+}
+.npc-shops-window .ns-save-all-bar [data-action="toggle-unlimited-all"]:disabled {
+  opacity: .45 !important;
+}
+.npc-shops-window .ns-mp-stock-label.ns-public-availability {
+  display: inline-block !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+  color: #98cfa6 !important;
+}
+.npc-shops-window .ns-mp-stock-label.ns-public-availability.sold-out {
+  color: #d49797 !important;
+}
+@media(max-width:700px) {
+  .npc-shops-window .ns-mp-stock-label.ns-public-availability {
+    display: inline-block !important;
+  }
+}
