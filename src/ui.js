@@ -443,25 +443,6 @@ export class ShopWindow {
       this.applySearchFilter();
     });
     el.addEventListener("change", async e => {
-      if(e.target?.matches?.('[data-field="cashbox-balance"]')) {
-        if(!this.gm || this.mode!=='manage' || this.settingsPage!=='cashbox')return;
-        const field=e.target;
-        try {
-          const amount=priceToCp(field.value,this.element.querySelector?.('[data-field="cashbox-denomination"]')?.value ?? "gp");
-          const actor=this.actor;
-          if(!actor?.system?.currency)throw new Error('Merchant wallet unavailable');
-          const {moneyTotal,changeWallet}=await import('./core.js');
-          const {setCurrency}=await import('./transactions.js');
-          field.disabled=true;
-          // Set the exact requested balance without converting existing GP
-          // into platinum; this does not alter lifetime proceeds.
-          const difference=amount-moneyTotal(actor.system.currency);
-          await setCurrency(actor,changeWallet(actor.system.currency,difference));
-          notify('NPC Shops: Merchant balance updated.');
-        }catch(error){notify('NPC Shops: '+error.message,true);}
-        finally{this.render();}
-        return;
-      }
       if (["price-denomination","buy-price-denomination","cashbox-denomination"].includes(e.target?.dataset?.field)) {
          const select=e.target;
          const previous=select.dataset.prevDenom ?? "gp";
@@ -562,6 +543,12 @@ export class ShopWindow {
       } else lastTouchTap={at:now,x:e.clientX??0,y:e.clientY??0};
     });
     el.addEventListener('keydown',event=>{
+       if(event.key==='Enter' && event.target?.matches?.('[data-field="cashbox-balance"]')){
+         event.preventDefault();
+         event.stopPropagation?.();
+         el.querySelector?.('[data-action="save-cashbox-balance"]')?.click();
+         return;
+       }
       if(event.key==='Enter' && event.target?.matches?.('[data-field="buy-price"]')){
         event.preventDefault();
         event.stopPropagation();
@@ -576,6 +563,23 @@ export class ShopWindow {
       const itemId = target.closest("[data-item]")?.dataset.item;
       try {
         if (action === 'close') return this.close();
+         if (action === 'save-cashbox-balance') {
+           if(!this.gm || this.mode!=='manage' || this.settingsPage!=='cashbox')throw new Error('GM only');
+           const field=el.querySelector('[data-field="cashbox-balance"]');
+           const denom=el.querySelector('[data-field="cashbox-denomination"]')?.value ?? 'gp';
+           const amount=priceToCp(field?.value,denom);
+           const actor=this.actor;
+           if(!actor?.system?.currency)throw new Error('Merchant wallet unavailable');
+           const {changeWallet}=await import('./core.js');
+           const {setCurrency}=await import('./transactions.js');
+           this.busy=true;
+           try {
+             const difference=amount-moneyTotal(actor.system.currency);
+             await setCurrency(actor,changeWallet(actor.system.currency,difference));
+             notify('NPC Shops: Merchant wallet updated.');
+           } finally {this.busy=false;}
+           return this.render();
+         }
         if (action === 'save-buy-price') {
           if(!this.gm || this.mode!=='buy')throw new Error('Only the GM can change Buy prices');
           const row=target.closest('.ns-mp-item[data-entry-id]');
