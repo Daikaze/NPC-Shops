@@ -21,7 +21,7 @@ function world(stock=[{id:'s1',item:item('Potion','consumable'),priceCp:300,quan
 test('Merchant Presets-style columns and bill are visible for GM',()=>{
  const {win}=world();
  win.render();
- assert.match(win.element.innerHTML,/ns-mp-hero/);
+ assert.match(win.element.innerHTML,/ns-native-summary/);
  assert.match(win.element.innerHTML,/ns-mp-sidebar/);
  assert.match(win.element.innerHTML,/ns-mp-bill/);
  assert.match(win.element.innerHTML,/BILL OF SALE/);
