@@ -888,7 +888,7 @@ export async function showDirectory(getDirectory, openMerchant, manageSelected =
     el = document.createElement('section');
   }
   el.id = 'npc-shops-directory';
-  el.className = 'npc-shops-window ns-directory';
+  el.className = 'npc-shops-window ns-directory'+(directoryApp?'':' ns-modern-v11');
   el.innerHTML = `<header class="ns-header"><b><i class="fas fa-store"></i> NPC Shops · Current Scene</b>${button('close-directory', '×', 'class="ns-close"')}</header><main class="ns-content">${manageSelected ? `<div class="ns-directory-manage">${button("manage-selected", '<i class="fas fa-store"></i> Create / Edit Selected Shop')}</div>` : ""}${data.length ? data.map(s => `<button class="ns-directory-item" type="button" data-id="${esc(s.actorId)}" data-name="${esc(s.name)}" data-img="${esc(s.img)}"><img src="${esc(s.img)}" alt=""/><span>${esc(s.name)}<small>${s.open ? 'Open' : 'Closed'}</small></span></button>`).join('') : '<div class="ns-empty">No available merchant NPCs on this scene. GM: select an NPC and press Alt+S to create a shop.</div>'}</main>`;
   if (!directoryApp) document.body.appendChild(el);
   const dismiss = () => directoryApp ? void directoryApp.close() : el.remove();
