@@ -152,7 +152,7 @@ function bill(w,shop,buyer){
 }
 export function renderMerchantView(w,shop,buyer,label,avatar){
  const entries=cartEntries(shop,buyer,w.mode);
- return (!w.nativeApp && w.unifiedInterface ? `<header class="ns-mp-top" title="Drag to move · double-click to minimize"><span>NPC Shops</span><div class="ns-mp-window-actions">${button('close','×','class="ns-close" aria-label="Close"')}</div></header>` : '')+
+ return (!w.nativeApp && w.unifiedInterface ? `<header class="ns-mp-top" title="Double-click to minimize or restore"><span>NPC Shops</span><div class="ns-mp-window-actions">${button('close','×','class="ns-close" aria-label="Close"')}</div></header>` : '')+
  hero(w,shop,buyer,label,avatar)+tabs(w)+`<main class="ns-content ns-mp-body"><div class="ns-mp-grid">
  ${sidebar(w,entries)}<section class="ns-mp-main" data-scroll-key="catalog">${w.mode==='manage'?settings(w,shop):catalog(w,shop,buyer,entries)}
  <div class="ns-empty ns-no-results" hidden>No items match your search.</div></section>${bill(w,shop,buyer)}
