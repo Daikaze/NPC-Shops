@@ -1,4 +1,4 @@
-import {gpToCp} from './core.js';
+import {priceToCp,priceCoin} from './core.js';
 
 /** Convert every rendered Manage/Stock row into validated changes.
  * Hidden/search-filtered rows remain in the DOM, so Save All includes them.
@@ -11,16 +11,17 @@ export function collectStockEdits(rows) {
     if(!id || changes.has(id)) throw new Error('Invalid or duplicated stock row');
     const priceField=row.querySelector?.('[data-field="price"]');
     const stockField=row.querySelector?.('[data-field="stock"]');
+    const denomination=row.querySelector?.('[data-field="price-denomination"]')?.value ?? 'gp';
     const unlimited=row.querySelector?.('[data-field="unlimited"]');
     if(!priceField||!stockField||!unlimited)throw new Error('Missing stock editor for '+id);
     const priceValue=String(priceField.value??'').trim();
     const amountValue=String(stockField.value??'').trim();
     if(!priceValue || !amountValue)throw new Error('Price and Stock cannot be empty');
-    const priceCp=gpToCp(priceValue);
+    const priceCp=priceToCp(priceValue,denomination);
     const quantity=Number(amountValue);
     if(!Number.isSafeInteger(quantity)||quantity<0||quantity>999999)
       throw new Error('Stock must be a whole number from 0 to 999999');
-    changes.set(id,{priceCp,quantity,unlimited:!!unlimited.checked});
+    changes.set(id,{priceCp,priceDenomination:denomination,quantity,unlimited:!!unlimited.checked});
   }
   return changes;
 }
@@ -32,7 +33,7 @@ export function applyStockEdits(shop,changes) {
   for(const entry of next.stock) {
     const update=changes.get(entry.id);
     if(!update)continue;
-    if(entry.priceCp!==update.priceCp || entry.quantity!==update.quantity ||
+    if(entry.priceCp!==update.priceCp || priceCoin(entry)!==update.priceDenomination || entry.quantity!==update.quantity ||
        Boolean(entry.unlimited)!==update.unlimited) changed++;
     Object.assign(entry,update);
     saved.add(entry.id);
@@ -46,14 +47,15 @@ export function applyStockEdits(shop,changes) {
  * GM-only authorization belongs to ShopWindow; price conversions are checked
  * here so the shop and purchase total use the same copper-precision price.
  */
-export function setBuyPrice(shop, skuId, priceGp) {
+export function setBuyPrice(shop, skuId, priceValue, denomination = 'gp') {
   if(!skuId || typeof skuId!=='string')throw new Error('Select an Item to price');
-  const raw=String(priceGp??'').trim();
+  const raw=String(priceValue??'').trim();
   if(!raw)throw new Error('Price cannot be empty');
-  const priceCp=gpToCp(raw);
+  const priceCp=priceToCp(raw,denomination);
   const next=structuredClone(shop);
   const target=next.stock?.find(entry=>entry.id===skuId);
   if(!target || !target.item)throw new Error('Item is no longer in the shop');
   target.priceCp=priceCp;
+  target.priceDenomination=denomination;
   return next;
 }
