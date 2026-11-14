@@ -116,7 +116,7 @@ export class ShopWindow {
     const firstOpen = !this.element;
     if (!this.element) {
       const el = document.createElement("section");
-      el.className = "npc-shops-window";
+      el.className = "npc-shops-window ns-modern-v11";
       el.setAttribute("role", "dialog");
       el.setAttribute("aria-label", "NPC Shops");
       document.body.appendChild(el);
