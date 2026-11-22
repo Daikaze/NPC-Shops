@@ -124,7 +124,7 @@
 .npc-shops-window.ns-modern-v11 .ns-item.ns-mp-item,
 .npc-shops-window.ns-modern-v11 .ns-item.ns-manage-item,
 .npc-shops-window.ns-modern-v11 .ns-mp-bill-line,
-.npc-shops-window.ns-modern-v11 .ns-category:not(.ns-mp-stock .ns-category) {
+.npc-shops-window.ns-modern-v11 .ns-manage-categories .ns-category {
   background: #28313e !important;
   border: 1px solid #4b586b !important;
   color: #edf1f6 !important;
