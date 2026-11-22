@@ -124,7 +124,7 @@ function settings(w,shop){
  if(w.settingsPage==='tables')return renderMerchantTables(w,shop);
  if(w.settingsPage==='history')return `<div class="ns-mp-settings"><h3>History</h3>
  ${button('clear-history','Clear History',shop.ledger?.length?'':'disabled')}
- ${(shop.ledger??[]).slice().reverse().map(e=>`<p>${esc(e.actorName)} · ${esc(e.kind)} ${esc(e.quantity)} × ${esc(e.itemName)} · ${coin(e.totalCp)}</p>`).join('')||'<p>No transactions yet.</p>'}</div>`;
+ ${(shop.ledger??[]).slice().reverse().map(e=>`<p>${esc(e.actorName)} · ${esc(e.kind)} ${esc(e.quantity)} × ${esc(e.itemName)} · ${e.priceCoins?namedCoin(e.priceCoins):coin(e.totalCp)}</p>`).join('')||'<p>No transactions yet.</p>'}</div>`;
  if(w.settingsPage==='terms')return `<div class="ns-mp-settings"><h3>Terms</h3><p>Configure this merchant’s terms of trade.</p>
  <div class="ns-mp-terms"><label>Buys at (%) <input data-field="rate" type="number" min="0" max="100" step="1" value="${esc(w.buybackDraft??Math.round(shop.sellRate*100))}"/></label>
  ${button('save-rate','Save Buyback Percentage')}</div>
