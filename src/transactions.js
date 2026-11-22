@@ -1,4 +1,4 @@
-import {MODULE_ID, SALEABLE_TYPES, assertInt, changeWallet, hasOwnership, itemCopy, itemPriceCp, formatCoins, moneyTotal, recordTransaction, shopData, stockCopy, walletCoins} from "./core.js";
+import {MODULE_ID, SALEABLE_TYPES, assertInt, changeWallet, hasOwnership, itemCopy, itemPriceCp, formatCoins, formatPriceCoins, priceCoinsForEntry, PRICE_DENOMINATIONS, moneyTotal, recordTransaction, shopData, stockCopy, walletCoins} from "./core.js";
 import {publishTradeReceipt} from './chat.js';
 
 const locks = new Set();
@@ -18,8 +18,9 @@ export async function setCurrency(actor, next) {
   }
 }
 async function setShop(actor, shop) { await actor.setFlag(MODULE_ID, "shop", shop); }
-function logEntry(user, buyer, kind, itemName, quantity, priceCp) {
-  return {at: new Date().toISOString(), userId: user.id, actorId: buyer.id, actorName: buyer.name, kind, itemName, quantity, totalCp: priceCp};
+function logEntry(user, buyer, kind, itemName, quantity, priceCp, totalPriceCoins=null) {
+  return {at: new Date().toISOString(), userId: user.id, actorId: buyer.id, actorName: buyer.name, kind, itemName, quantity, totalCp: priceCp,
+    ...(totalPriceCoins ? {priceCoins:totalPriceCoins} : {})};
 }
 function validateActors(request) {
   const user = game.users.get(request.userId);
@@ -38,6 +39,8 @@ async function buy({user, merchant, buyer, shop}, request, qty) {
   ensure(sku.unlimited || (Number.isInteger(sku.quantity) && sku.quantity >= qty), "Not enough stock");
   const priceCp = assertInt(sku.priceCp) * qty;
   ensure(Number.isSafeInteger(priceCp), "Invalid total");
+  const singlePriceCoins=priceCoinsForEntry(sku);
+  const totalPriceCoins=Object.fromEntries(PRICE_DENOMINATIONS.map(c=>[c,singlePriceCoins[c]*qty]));
   const before = currency(buyer);
   ensure(moneyTotal(before) >= priceCp, "Not enough coins");
   const nextWallet = changeWallet(before, -priceCp);
@@ -66,9 +69,9 @@ async function buy({user, merchant, buyer, shop}, request, qty) {
     next.cashboxCp=gross+priceCp;
     const target = next.stock.find(s => s.id === sku.id);
     if (!target.unlimited) target.quantity -= qty;
-    await setShop(merchant, recordTransaction(next, logEntry(user, buyer, "buy", sku.item.name, qty, priceCp)));
-    return {message: `${buyer.name} bought ${qty} × ${sku.item.name} for ${formatCoins(priceCp)}`,
-      receipt:{kind:'buy',buyerName:buyer.name,userName:user.name,merchantName:merchant.name,itemName:sku.item.name,quantity:qty,totalCp:priceCp}};
+    await setShop(merchant, recordTransaction(next, logEntry(user, buyer, "buy", sku.item.name, qty, priceCp, totalPriceCoins)));
+    return {message: `${buyer.name} bought ${qty} × ${sku.item.name} for ${formatPriceCoins(totalPriceCoins)}`,
+      receipt:{kind:'buy',buyerName:buyer.name,userName:user.name,merchantName:merchant.name,itemName:sku.item.name,quantity:qty,totalCp:priceCp,totalPriceCoins}};
   } catch (err) {
     if (created.length) await buyer.deleteEmbeddedDocuments("Item", created.map(i => i.id)).catch(e => console.error("NPC Shops rollback item error", e));
     if (merchantMoneyAttempted) await setCurrency(merchant,merchantBefore).catch(e => console.error("NPC Shops rollback merchant currency error",e));
