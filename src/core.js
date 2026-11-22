@@ -101,6 +101,57 @@ export function priceCoin(item) {
   const denom = String(item?.priceDenomination ?? "gp").toLowerCase();
   return PRICE_COINS[denom] ? denom : "gp";
 }
+/** Price fields are independent counts, not a normalized wallet.
+ * For example, 10 GP stays 10 GP instead of being exchanged for 1 PP.
+ */
+export function priceCoinsTotal(parts = {}) {
+  let total = 0;
+  for (const denomination of PRICE_DENOMINATIONS) {
+    const count = assertInt(parts?.[denomination] ?? 0, 0, Number.MAX_SAFE_INTEGER);
+    total += count * PRICE_COINS[denomination];
+    if(!Number.isSafeInteger(total))throw new Error("Price exceeds safe currency limits");
+  }
+  return total;
+}
+
+/** Recreate legacy entries without converting money into larger coins.
+ * Old prices remember one denomination (normally GP); keep that denomination.
+ */
+export function legacyPriceCoins(amountCp, denomination = "gp") {
+  let remaining = assertInt(amountCp, 0, Number.MAX_SAFE_INTEGER);
+  const coin = PRICE_COINS[String(denomination).toLowerCase()] ? String(denomination).toLowerCase() : "gp";
+  const parts = Object.fromEntries(PRICE_DENOMINATIONS.map(name => [name, 0]));
+  const start = PRICE_DENOMINATIONS.indexOf(coin);
+  for (const name of PRICE_DENOMINATIONS.slice(start)) {
+    const count = Math.floor(remaining / PRICE_COINS[name]);
+    parts[name] = count;
+    remaining -= count * PRICE_COINS[name];
+  }
+  return parts;
+}
+
+/** Persist and render typed counts exactly; fall back safely for old shops.
+ * Mismatched legacy metadata cannot change the authoritative copper amount.
+ */
+export function priceCoinsForEntry(entry) {
+  const cp = assertInt(entry?.priceCp ?? 0, 0, Number.MAX_SAFE_INTEGER);
+  const saved = entry?.priceCoins;
+  if(saved && typeof saved === "object") {
+    try {
+      const parts = Object.fromEntries(PRICE_DENOMINATIONS.map(c => [c, assertInt(saved[c] ?? 0, 0, Number.MAX_SAFE_INTEGER)]));
+      if(priceCoinsTotal(parts) === cp) return parts;
+    }catch(_error){ /* Corrupt legacy metadata: recover from priceCp. */ }
+  }
+  const originalDenomination = entry?.priceDenomination ?? entry?.item?.system?.price?.denomination ?? "gp";
+  return legacyPriceCoins(cp, originalDenomination);
+}
+
+export function formatPriceCoins(parts) {
+  const prices = Object.entries(Object.fromEntries(PRICE_DENOMINATIONS.map(c => [c, assertInt(parts?.[c] ?? 0, 0, Number.MAX_SAFE_INTEGER)])))
+    .filter(([_coin, count]) => count>0)
+    .map(([coin,count]) => count + " " + coin);
+  return prices.join(" ") || "0 cp";
+}
 export function formatCoins(amountCp) {
   let cp = assertInt(amountCp, 0, Number.MAX_SAFE_INTEGER);
   const output = [];
@@ -149,7 +200,7 @@ export function publicShop(shop) {
     stock: (shop.stock ?? []).map(s => ({
       id: s.id,
       item: {name: String(s.item?.name ?? "Item"), img: String(s.item?.img ?? "icons/svg/item-bag.svg"), category: itemCategory(s.item)},
-      priceCp: s.priceCp, priceDenomination: priceCoin(s),
+      priceCp: s.priceCp, priceDenomination: priceCoin(s), priceCoins: priceCoinsForEntry(s),
       // Never send real quantities or the unlimited flag to player clients.
       // The GM validates actual stock at checkout.
       available: !!s.unlimited || Number(s.quantity) > 0
@@ -173,7 +224,10 @@ export function itemCopy(item, qty) {
 }
 export function stockCopy(item, quantity, priceCp = itemPriceCp(item)) {
   const uuid = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
-  return {id: uuid, item: itemCopy(item, 1), quantity: assertInt(quantity, 1), priceCp: assertInt(priceCp), unlimited: false};
+  const denomination = item?.system?.price?.denomination ?? "gp";
+  const price = assertInt(priceCp, 0, Number.MAX_SAFE_INTEGER);
+  return {id: uuid, item: itemCopy(item, 1), quantity: assertInt(quantity, 1),
+    priceCp: price, priceDenomination: denomination, priceCoins: legacyPriceCoins(price, denomination), unlimited: false};
 }
 export function recordTransaction(shop, entry) {
   return {...shop, ledger: [...(shop.ledger ?? []), entry].slice(-60)};

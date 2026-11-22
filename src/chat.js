@@ -1,4 +1,4 @@
-import {formatCoins} from './core.js';
+import {formatCoins,formatPriceCoins,priceCoinsTotal} from './core.js';
 /** Public trade receipts, created by the processing GM AFTER the transaction is committed. */
 const esc = s => String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -8,10 +8,17 @@ export function tradeReceiptContent(receipt) {
   const qty=Number(quantity),cost=Number(totalCp);
   if(!Number.isSafeInteger(qty)||qty<1||!Number.isSafeInteger(cost)||cost<0) throw new Error('Invalid trade receipt');
   const bought=kind==='buy';
+  // Backward-compatible: old receipts without exact entered coins keep formatCoins.
+  const parts=receipt.totalPriceCoins;
+  let display=formatCoins(cost);
+  if(parts && typeof parts==='object') {
+    try {if(priceCoinsTotal(parts)===cost)display=formatPriceCoins(parts);}
+    catch(_error){ /* Never suppress a completed trade's receipt due to old metadata. */ }
+  }
   return '<div class="npc-shops-receipt"><h3>🛍️ NPC Shops — '+(bought?'Purchase':'Sale')+'</h3>'+
     '<p><strong>'+esc(buyerName)+'</strong> ('+esc(userName)+') '+(bought?'bought from':'sold to')+' <strong>'+esc(merchantName)+'</strong></p>'+
     '<p>Item: <strong>'+qty+' × '+esc(itemName)+'</strong></p>'+
-    '<p>Total: <strong>'+formatCoins(cost)+'</strong></p></div>';
+    '<p>Total: <strong>'+display+'</strong></p></div>';
 }
 
 /** Foundry 11 requires the legacy numeric "type" field; newer versions

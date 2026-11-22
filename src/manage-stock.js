@@ -1,4 +1,4 @@
-import {priceToCp,priceCoin,assertInt} from './core.js';
+import {priceToCp,priceCoin,assertInt,priceCoinsTotal,legacyPriceCoins,priceCoinsForEntry} from './core.js';
 import {readCoinEditor} from './coin-inputs.js';
 
 /** Convert every rendered Manage/Stock row into validated changes.
@@ -23,7 +23,8 @@ export function collectStockEdits(rows) {
     const quantity=Number(amountValue);
     if(!Number.isSafeInteger(quantity)||quantity<0||quantity>999999)
       throw new Error('Stock must be a whole number from 0 to 999999');
-    changes.set(id,{priceCp,priceDenomination:denomination,quantity,unlimited:!!unlimited.checked});
+    changes.set(id,{priceCp,priceDenomination:denomination,quantity,unlimited:!!unlimited.checked,
+      ...(coinPrices.parts ? {priceCoins: coinPrices.parts} : {})});
   }
   return changes;
 }
@@ -35,9 +36,12 @@ export function applyStockEdits(shop,changes) {
   for(const entry of next.stock) {
     const update=changes.get(entry.id);
     if(!update)continue;
-    if(entry.priceCp!==update.priceCp || priceCoin(entry)!==update.priceDenomination || entry.quantity!==update.quantity ||
+    if(entry.priceCp!==update.priceCp || priceCoin(entry)!==update.priceDenomination ||
+       (update.priceCoins && JSON.stringify(priceCoinsForEntry(entry))!==JSON.stringify(update.priceCoins)) ||
+       entry.quantity!==update.quantity ||
        Boolean(entry.unlimited)!==update.unlimited) changed++;
     Object.assign(entry,update);
+    if(!update.priceCoins)entry.priceCoins=legacyPriceCoins(update.priceCp,update.priceDenomination);
     saved.add(entry.id);
   }
   for(const id of changes.keys()) if(!saved.has(id))
@@ -63,13 +67,19 @@ export function setUnlimitedForAll(shop,enabled,edits=null) {
  */
 export function setBuyPrice(shop, skuId, priceValue, denomination = 'gp') {
   if(!skuId || typeof skuId!=='string')throw new Error('Select an Item to price');
-  const priceCp=priceValue && typeof priceValue==='object' && 'totalCp' in priceValue
+  const priced=priceValue && typeof priceValue==='object' && 'totalCp' in priceValue;
+  const priceCp=priced
     ? assertInt(priceValue.totalCp,0,Number.MAX_SAFE_INTEGER)
     : priceToCp(priceValue,denomination);
+  const parts=priced && priceValue.parts
+    ? Object.fromEntries(Object.keys(legacyPriceCoins(0)).map(coin=>[coin,assertInt(priceValue.parts[coin]??0,0,Number.MAX_SAFE_INTEGER)]))
+    : legacyPriceCoins(priceCp,denomination);
+  if(priceCoinsTotal(parts)!==priceCp)throw new Error('Price coins do not match total');
   const next=structuredClone(shop);
   const target=next.stock?.find(entry=>entry.id===skuId);
   if(!target || !target.item)throw new Error('Item is no longer in the shop');
   target.priceCp=priceCp;
   target.priceDenomination=typeof priceValue==='object'?'gp':denomination;
+  target.priceCoins=parts;
   return next;
 }

@@ -1,4 +1,4 @@
-import {MODULE_ID, formatCoins, walletCoins, PRICE_DENOMINATIONS, emptyShop, hasOwnership, itemPriceCp, moneyTotal, shopData, stockCopy, SALEABLE_TYPES} from "./core.js";
+import {MODULE_ID, formatCoins, formatPriceCoins, walletCoins, priceCoinsForEntry, PRICE_DENOMINATIONS, emptyShop, hasOwnership, itemPriceCp, moneyTotal, shopData, stockCopy, SALEABLE_TYPES} from "./core.js";
 import {coinEditor,readCoinEditor} from "./coin-inputs.js";
 import {groupItems} from "./categories.js";
 import {isNpcActor} from "./merchant-types.js";
@@ -421,7 +421,7 @@ export class ShopWindow {
         <div class="ns-itemtext ns-stock-detail">
           <button type="button" class="ns-stock-name" data-action="inspect-item" data-entry-id="${esc(s.id)}"><strong>${esc(s.item.name)}</strong></button>
           <div class="ns-stock-fields">
-            <div class="ns-stock-price"><span class="ns-coin-editor-caption">Price</span>${coinEditor("price",s.priceCp)}</div>
+            <div class="ns-stock-price"><span class="ns-coin-editor-caption">Price</span>${coinEditor("price",priceCoinsForEntry(s))}</div>
             <label>Stock<input aria-label="${esc(s.item.name)} stock quantity" data-field="stock" type="number" min="0" step="1" value="${esc(s.quantity)}"/></label>
             <label class="ns-stock-unlimited"><input aria-label="${esc(s.item.name)} unlimited stock" type="checkbox" data-field="unlimited" ${s.unlimited ? 'checked' : ''}/> Unlimited</label>
           </div>
@@ -433,7 +433,7 @@ export class ShopWindow {
         <span>Save quantities, prices and unlimited stock for all items.</span>
         ${button('save-all-stock', '<i class="fas fa-save"></i> Save All', !shop.stock.length ? 'disabled class="ns-save-all"' : 'class="ns-save-all"')}
       </div>
-      <details class="ns-ledger" data-persist="ledger"><summary>Transaction History (${shop.ledger.length})</summary><div class="ns-ledger-toolbar">${button("clear-history", "Clear History", !shop.ledger.length ? "disabled" : "")}</div>${shop.ledger.slice().reverse().map(l => `<div>${esc(l.at?.slice(0,16))}: ${esc(l.actorName)} ${esc(l.kind)} ${esc(l.quantity)} × ${esc(l.itemName)} (${formatCoins(l.totalCp)})</div>`).join('') || 'No transactions yet'}</details>`;
+      <details class="ns-ledger" data-persist="ledger"><summary>Transaction History (${shop.ledger.length})</summary><div class="ns-ledger-toolbar">${button("clear-history", "Clear History", !shop.ledger.length ? "disabled" : "")}</div>${shop.ledger.slice().reverse().map(l => `<div>${esc(l.at?.slice(0,16))}: ${esc(l.actorName)} ${esc(l.kind)} ${esc(l.quantity)} × ${esc(l.itemName)} (${l.priceCoins?formatPriceCoins(l.priceCoins):formatCoins(l.totalCp)})</div>`).join('') || 'No transactions yet'}</details>`;
   }
   bindEvents(el) {
     el.addEventListener("input", e => {
@@ -574,7 +574,7 @@ export class ShopWindow {
           const money=readCoinEditor(row,'buy-price',{allowLegacy:true});
           this.busy=true;
           try{
-            const next=setBuyPrice(this.shop,row.dataset.entryId,{totalCp:money.totalCp});
+            const next=setBuyPrice(this.shop,row.dataset.entryId,money);
             await this.saveShop(next);
             notify('NPC Shops: Updated Buy price for '+(next.stock.find(entry=>entry.id===row.dataset.entryId)?.item?.name??'item')+'.');
           } finally {this.busy=false;}
@@ -696,8 +696,10 @@ export class ShopWindow {
           if (action === 'remove') copy.stock = copy.stock.filter(s => s.id !== sku);
           else {
             const tr = target.closest('.ns-item');
-            entry.priceCp = readCoinEditor(tr,'price',{allowLegacy:true}).totalCp;
+            const money=readCoinEditor(tr,'price',{allowLegacy:true});
+             entry.priceCp = money.totalCp;
              entry.priceDenomination = 'gp';
+             entry.priceCoins = money.parts ?? priceCoinsForEntry({priceCp:money.totalCp,priceDenomination:'gp'});
             entry.quantity = Number(tr.querySelector('[data-field="stock"]').value);
             if (!Number.isSafeInteger(entry.quantity) || entry.quantity < 0 || entry.quantity > 999999) throw new Error('Invalid stock');
             entry.unlimited = tr.querySelector('[data-field="unlimited"]').checked;

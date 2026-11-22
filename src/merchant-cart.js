@@ -1,4 +1,4 @@
-import {itemPriceCp,SALEABLE_TYPES,moneyTotal} from './core.js';
+import {itemPriceCp,SALEABLE_TYPES,moneyTotal,priceCoinsForEntry} from './core.js';
 /** Player storefronts receive availability only; never exact stock amounts. */
 export function buyStockLimit(entry) {
  if (typeof entry?.available === 'boolean') return entry.available ? 9999 : 0;
@@ -21,7 +21,8 @@ export function cartLines(cart,shop,buyer,mode){
    const quantity=Math.min(Math.max(1,Math.trunc(wanted)),max,9999);
    const cp=mode==='buy'?Number(s.priceCp):Math.floor(itemPriceCp(s)*Number(shop.sellRate??0));
    if(!Number.isSafeInteger(cp)||cp<0)continue;
-   result.push({id,item:mode==='buy'?s.item:s,quantity,max,priceCp:cp});
+   result.push({id,item:mode==='buy'?s.item:s,quantity,max,priceCp:cp,
+     priceCoins:mode==='buy'?priceCoinsForEntry(s):null});
  }
  return result;
 }

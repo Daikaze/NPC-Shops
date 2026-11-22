@@ -24,7 +24,7 @@ const contrast=(a,b)=>{
 };
 test('Foundry V11 contrast stylesheet overrides old theme last, not V14',()=>{
  assert.equal(manifest.styles.at(-1),'styles/v11-contrast-fix.css');
- assert.equal(manifest.version,'0.5.8');
+ assert.equal(manifest.version,'0.5.9');
  for(const selector of selectors)assert.ok(v11.includes(selector),selector);
  assert.match(v11,/color-scheme:\s*dark\s*!important/);
  assert.doesNotMatch(v11,/\.application\.npc-shops-native/);
