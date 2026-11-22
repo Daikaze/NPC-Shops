@@ -1,5 +1,5 @@
 import {groupItems} from './categories.js';
-import {formatCoins,formatWallet,moneyTotal,itemPriceCp} from './core.js';
+import {formatCoins,formatWallet,moneyTotal,itemPriceCp,formatPriceCoins,priceCoinsForEntry,PRICE_DENOMINATIONS} from './core.js';
 import {coinEditor} from './coin-inputs.js';
 import {cartEntries,cartLines,cartTotal,canCheckout,buyStockLimit} from './merchant-cart.js';
 import {renderMerchantTables} from './merchant-tables-ui.js';
@@ -10,6 +10,16 @@ const moneyMarkup=text=>'<span class="ns-mp-money">'+
   '<span class="ns-money-unit ns-money-'+unit+'"><b>'+n+'</b><small>'+unit.toUpperCase()+'</small></span>')+'</span>';
 const coin=cp=>moneyMarkup(formatCoins(Math.round(Math.max(0,cp))));
 const walletCoin=wallet=>moneyMarkup(formatWallet(wallet));
+const namedCoin=parts=>moneyMarkup(formatPriceCoins(parts));
+const multiplyParts=(parts,quantity)=>Object.fromEntries(PRICE_DENOMINATIONS.map(c=>[c,(parts?.[c]??0)*quantity]));
+const sumCartPriceParts=lines=>{
+ const sums=Object.fromEntries(PRICE_DENOMINATIONS.map(c=>[c,0]));
+ for(const line of lines) {
+  if(!line.priceCoins)return null;
+  for(const denomination of PRICE_DENOMINATIONS)sums[denomination]+=line.priceCoins[denomination]*line.quantity;
+ }
+ return sums;
+};
 const describeItem=item=>{
  const kind=String(item?.system?.type?.value??item?.type??'Item');
  const type=kind ? kind.charAt(0).toUpperCase()+kind.slice(1) : 'Item';
@@ -89,10 +99,10 @@ function catalog(w,shop,buyer,entries){
     </button>
     <span class="ns-mp-stock-label ${low?'low':''} ${missing?'sold-out':''} ${!w.gm&&w.mode==='buy'?'ns-public-availability':''}">${esc(stockLabel)}</span>
     ${w.gm && w.mode==='buy'
-      ? `<div class="ns-buy-price-editor" draggable="false" title="GM only: change shop price"><span class="ns-coin-editor-caption">Price</span>${coinEditor("buy-price",entry.priceCp)}
+      ? `<div class="ns-buy-price-editor" draggable="false" title="GM only: change shop price"><span class="ns-coin-editor-caption">Price</span>${coinEditor("buy-price",priceCoinsForEntry(entry))}
        ${button('save-buy-price','<i class="fas fa-save" aria-hidden="true"></i>',`class="ns-buy-price-save" data-entry-id="${esc(entry.id)}" title="Save Buy price" aria-label="Save Buy price for ${esc(item.name)}"`)}
       </div>`
-      : `<span class="ns-mp-price">${coin(price)}</span>`}
+      : `<span class="ns-mp-price">${w.mode==="buy"?namedCoin(priceCoinsForEntry(entry)):coin(price)}</span>`}
     ${button('cart-add','+',`class="ns-mp-add" data-entry-id="${esc(entry.id)}" aria-label="Add to bill" ${missing||!buyer||w.busy?'disabled':''}`)}
   </div>`}).join('')}</section>`).join('')||'<div class="ns-mp-empty">No items in this category.</div>'}</div>`;
 }
@@ -138,16 +148,19 @@ function bill(w,shop,buyer){
  const lines=cartLines(w.cart[w.mode],shop,buyer,w.mode);
  const total=cartTotal(lines);
  const funds=buyer?.system?.currency?moneyTotal(buyer.system.currency):0;
+ const priceParts=w.mode==='buy'?sumCartPriceParts(lines):null;
+ const totalDisplay=priceParts?formatPriceCoins(priceParts):formatCoins(total);
+ const totalTag=priceParts?namedCoin(priceParts):coin(total);
  return `<aside class="ns-mp-bill" data-scroll-key="bill" title="Drop an item here to add it to your bill"><div class="ns-mp-bill-card">
  <small>BILL OF SALE</small><h3>${esc(w.name)}</h3>
  <div class="ns-mp-bill-date">${w.mode==='buy'?'Buying from the merchant':'Selling to the merchant'}</div><hr/>
- <div class="ns-mp-bill-lines">${lines.length?lines.map(l=>`<div class="ns-mp-bill-line"><div>${l.quantity} × ${esc(l.item.name)}<b>${coin(l.quantity*l.priceCp)}</b></div>
- <small>${coin(l.priceCp)} each</small>
+ <div class="ns-mp-bill-lines">${lines.length?lines.map(l=>`<div class="ns-mp-bill-line"><div>${l.quantity} × ${esc(l.item.name)}<b>${l.priceCoins?namedCoin(multiplyParts(l.priceCoins,l.quantity)):coin(l.quantity*l.priceCp)}</b></div>
+ <small>${l.priceCoins?namedCoin(l.priceCoins):coin(l.priceCp)} each</small>
  <div class="ns-mp-qty">${button('cart-minus','−',`data-entry-id="${esc(l.id)}"`)}<span>${l.quantity}</span>
  ${button('cart-plus','+',`data-entry-id="${esc(l.id)}"`)}</div></div>`).join(''):'<p class="ns-mp-bill-empty">Choose goods from the shelves to build your bill.</p>'}</div>
- <hr class="ns-mp-double-rule"/><div class="ns-mp-bill-total"><span>${w.mode==='buy'?'SUM OWED':'YOU RECEIVE'}</span><strong>${coin(total)}</strong></div>
+ <hr class="ns-mp-double-rule"/><div class="ns-mp-bill-total"><span>${w.mode==='buy'?'SUM OWED':'YOU RECEIVE'}</span><strong>${totalTag}</strong></div>
  <p class="ns-mp-after">${buyer?esc(buyer.name)+`’s purse after trade: ${coin(w.mode==='buy'?Math.max(0,funds-total):funds+total)}`:'Select a character.'}</p>
- ${button('cart-checkout',`<span class="ns-mp-seal"><i class="fas fa-stamp"></i></span><span>${w.mode==='buy'?'Buy':'Sell'} · ${formatCoins(total)}</span>`,
+ ${button('cart-checkout',`<span class="ns-mp-seal"><i class="fas fa-stamp"></i></span><span>${w.mode==='buy'?'Buy':'Sell'} · ${totalDisplay}</span>`,
  `class="ns-mp-checkout" ${!canCheckout(w.cart[w.mode],shop,buyer,w.mode)||w.busy?'disabled':''}`)}
  ${w.gm&&w.mode==='buy'?button('cart-give','<i class="fas fa-gift"></i> Give (GM)',`class="ns-mp-give" ${!lines.length||w.busy?'disabled':''}`):''}
  ${lines.length?button('cart-clear','Clear bill','class="ns-mp-clear"'):''}
