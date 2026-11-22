@@ -1,0 +1,348 @@
+/*
+ * NPC Shops v0.5.8 — Foundry V11 only.
+ * V11 supplies a parchment/light --color-bg and --color-bg-option, while the
+ * copied V14 storefront expects dark neutral surfaces with light foregrounds.
+ * Keep the shared HTML and V14 ApplicationV2 UI unchanged, but give the V11
+ * floating window its own readable, fully opaque dark palette.
+ * This file is deliberately loaded LAST and scoped to .ns-modern-v11.
+ */
+.npc-shops-window.ns-modern-v11 {
+  --color-bg: #1d2530;
+  --color-bg-option: #27313e;
+  --color-text-primary: #f0f2f6;
+  --color-text-secondary: #c2ccd7;
+  --color-border-light-primary: #566274;
+  --button-background-color: #354253;
+  --button-text-color: #f0f2f6;
+  --button-border-color: #627084;
+  --input-background-color: #202a37;
+  --input-text-color: #f8fafc;
+  --input-border-color: #637085;
+  color-scheme: dark !important;
+  background: #1d2530 !important;
+  color: #f0f2f6 !important;
+  border-color: #667285 !important;
+}
+.npc-shops-window.ns-modern-v11:not(.ns-directory) {
+  background-color: #1d2530 !important;
+  box-shadow: 0 15px 42px rgba(0,0,0,.70) !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-top {
+  background: #252d3b !important;
+  color: #f3f5f9 !important;
+  border-bottom: 1px solid #4b576a !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-native-summary {
+  background: #252d39 !important;
+  border-bottom: 1px solid #495668 !important;
+  color: #edf1f7 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-native-merchant h2,
+.npc-shops-window.ns-modern-v11 .ns-native-balance strong {
+  color: #f8f8fa !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-native-merchant small,
+.npc-shops-window.ns-modern-v11 .ns-native-balance small,
+.npc-shops-window.ns-modern-v11 .ns-native-buyer {
+  color: #c5cbd4 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-tabs {
+  background: #202833 !important;
+  border-bottom: 1px solid #4a5667 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-tabs button {
+  color: #e9edf3 !important;
+  background: #303a48 !important;
+  border: 1px solid #4b586b !important;
+  opacity: 1 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-tabs button.active,
+.npc-shops-window.ns-modern-v11 .ns-mp-tabs button:hover:not(:disabled) {
+  background: #465266 !important;
+  color: #fff !important;
+  border-color: #b69a64 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-content.ns-mp-body {
+  background: #151a23 !important;
+  color: #f0f2f6 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-grid {
+  background: #151a23 !important;
+  grid-template-columns: minmax(115px, 155px) minmax(0, 1fr) minmax(178px, 225px) !important;
+}
+.npc-shops-window.ns-modern-v11:not(.ns-directory).ns-shop-medium .ns-mp-grid {
+  grid-template-columns: minmax(115px, 155px) minmax(0, 1fr) minmax(178px, 215px) !important;
+  height: 100% !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-sidebar {
+  background: #202734 !important;
+  color: #eef2f6 !important;
+  border-right: 1px solid #4f5b6a !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-sidebar>small {
+  color: #d9c391 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-sidebar .ns-mp-side-btn {
+  background: #2b3442 !important;
+  color: #e8edf5 !important;
+  border: 1px solid #445268 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-sidebar .ns-mp-side-btn.active,
+.npc-shops-window.ns-modern-v11 .ns-mp-sidebar .ns-mp-side-btn:hover:not(:disabled) {
+  background: #3b475a !important;
+  color: #fff !important;
+  border-color: #8c7b5e !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-main {
+  background: #171d27 !important;
+  color: #f0f2f6 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-catalog-head {
+  background: #1c2330 !important;
+  color: #e9edf4 !important;
+  border-bottom: 1px solid #445063 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-catalog-head strong,
+.npc-shops-window.ns-modern-v11 .ns-mp-stock .ns-category h3 {
+  color: #e6d4ac !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-search {
+  background: #273340 !important;
+  border: 1px solid #627084 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-search input,
+.npc-shops-window.ns-modern-v11 .ns-mp-search input::placeholder {
+  background: transparent !important;
+  color: #e3eaf3 !important;
+  opacity: 1 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-stock .ns-category {
+  background: transparent !important;
+  border: none !important;
+  color: #e9edf3 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-item.ns-mp-item,
+.npc-shops-window.ns-modern-v11 .ns-item.ns-manage-item,
+.npc-shops-window.ns-modern-v11 .ns-mp-bill-line,
+.npc-shops-window.ns-modern-v11 .ns-manage-categories .ns-category {
+  background: #28313e !important;
+  border: 1px solid #4b586b !important;
+  color: #edf1f6 !important;
+  box-shadow: none !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-item.ns-mp-item:hover {
+  background: #303b4b !important;
+  border-color: #8a91a0 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-item-preview {
+  background: transparent !important;
+  color: #eef2f6 !important;
+  border: none !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-item .ns-itemtext strong,
+.npc-shops-window.ns-modern-v11 .ns-stock-name strong {
+  color: #f9fbff !important;
+  opacity: 1 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-item .ns-itemtext small,
+.npc-shops-window.ns-modern-v11 .ns-stock-detail small {
+  color: #c8d0db !important;
+  opacity: 1 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-stock-label {
+  color: #d5dce7 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-stock-label.low {
+  color: #edbf76 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-bill {
+  background: #202836 !important;
+  color: #edf1f6 !important;
+  border-left: 1px solid #4c5869 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-bill-card {
+  background: #293242 !important;
+  color: #f0f2f6 !important;
+  border: 1px solid #566174 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-bill-card>small,
+.npc-shops-window.ns-modern-v11 .ns-mp-bill-date {
+  color: #ddc99c !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-bill-card h3 {
+  color: #fff0d7 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-bill-empty,
+.npc-shops-window.ns-modern-v11 .ns-mp-after {
+  color: #cbd1d9 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-bill-total,
+.npc-shops-window.ns-modern-v11 .ns-mp-bill-line {
+  color: #f3f4f7 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-bill-total strong {
+  color: #f2d493 !important;
+}
+.npc-shops-window.ns-modern-v11 button:not(.ns-mp-item-preview) {
+  color: #f2f4f8 !important;
+  background: #394659 !important;
+  border-color: #68778b !important;
+  text-shadow: none !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-add,
+.npc-shops-window.ns-modern-v11 .ns-buy-price-save,
+.npc-shops-window.ns-modern-v11 .ns-stock-save {
+  color: #f8e5b7 !important;
+  background: #374251 !important;
+  border-color: #ae9360 !important;
+}
+.npc-shops-window.ns-modern-v11 button.ns-mp-checkout {
+  color: #fff !important;
+  background: #825b34 !important;
+  border-color: #d3b47e !important;
+}
+.npc-shops-window.ns-modern-v11 button:disabled {
+  opacity: .73 !important;
+  cursor: not-allowed !important;
+}
+.npc-shops-window.ns-modern-v11 input:not([type="checkbox"]),
+.npc-shops-window.ns-modern-v11 select {
+  background: #202a38 !important;
+  color: #f8fafc !important;
+  border-color: #69768a !important;
+  color-scheme: dark !important;
+}
+.npc-shops-window.ns-modern-v11 select option {
+  color: #f8fafc !important;
+  background: #263140 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-coin-inputs .ns-coin-input input[type="number"] {
+  background: #192330 !important;
+  color: #fbfcff !important;
+  border-color: #6d7b8d !important;
+  opacity: 1 !important;
+  font-size: 13px !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-coin-editor-caption,
+.npc-shops-window.ns-modern-v11 .ns-stock-fields label,
+.npc-shops-window.ns-modern-v11 .ns-buy-price-editor {
+  color: #dce2ea !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-settings,
+.npc-shops-window.ns-modern-v11 .ns-save-all-bar,
+.npc-shops-window.ns-modern-v11 .ns-config,
+.npc-shops-window.ns-modern-v11 .ns-mp-danger {
+  background: #242d3b !important;
+  color: #edf1f6 !important;
+  border-color: #566274 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-settings h3,
+.npc-shops-window.ns-modern-v11 .ns-mp-settings h4 {
+  color: #efd9a8 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-settings p {
+  color: #cad2dc !important;
+}
+.npc-shops-window.ns-modern-v11 footer {
+  background: #202734 !important;
+  color: #b6c1cf !important;
+  border-top-color: #495667 !important;
+}
+
+/* Four coin fields need their own row in the narrower V11 3-column shop. */
+.npc-shops-window.ns-modern-v11 .ns-item.ns-mp-item:has(.ns-buy-price-editor) {
+  display: grid !important;
+  grid-template-columns: minmax(0,1fr) auto 30px !important;
+  grid-template-areas: "item stock add" "money money money" !important;
+  gap: 7px 8px !important;
+  align-items: center !important;
+  min-width: 0 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-item.ns-mp-item:has(.ns-buy-price-editor) .ns-mp-item-preview {
+  grid-area: item !important;
+  min-width: 0 !important;
+  width: 100% !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-item.ns-mp-item:has(.ns-buy-price-editor) .ns-mp-stock-label {
+  grid-area: stock !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-item.ns-mp-item:has(.ns-buy-price-editor) .ns-mp-add {
+  grid-area: add !important;
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  padding: 0 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-buy-price-editor {
+  grid-area: money !important;
+  display: grid !important;
+  grid-template-columns: minmax(0,1fr) 30px !important;
+  grid-template-areas: "caption caption" "coins save" !important;
+  gap: 3px 7px !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-buy-price-editor .ns-coin-editor-caption {
+  grid-area: caption !important;
+  margin: 0 !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-buy-price-editor .ns-coin-inputs {
+  grid-area: coins !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-buy-price-editor .ns-buy-price-save {
+  grid-area: save !important;
+  height: 28px !important;
+  width: 28px !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  padding: 0 !important;
+  align-self: end !important;
+}
+/* Keep public availability visible and readable at all sizes. */
+.npc-shops-window.ns-modern-v11 .ns-mp-stock-label.ns-public-availability {
+  display: inline-block !important;
+  color: #b4e3bf !important;
+}
+.npc-shops-window.ns-modern-v11 .ns-mp-stock-label.ns-public-availability.sold-out {
+  color: #e9acac !important;
+}
+.npc-shops-window.ns-modern-v11.ns-directory .ns-directory-item,
+.npc-shops-window.ns-modern-v11.ns-directory .ns-directory-manage {
+  background: #2c3644 !important;
+  color: #f1f4f9 !important;
+  border-color: #59677a !important;
+}
+@container (max-width: 730px) {
+  .npc-shops-window.ns-modern-v11:not(.ns-directory) .ns-mp-grid,
+  .npc-shops-window.ns-modern-v11:not(.ns-directory).ns-shop-medium .ns-mp-grid {
+    grid-template-columns: minmax(110px,155px) minmax(0,1fr) !important;
+    height: auto !important;
+  }
+  .npc-shops-window.ns-modern-v11 .ns-mp-bill {
+    grid-column: 1 / -1 !important;
+    border-left: 0 !important;
+    border-top: 1px solid #4c5869 !important;
+    max-height: 275px !important;
+  }
+}
+@container (max-width: 510px) {
+  .npc-shops-window.ns-modern-v11:not(.ns-directory) .ns-mp-grid,
+  .npc-shops-window.ns-modern-v11:not(.ns-directory).ns-shop-compact .ns-mp-grid {
+    grid-template-columns: minmax(0,1fr) !important;
+  }
+  .npc-shops-window.ns-modern-v11 .ns-mp-sidebar {
+    grid-column: 1 / -1 !important;
+    max-height: 118px !important;
+    border-bottom: 1px solid #4c5869 !important;
+    border-right: 0 !important;
+  }
+  .npc-shops-window.ns-modern-v11 .ns-mp-main,
+  .npc-shops-window.ns-modern-v11 .ns-mp-bill {
+    grid-column: 1 / -1 !important;
+  }
+}
