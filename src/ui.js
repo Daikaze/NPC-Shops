@@ -1,4 +1,4 @@
-import {MODULE_ID, formatCoins, walletCoins, priceCoinsForEntry, PRICE_DENOMINATIONS, emptyShop, hasOwnership, itemPriceCp, moneyTotal, shopData, stockCopy, SALEABLE_TYPES} from "./core.js";
+import {MODULE_ID, formatCoins, formatPriceCoins, walletCoins, priceCoinsForEntry, PRICE_DENOMINATIONS, emptyShop, hasOwnership, itemPriceCp, moneyTotal, shopData, stockCopy, SALEABLE_TYPES} from "./core.js";
 import {coinEditor,readCoinEditor} from "./coin-inputs.js";
 import {groupItems} from "./categories.js";
 import {isNpcActor} from "./merchant-types.js";
@@ -433,7 +433,7 @@ export class ShopWindow {
         <span>Save quantities, prices and unlimited stock for all items.</span>
         ${button('save-all-stock', '<i class="fas fa-save"></i> Save All', !shop.stock.length ? 'disabled class="ns-save-all"' : 'class="ns-save-all"')}
       </div>
-      <details class="ns-ledger" data-persist="ledger"><summary>Transaction History (${shop.ledger.length})</summary><div class="ns-ledger-toolbar">${button("clear-history", "Clear History", !shop.ledger.length ? "disabled" : "")}</div>${shop.ledger.slice().reverse().map(l => `<div>${esc(l.at?.slice(0,16))}: ${esc(l.actorName)} ${esc(l.kind)} ${esc(l.quantity)} × ${esc(l.itemName)} (${formatCoins(l.totalCp)})</div>`).join('') || 'No transactions yet'}</details>`;
+      <details class="ns-ledger" data-persist="ledger"><summary>Transaction History (${shop.ledger.length})</summary><div class="ns-ledger-toolbar">${button("clear-history", "Clear History", !shop.ledger.length ? "disabled" : "")}</div>${shop.ledger.slice().reverse().map(l => `<div>${esc(l.at?.slice(0,16))}: ${esc(l.actorName)} ${esc(l.kind)} ${esc(l.quantity)} × ${esc(l.itemName)} (${l.priceCoins?formatPriceCoins(l.priceCoins):formatCoins(l.totalCp)})</div>`).join('') || 'No transactions yet'}</details>`;
   }
   bindEvents(el) {
     el.addEventListener("input", e => {
