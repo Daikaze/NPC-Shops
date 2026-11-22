@@ -172,5 +172,5 @@ export function renderMerchantView(w,shop,buyer,label,avatar){
  hero(w,shop,buyer,label,avatar)+tabs(w)+`<main class="ns-content ns-mp-body"><div class="ns-mp-grid">
  ${sidebar(w,entries)}<section class="ns-mp-main" data-scroll-key="catalog">${w.mode==='manage'?settings(w,shop):catalog(w,shop,buyer,entries)}
  <div class="ns-empty ns-no-results" hidden>No items match your search.</div></section>${bill(w,shop,buyer)}
- </div></main><footer>NPC Shops · Foundry v${esc(game.version||game.release?.generation)} · v0.5.8</footer>`;
+ </div></main><footer>NPC Shops · Foundry v${esc(game.version||game.release?.generation)} · v0.5.9</footer>`;
 }
